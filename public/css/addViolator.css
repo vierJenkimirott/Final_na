@@ -1,0 +1,231 @@
+body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #f5f7fa;
+}
+
+.header {
+    background-color: white;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    padding-left: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.content-wrapper {
+    padding: 10px 10px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.back-btn {
+    align-self: flex-start;
+    margin: 20px 0 20px 20px;
+    padding: 12px 24px;
+    background-color: #f8fafc;
+    color: #2c3e50;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.back-btn:hover {
+    background-color: #f1f5f9;
+    transform: translateX(-2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.back-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.form-container {
+    background-color: white;
+    width: 100%;
+    max-width: 600px;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.form-title {
+    color: #1a202c;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 32px;
+    text-align: center;
+}
+
+.violation-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    color: #4a5568;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.form-field {
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    background-color: #fff;
+    width: 100%;
+}
+
+.form-field:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.form-field::placeholder {
+    color: #a0aec0;
+}
+
+/* Select styling */
+select.form-field {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%234a5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+select.form-field:hover {
+    border-color: #4299e1;
+}
+
+/* Date input styling */
+input[type="date"].form-field {
+    cursor: pointer;
+}
+
+input[type="date"].form-field::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+input[type="date"].form-field:hover::-webkit-calendar-picker-indicator {
+    opacity: 1;
+}
+
+.form-actions {
+    display: flex;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.submit-btn {
+    flex: 1;
+    margin-top: 0;
+    padding: 12px 24px;
+    background-color: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.cancel-btn {
+    flex: 1;
+    padding: 12px 24px;
+    background-color: #f8fafc;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+    background-color: #f1f5f9;
+    transform: translateY(-1px);
+}
+
+.cancel-btn:active {
+    transform: translateY(0);
+}
+
+/* Animation for progressive form fields */
+.form-group {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Remove the hidden state styles since we want all fields visible */
+.form-group[style*="display: none"] {
+    display: block !important;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .content-wrapper {
+        padding: 20px 16px;
+    }
+
+    .form-container {
+        padding: 24px;
+    }
+
+    .form-title {
+        font-size: 20px;
+        margin-bottom: 24px;
+    }
+
+    .violation-form {
+        gap: 20px;
+    }
+
+    .form-actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .submit-btn,
+    .cancel-btn {
+        width: 100%;
+    }
+}
+  

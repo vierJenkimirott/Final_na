@@ -1,0 +1,387 @@
+.nav-topbar img {
+    height: 40px;
+}
+
+body {
+    font-family: "Poppins", sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-color: #f5f5f5;
+    .main-content {
+        margin-left: 250px;
+        padding: 20px;
+        padding-top: 80px;
+        min-height: 100vh;
+        width: calc(100% - 250px);
+        background-color: #f5f5f5;
+    }
+}
+
+button{
+    border: none;
+    background: none;
+    color: white;
+    font-size: 18px;
+}
+
+.nav-sidebar .dropdown-container {
+    display: none;
+    background-color: #E88C44;
+    padding-left: 8px;
+  }
+
+.dropdown-container {
+    display: none;
+    background-color: #E88C44;
+    padding-left: 8px;
+}
+
+.nav-sidebar.dropdown-container a {
+    display: block;
+    padding: 5px 0;
+    color: white;
+    text-decoration: none;
+    margin-left: 40px;
+    transition: background-color 0.3s;
+}
+
+.nav-sidebar.dropdown-container a:hover {
+    background-color: #d9762a;
+    text-decoration: none;
+}
+
+.nav-topbar {
+    width: 100%; 
+    height: 60px;
+    background: #55A6F3;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    top: 0;
+    left: 0; 
+    z-index: 3000;
+}
+
+.nav-sidebar {
+    width: 250px;
+    height: 100vh;
+    background: #E88C44;
+    color: #ffffff;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    padding-top: 60px;
+}
+
+.nav-sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-sidebar li {
+    margin: 0;
+    padding: 0;
+}
+
+.nav-sidebar li a {
+    display: flex;
+    padding: 5px 0;
+    color: white;
+    text-decoration: none;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+    position: relative;
+    padding-bottom: 5px;
+    background: none;
+}
+
+.nav-sidebar li.active {
+    background-color: none;
+}
+
+.nav-sidebar li.active a {
+    color: #ffffff;
+}
+
+.nav-sidebar li a:hover {
+    color: white;
+    font-weight: bold;
+}
+
+.nav-sidebar li a::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -5px;
+    left: 0;
+    background-color: #ffc107;
+    transition: width 0.3s ease;
+}
+
+.nav-sidebar li a:hover::after {
+    width: 95%; 
+}
+
+
+.nav-sidebar img, .dropdown-btn img {
+    height: 25px;
+    width: 25px;
+    margin-right: 10px;
+}
+
+/* Dropdown styles */
+.dropdown-icon {
+    margin-left: auto;
+    transition: transform 0.3s;
+}
+
+.dropdown-container a {
+    display: block;
+    padding: 5px 0;
+    color: white;
+    text-decoration: none;
+    margin-left: 50px;
+    transition: all 0.3s ease;
+    position: relative;
+    padding-bottom: 5px;
+}
+
+.dropdown-container a::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -5px;
+    left: 0;
+    background-color: #ffc107;
+    transition: width 0.3s ease;
+}
+
+.dropdown-container a:hover {
+    color: white;
+    font-weight: bold;
+}
+
+.dropdown-container a:hover::after {
+    width: 80%;
+}
+
+.dropdown-container a.active {
+    background-color: #c56a24;
+    font-weight: bold;
+}
+
+.main-content {
+    margin-left: 250px;
+    width: calc(100% - 250px);
+    padding: 1.5rem;
+    margin-top: 60px;
+    background: #f8f9fa;
+    min-height: calc(100vh - 60px);
+}
+
+.card {
+    background: white;
+    border-radius: 8px;
+    border: none;
+    padding: 1.5rem;
+    margin-bottom: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Top stat cards */
+.row:first-of-type .card {
+    padding: 1.25rem;
+}
+
+.title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.number {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-top: 0.5rem;
+}
+
+.icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+/* Chart card */
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.chart-legend {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+/* Card headers */
+h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 1rem;
+}
+
+/* Form select */
+.form-select {
+    width: 200px;
+    padding: 0.5rem 2rem 0.5rem 1rem;
+    font-size: 0.875rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: white;
+    color: #333;
+    cursor: pointer;
+}
+
+/* Violation list */
+.violation-list {
+    margin-top: 1rem;
+}
+
+.violation-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.violation-item p {
+    flex: 1;
+    margin: 0;
+    font-size: 0.875rem;
+    color: #333;
+}
+
+.progress {
+    flex: 2;
+    height: 6px;
+    background: #f0f0f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: #007bff;
+    border-radius: 3px;
+}
+
+.violation-item span {
+    min-width: 24px;
+    text-align: right;
+    font-size: 0.875rem;
+    color: #666;
+}
+
+/* Top violators */
+.violators-list {
+    margin-top: 1rem;
+}
+
+.violator-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.violator-item:last-child {
+    border-bottom: none;
+}
+
+.violator-item img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.violator-item span {
+    font-size: 0.875rem;
+    color: #333;
+}
+
+/* Main content area */
+.main-content {
+    margin-left: 250px;
+    width: calc(100% - 250px);
+    padding: 1.5rem;
+    margin-top: 60px;
+    background: #f8f9fa;
+    min-height: calc(100vh - 60px);
+}
+
+/* Responsive container */
+.container-fluid {
+    padding: 1.5rem;
+}
+
+/* Row spacing */
+.row {
+    margin-left: -1rem;
+    margin-right: -1rem;
+}
+
+.col-md-6, .col-12 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.violation-status-overview-card {
+    height: 400px !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 1rem 1rem 1rem;
+}
+
+.violation-status-overview-card h2 {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.violation-status-overview-card #behaviorChart {
+    max-width: 100%;
+    max-height: 320px;
+}
