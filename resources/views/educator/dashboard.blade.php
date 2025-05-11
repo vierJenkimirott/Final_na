@@ -103,10 +103,18 @@
         background-color: #0d6efd;
         transition: width 0.6s ease;
     }
+    
+    h2{
+        color: #2c3e50;
+        margin-bottom: 2rem;
+        font-size: 2.5rem;
+        font-weight: 600;
+  }
+
 </style>
 
 <!-- Dashboard Header -->
-<h2 class="mb-5">Welcome, {{ Auth::user()->name }}</h2>
+<h2>Hi, {{ Auth::user()->name }}</h2>
 
 <!-- Statistics Cards Row -->
 <div class="row g-3">

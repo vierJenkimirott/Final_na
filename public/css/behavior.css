@@ -15,6 +15,12 @@ body {
 } */
 
 /* Make sure main-content fills space */
+h2 {
+    color: #2c3e50;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    font-weight: 600;
+  }
 .main-content {
     margin-left: 250px;
     width: calc(100% - 250px);
@@ -32,6 +38,7 @@ body {
     padding: 1.5rem;
     margin-bottom: 0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    
 }
 
 /* Top stat cards */
@@ -58,6 +65,14 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+}
+
+.behavior-report {
+    width: 100%;
+    height: auto;
+    padding: 1rem;
+    box-sizing: border-box;
+    background-color: white;
 }
 
 .behavior-labels {
@@ -93,4 +108,9 @@ body {
 .col-md-6, .col-12 {
     padding-left: 1rem;
     padding-right: 1rem;
+}
+
+canvas {
+    max-width: 100%;
+    height: auto;
 }

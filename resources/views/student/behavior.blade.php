@@ -7,8 +7,8 @@
     @endsection
 
 @section('content')
+<h2 style="text-align: left; color: navy;">Behavior Report</h2>
     <div class="container">
-        <h2 style="text-align: left; color: navy;">Behavior Report</h2>
         <div class="filter-buttons">
             <button>12 Months</button>
             <button class="active">6 Months</button>

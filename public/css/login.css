@@ -1,0 +1,96 @@
+body {
+    background: linear-gradient(135deg, #E3F2FD, #F5F5F5); /* Subtle gradient */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: 'Arial', sans-serif; /* Modern font */
+}
+
+.card {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 15px; /* More rounded corners */
+    box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.15); /* Enhanced shadow */
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+    transition: transform 0.3s ease; /* Subtle hover effect */
+}
+
+.card-header {
+    background-color: transparent;
+    border-bottom: none;
+    font-size: 26px; /* Slightly larger font */
+    color: #0073B1;
+    font-weight: bold;
+    margin-bottom: 25px;
+}
+
+.card-header img{
+    max-height: 100px;
+    width: auto;
+}
+
+.card-body form {
+    text-align: left;
+}
+
+.card-body label {
+    display: block;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 5px;
+    font-weight: bold; /* Emphasize labels */
+}
+
+.card-body input {
+    width: 100%;
+    padding: 12px; /* Slightly larger padding */
+    border: 1px solid #D1D5DB;
+    border-radius: 5px; /* Rounded corners */
+    outline: none;
+    margin-bottom: 15px;
+    transition: border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-body input:focus {
+    border: 1px solid #0073B1;
+    box-shadow: 0px 0px 5px rgba(0, 115, 177, 0.5); /* Glow effect */
+}
+
+.card-body input::placeholder {
+    color: #9ca3af;
+    font-style: italic;
+    font-size: 14px;
+    opacity: 1; /* Placeholder color */
+}
+
+button {
+    width: 100%;
+    padding: 12px; /* Larger padding */
+    font-size: 16px;
+    background-color: #0073B1;
+    border: none;
+    border-radius: 5px; /* Rounded corners */
+    color: white;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Button shadow */
+}
+
+button:hover {
+    background-color: #005f91;
+    box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+}
+
+.alert {
+    font-size: 14px;
+    text-align: left;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #FFEBEE; /* Light red background */
+    color: #C62828; /* Dark red text */
+    border: 1px solid #C62828;
+    border-radius: 5px; /* Rounded corners */
+}

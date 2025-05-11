@@ -7,6 +7,7 @@
 @endsection
 
 @section('content')
+<h2 style="text-align: left; color: navy;">Reward Points</h2>
 <div class="balance-box">
     Your behavior points balance <br>
     <span class="points">100 points</span>

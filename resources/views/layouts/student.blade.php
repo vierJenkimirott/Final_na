@@ -39,18 +39,16 @@
         <!-- Sidebar -->
         <div class="nav-sidebar">
             <ul class="list-unstyled">
-                <li class="p-3 {{ request()->routeIs('student.account') ? 'active' : ''}}"><a href="{{ route('student.dashboard') }}" class="text-decoration-none"><img src="{{asset('images/account.png')}}" alt=""> Account</a></li>
                 <li class="p-3 {{ request()->routeIs('student.violation') ? 'active' : ''}}"><a href="{{ route('student.violation') }}" class="text-decoration-none"><img src="{{ asset('images/warning (1).png') }}" alt=""> My Violations</a></li>
                 <li class="p-3 {{ request()->routeIs('student.behavior') ? 'active' : '' }}"><a href="{{ route('student.behavior') }}" class="text-decoration-none"><img src="{{ asset('images/online-report.png') }}" alt=""> My Behavior</a></li>
-                <li class="p-3 {{ request()->routeIs('student.reward') ? 'active' : '' }}"><a href="{{ route('student.reward') }}" class="text-decoration-none"><img src="{{ asset('images/giftbox.png') }}" alt=""> My Reward</a></li>
-                <li class="p-3 {{ request()->routeIs('student-manual') ? 'active' : ''}}"><a href="{{ route('student-manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt=""> Student Violation Manual</a></li>
+                <!-- <li class="p-3 {{ request()->routeIs('student.reward') ? 'active' : '' }}"><a href="{{ route('student.reward') }}" class="text-decoration-none"><img src="{{ asset('images/giftbox.png') }}" alt=""> My Reward</a></li> -->
+                <li class="p-3 {{ request()->routeIs('manual') ? 'active' : ''}}"><a href="{{ route('.manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt=""> Student Violation Manual</a></li>
             </ul>
         </div>
-        <!-- Main Content -->
-        <div class="main-content p-4 w-100">
+    </div>
+    <div class="main-content">
             @yield('content')
         </div>
-    </div>
     @stack('scripts')
 </body>
 </html>

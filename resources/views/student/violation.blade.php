@@ -21,9 +21,8 @@
 @endsection
 
 @section('content')
-<div class="container">
     <h2>Violation History</h2>
-
+<div class="container">
     @if($violations->isEmpty())
         <div class="no-violations">
             <p>No violations found.</p>

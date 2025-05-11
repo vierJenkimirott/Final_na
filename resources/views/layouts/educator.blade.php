@@ -34,8 +34,7 @@
                 <li class="p-3 {{ request()->routeIs('educator.dashboard') ? 'active' : ''}}"><a href="{{ route('educator.dashboard') }}" class="text-decoration-none"><img src="{{asset('images/dashboard.png')}}" alt=""> Dashboard</a></li>
                 <li class="p-3 {{ request()->routeIs('educator.violation') ? 'active' : ''}}"><a href="{{ route('educator.violation') }}" class="text-decoration-none"><img src="{{ asset('images/warning (1).png') }}" alt=""> Violations</a></li>
                 <li class="p-3 {{ request()->routeIs('educator.behavior') ? 'active' : '' }}"><a href="{{ route('educator.behavior') }}" class="text-decoration-none"><img src="{{ asset('images/online-report.png') }}" alt=""> Behavior Monitoring</a></li>
-                <li class="p-3 {{ request()->routeIs('educator.rewards') ? 'active' : '' }}"><a href="{{ route('educator.rewards') }}" class="text-decoration-none"><img src="{{ asset('images/giftbox.png') }}" alt=""> Reward System</a></li>
-                <li class="p-3 {{ request()->routeIs('student.manual') ? 'active' : ''}}"><a href="{{ route('student.manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt=""> Student Violation Manual</a></li>
+                <li class="p-3 {{ request()->routeIs('student-manual') ? 'active' : ''}}"><a href="{{ route('student-manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt=""> Student Violation Manual</a></li>
                 <!-- <div class="dropdown-container">
                     <a href="page2.html">General Behavior</a>
                     <a href="page3.html">Schedules</a>
