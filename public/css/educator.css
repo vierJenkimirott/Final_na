@@ -3,19 +3,20 @@
 }
 
 body {
-    font-family: "Poppins", sans-serif;
+    font-family: 'Arial', sans-serif;
     margin: 0;
     padding: 0;
     min-height: 100vh;
     background-color: #f5f5f5;
-    .main-content {
-        margin-left: 250px;
-        padding: 20px;
-        padding-top: 80px;
-        min-height: 100vh;
-        width: calc(100% - 250px);
-        background-color: #f5f5f5;
-    }
+}
+
+.main-content {
+    margin-left: 250px;
+    padding: 20px;
+    padding-top: 80px;
+    min-height: 100vh;
+    width: calc(100% - 250px);
+    background-color: #f5f5f5;
 }
 
 button{
@@ -178,15 +179,6 @@ button{
     font-weight: bold;
 }
 
-.main-content {
-    margin-left: 250px;
-    width: calc(100% - 250px);
-    padding: 1.5rem;
-    margin-top: 60px;
-    background: #f8f9fa;
-    min-height: calc(100vh - 60px);
-}
-
 .card {
     background: white;
     border-radius: 8px;
@@ -194,6 +186,8 @@ button{
     padding: 1.5rem;
     margin-bottom: 0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    height: 150px;
 }
 
 /* Top stat cards */
@@ -205,6 +199,7 @@ button{
     font-size: 1rem;
     font-weight: 500;
     color: #333;
+    margin-right: auto;
 }
 
 .number {
@@ -218,6 +213,8 @@ button{
     width: 32px;
     height: 32px;
     object-fit: contain;
+    flex-shrink: 0;
+    margin-left: 20rem;
 }
 
 /* Chart card */
@@ -252,12 +249,12 @@ button{
 }
 
 /* Card headers */
-h2 {
+/* h2 {
     font-size: 1.25rem;
     font-weight: 600;
     color: #1a1a1a;
     margin-bottom: 1rem;
-}
+} */
 
 /* Form select */
 .form-select {
@@ -341,14 +338,6 @@ h2 {
 }
 
 /* Main content area */
-.main-content {
-    margin-left: 250px;
-    width: calc(100% - 250px);
-    padding: 1.5rem;
-    margin-top: 60px;
-    background: #f8f9fa;
-    min-height: calc(100vh - 60px);
-}
 
 /* Responsive container */
 .container-fluid {

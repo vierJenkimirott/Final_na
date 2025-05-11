@@ -7,6 +7,7 @@
 
 @section('content')
 
+        <h2>Student Behavior Monitoring</h2>
         <div class="row g-3">
             <div class="col-md-6">
                 <div class="card">

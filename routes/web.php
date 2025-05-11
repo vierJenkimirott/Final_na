@@ -7,6 +7,8 @@ use App\Http\Controllers\RewardController;
 use App\Http\Controllers\ViolationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Student\StudentController;
+use App\Http\Controllers\StudentManualController;
+use App\Http\Controllers\ManualController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -81,12 +83,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reward', [StudentController::class, 'reward'])->name('student.reward');
     
     // Manual routes
-    Route::get('/student-manual', function() {
-        return view('student-manual');
-    })->name('student-manual');
-    Route::get('/student/manual', function() {
-        return view('student.manual');
-    })->name('student.manual');
+    // Route::get('/student-manual', function() {
+    //     return view('student-manual');
+    // })->name('student-manual');
+    // Route::get('/student/manual', function() {
+    //     return view('student.manual');
+    // })->name('student.manual')
+    Route::get('/student-manual', [StudentManualController::class, 'index'])->name('student-manual');
+    Route::get('/manual', [ManualController::class, 'index'])->name('manual');
     
     // Points and redemption routes
     Route::get('/earn-points', [StudentController::class, 'earnPoints'])->name('student.earn_points');

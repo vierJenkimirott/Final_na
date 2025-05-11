@@ -1,124 +1,99 @@
-@extends('layouts.student')
+@extends('layouts.educator')
 
 @section('title', 'Student Violation Manual')
 
 @section('css')
-    <link rel="stylesheet" href="{{ asset('css/student.css') }}">
-    <style>
-        .manual-section {
-            margin-bottom: 30px;
-        }
-        .manual-section h3 {
-            color: #3a3a3a;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        .violation-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .violation-table th, .violation-table td {
-            padding: 12px 15px;
-            border: 1px solid #e0e0e0;
-        }
-        .violation-table thead {
-            background-color: #f8f9fa;
-        }
-        .violation-level-1 {
-            background-color: #fff3cd;
-        }
-        .violation-level-2 {
-            background-color: #ffe5d0;
-        }
-        .violation-level-3 {
-            background-color: #f8d7da;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/student-manual.css') }}">
 @endsection
 
 @section('content')
-<div class="container mt-4">
-    <div class="card">
-        <div class="card-header">
-            <h2>Student Violation Manual</h2>
+    <div class="container">
+        <div class="main-heading">
+            <img src="{{ asset('images/PN-logo-removebg-preview.png') }}" alt="" style="width: 200px; height: 200px; display: block; margin: auto;">
+            <h1 style="text-align: center;">PN Student Violation Manual</h1>
         </div>
-        <div class="card-body">
-            <div class="manual-section">
-                <h3>Introduction</h3>
-                <p>This manual outlines the expected conduct and behavior of all students. It details various violations and their corresponding consequences to ensure a safe, respectful, and productive learning environment.</p>
-            </div>
+        <h2 style="text-align: center;">Empowering Responsible Center Life Through Awareness and Discipline.</h2>
+        <p>Welcome, scholars! This manual helps you understand the rules and expectations while living at the center. Staying informed is the first step to success and harmony!</p>
 
-            <div class="manual-section">
-                <h3>Violation Levels</h3>
-                <p>Violations are categorized into three levels based on their severity:</p>
-                <ul>
-                    <li><strong>Level 1:</strong> Minor infractions that require correction but do not severely impact the learning environment.</li>
-                    <li><strong>Level 2:</strong> Moderate infractions that disrupt the learning environment or show disrespect to others.</li>
-                    <li><strong>Level 3:</strong> Serious infractions that significantly disrupt the learning environment, pose safety risks, or violate important school policies.</li>
-                </ul>
-            </div>
-
-            <div class="manual-section">
-                <h3>Common Violations and Consequences</h3>
-                <table class="violation-table">
+        <div class="violation-table">
+            <h3>Violation Categories and Penalties</h3>
+            
+            @foreach($categories as $index => $category)
+            <div class="category-section">
+                <h4>{{ $index + 1 }}. {{ $category->category_name }}</h4>
+                <table class="table table-bordered">
                     <thead>
                         <tr>
-                            <th>Violation</th>
-                            <th>Level</th>
-                            <th>Consequence</th>
+                            <th>#</th>
+                            <th>Violation Name</th>
+                            <th>Severity</th>
+                            <th>Offenses</th>
+                            <th>Penalties</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr class="violation-level-1">
-                            <td>Tardiness</td>
-                            <td>1</td>
-                            <td>Warning, point deduction</td>
+                        @foreach($category->violationTypes as $typeIndex => $type)
+                        <tr>
+                            <td>{{ $index + 1 }}.{{ $typeIndex + 1 }}</td>
+                            <td>{{ $type->violation_name }}</td>
+                            <td>
+                                @switch($type->default_penalty)
+                                    @case('W')
+                                        Low
+                                        @break
+                                    @case('VW')
+                                        Medium
+                                        @break
+                                    @case('WW')
+                                        High
+                                        @break
+                                    @case('Pro')
+                                        High
+                                        @break
+                                    @case('Exp')
+                                        Very High
+                                        @break
+                                    @default
+                                        Medium
+                                @endswitch
+                            </td>
+                            <td>
+                                1st, 2nd, 3rd
+                            </td>
+                            <td>
+                                @switch($type->default_penalty)
+                                    @case('W')
+                                        1st: Warning<br>
+                                        2nd: Verbal Warning<br>
+                                        3rd: Written Warning
+                                        @break
+                                    @case('VW')
+                                        1st: Verbal Warning<br>
+                                        2nd: Written Warning<br>
+                                        3rd: Probation
+                                        @break
+                                    @case('WW')
+                                        1st: Written Warning<br>
+                                        2nd: Probation<br>
+                                        3rd: Expulsion
+                                        @break
+                                    @case('Pro')
+                                        1st: Probation<br>
+                                        2nd: Expulsion
+                                        @break
+                                    @case('Exp')
+                                        Immediate Expulsion
+                                        @break
+                                    @default
+                                        {{ $type->default_penalty }}
+                                @endswitch
+                            </td>
                         </tr>
-                        <tr class="violation-level-1">
-                            <td>Dress code violation</td>
-                            <td>1</td>
-                            <td>Warning, point deduction</td>
-                        </tr>
-                        <tr class="violation-level-2">
-                            <td>Disruptive behavior in class</td>
-                            <td>2</td>
-                            <td>Point deduction, parent notification</td>
-                        </tr>
-                        <tr class="violation-level-2">
-                            <td>Unauthorized use of electronic devices</td>
-                            <td>2</td>
-                            <td>Device confiscation, point deduction</td>
-                        </tr>
-                        <tr class="violation-level-3">
-                            <td>Academic dishonesty</td>
-                            <td>3</td>
-                            <td>Zero on assignment, parent conference, possible suspension</td>
-                        </tr>
-                        <tr class="violation-level-3">
-                            <td>Bullying or harassment</td>
-                            <td>3</td>
-                            <td>Suspension, mandatory counseling, parent conference</td>
-                        </tr>
+                        @endforeach
                     </tbody>
                 </table>
             </div>
-
-            <div class="manual-section">
-                <h3>Reporting Process</h3>
-                <p>Violations are reported by staff members and processed through the school's behavior management system. Students will be notified of reported violations and have the opportunity to discuss them with appropriate staff members.</p>
-            </div>
-
-            <div class="manual-section">
-                <h3>Appeal Process</h3>
-                <p>Students who believe a violation was incorrectly reported may appeal through the following process:</p>
-                <ol>
-                    <li>Submit a written appeal to the student affairs office within 3 days of the violation notification.</li>
-                    <li>Meet with the designated staff member to discuss the appeal.</li>
-                    <li>If necessary, a review committee will evaluate the appeal and make a final determination.</li>
-                </ol>
-            </div>
+            @endforeach
         </div>
     </div>
-</div>
 @endsection

@@ -41,7 +41,7 @@
 
 @section('content')
     <!-- Page Header -->
-    <h2>Violation</h2>
+    <h2>Manage Student Violation</h2>
 
     <main>
         <!-- Action Buttons Section -->
