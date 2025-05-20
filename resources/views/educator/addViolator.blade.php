@@ -355,10 +355,90 @@
             console.log('Response data:', result);
 
             if (result.success) {
-                // Show success message
-                alert('Violation recorded successfully!');
-                // Redirect to violations list
-                window.location.href = '{{ route("educator.violation") }}';
+                // Create a more detailed success message
+                const successMessage = `
+                    <div style="padding: 20px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; margin-bottom: 20px;">
+                        <h4 style="color: #155724; margin-top: 0;">✅ ${result.message}</h4>
+                        <p style="margin-bottom: 10px;">${result.details || ''}</p>
+                        <p>The student can now view this violation in their violation history.</p>
+                    </div>
+                `;
+                
+                // Create a modal to show the success message
+                const modal = document.createElement('div');
+                modal.style.position = 'fixed';
+                modal.style.top = '0';
+                modal.style.left = '0';
+                modal.style.width = '100%';
+                modal.style.height = '100%';
+                modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                modal.style.display = 'flex';
+                modal.style.justifyContent = 'center';
+                modal.style.alignItems = 'center';
+                modal.style.zIndex = '9999';
+                
+                const modalContent = document.createElement('div');
+                modalContent.style.backgroundColor = 'white';
+                modalContent.style.padding = '30px';
+                modalContent.style.borderRadius = '5px';
+                modalContent.style.maxWidth = '500px';
+                modalContent.style.width = '90%';
+                modalContent.innerHTML = `
+                    ${successMessage}
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button id="viewViolationsBtn" style="margin-right: 10px; padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">View All Violations</button>
+                        <button id="addAnotherBtn" style="padding: 8px 16px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Add Another</button>
+                    </div>
+                `;
+                
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+                
+                // Add event listeners to the buttons
+                document.getElementById('viewViolationsBtn').addEventListener('click', () => {
+                    window.location.href = '{{ route("educator.violation") }}';
+                });
+                
+                document.getElementById('addAnotherBtn').addEventListener('click', () => {
+                    modal.remove();
+                    document.getElementById('violatorForm').reset();
+                    // Reset select2 dropdowns if they exist
+                    if (typeof $('#student-select').select2 === 'function') {
+                        $('#student-select').val('').trigger('change');
+                    }
+                });
+                
+                // Dispatch a custom event to notify the behavior chart of the new violation
+                if (result.realTimeUpdate) {
+                    // Create and dispatch the violationAdded event
+                    const violationAddedEvent = new CustomEvent('violationAdded', {
+                        detail: {
+                            violationId: result.violationId,
+                            studentId: result.studentId,
+                            month: result.month,
+                            severity: formData.severity,
+                            sex: result.sex,
+                            date: formData.violation_date
+                        },
+                        bubbles: true
+                    });
+                    
+                    // Dispatch the event
+                    window.dispatchEvent(violationAddedEvent);
+                    console.log('Violation added event dispatched:', violationAddedEvent);
+                    
+                    // Store the update info in localStorage so the behavior page can detect it when loaded
+                    // This helps when the behavior page is not currently open but will be opened later
+                    localStorage.setItem('behavior_update', JSON.stringify({
+                        timestamp: new Date().getTime(),
+                        violationId: result.violationId,
+                        studentId: result.studentId,
+                        month: result.month,
+                        severity: formData.severity,
+                        sex: result.sex,
+                        date: formData.violation_date
+                    }));
+                }
             } else {
                 // Show error message with details
                 alert('Error: ' + (result.message || 'Unknown error occurred'));

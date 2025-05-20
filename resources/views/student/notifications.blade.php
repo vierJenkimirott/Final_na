@@ -31,11 +31,14 @@
                 <div class="card-body">
                     @if(count($notifications ?? []) > 0)
                         @foreach($notifications as $notification)
-                            <div class="card notification-card {{ $notification->read_at ? '' : 'unread' }}">
+                            <div class="card notification-card {{ $notification->is_read ? '' : 'unread' }}">
                                 <div class="card-body">
-                                    <h5 class="card-title">{{ $notification->data['title'] ?? 'Notification' }}</h5>
-                                    <p class="card-text">{{ $notification->data['message'] ?? 'No message content' }}</p>
+                                    <h5 class="card-title">{{ $notification->title }}</h5>
+                                    <p class="card-text">{{ $notification->message }}</p>
                                     <p class="notification-time">{{ $notification->created_at->diffForHumans() }}</p>
+                                    @if($notification->type == 'violation')
+                                        <a href="{{ route('student.violation') }}" class="btn btn-sm btn-primary">View Violation</a>
+                                    @endif
                                 </div>
                             </div>
                         @endforeach

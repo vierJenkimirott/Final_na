@@ -21,6 +21,8 @@ class UserTableSeeder extends Seeder
             ['email' => 'admin@example.com'],
             [
                 'name' => 'Admin User',
+                'sex' => 'male', // Default sex for admin
+                'gender' => 'male', // For backward compatibility
                 'password' => Hash::make('password123')
             ]
         );
@@ -31,14 +33,18 @@ class UserTableSeeder extends Seeder
         // Create educator users
         $educators = [
             [
-                'name' => 'Charwel Glera ',
+                'name' => 'Charwel Glera',
                 'email' => 'educator1@example.com',
-                'password' => 'password123'
+                'password' => 'password123',
+                'sex' => 'male',
+                'gender' => 'male' // For backward compatibility
             ],
             [
                 'name' => 'Jane Tumulak',
                 'email' => 'educator2@example.com',
-                'password' => 'password123'
+                'password' => 'password123',
+                'sex' => 'female',
+                'gender' => 'female' // For backward compatibility
             ]
         ];
 
@@ -47,6 +53,8 @@ class UserTableSeeder extends Seeder
                 ['email' => $educator['email']],
                 [
                     'name' => $educator['name'],
+                    'sex' => $educator['sex'],
+                    'gender' => $educator['gender'], // For backward compatibility
                     'password' => Hash::make($educator['password'])
                 ]
             );
@@ -63,7 +71,9 @@ class UserTableSeeder extends Seeder
                 'lname' => 'Montano',
                 'student_id' => 'S2025001',
                 'email' => 'student1@example.com',
-                'password' => 'password123'
+                'password' => 'password123',
+                'sex' => 'female',
+                'gender' => 'female' // For backward compatibility
             ],
             [
                 'name' => 'Angelo Parrocho',
@@ -71,7 +81,9 @@ class UserTableSeeder extends Seeder
                 'lname' => 'Parrocho',
                 'student_id' => 'S2025002',
                 'email' => 'student2@example.com',
-                'password' => 'password123'
+                'password' => 'password123',
+                'sex' => 'male',
+                'gender' => 'male' // For backward compatibility
             ],
             [
                 'name' => 'Jasper Drake',
@@ -79,7 +91,9 @@ class UserTableSeeder extends Seeder
                 'lname' => 'Drake',
                 'student_id' => 'S2025003',
                 'email' => 'student3@example.com',
-                'password' => 'password123'
+                'password' => 'password123',
+                'sex' => 'male',
+                'gender' => 'male' // For backward compatibility
             ],
             [
                 'name' => 'Sarah Jumuad',
@@ -87,7 +101,9 @@ class UserTableSeeder extends Seeder
                 'lname' => 'Jumuad',
                 'student_id' => 'S2025004',
                 'email' => 'student4@example.com',
-                'password' => 'password123'
+                'password' => 'password123',
+                'sex' => 'female',
+                'gender' => 'female' // For backward compatibility
             ],
             [
                 'name' => 'Dion Paner',
@@ -95,7 +111,59 @@ class UserTableSeeder extends Seeder
                 'lname' => 'Paner',
                 'student_id' => 'S2025005',
                 'email' => 'student5@example.com',
-                'password' => 'password123'
+                'password' => 'password123',
+                'sex' => 'male',
+                'gender' => 'male' // For backward compatibility
+            ],
+            [
+                'name' => 'Micheal Jovita',
+                'fname' => 'Micheal',
+                'lname' => 'Jovita',
+                'student_id' => 'S2025006',
+                'email' => 'student6@example.com',
+                'password' => 'password123',
+                'sex' => 'male',
+                'gender' => 'male' // For backward compatibility
+            ],
+            [
+                'name' => 'Junrel Ejurango',
+                'fname' => 'Junrel',
+                'lname' => 'Ejurango',
+                'student_id' => 'S2025007',
+                'email' => 'student7@example.com',
+                'password' => 'password123',
+                'sex' => 'male',
+                'gender' => 'male' // For backward compatibility
+            ],
+            [
+                'name' => 'Nicole Oco',
+                'fname' => 'Nicole',
+                'lname' => 'Oco',
+                'student_id' => 'S2025008',
+                'email' => 'student8@example.com',
+                'password' => 'password123',
+                'sex' => 'female',
+                'gender' => 'female' // For backward compatibility
+            ],
+            [
+                'name' => 'Lotchene Balcorza',
+                'fname' => 'Lotchene',
+                'lname' => 'Balcorza',
+                'student_id' => 'S2025009',
+                'email' => 'student9@example.com',
+                'password' => 'password123',
+                'sex' => 'female',
+                'gender' => 'female' // For backward compatibility
+            ],
+            [
+                'name' => 'Marie Dasian',
+                'fname' => 'Marie',
+                'lname' => 'Dasian',
+                'student_id' => 'S2025010',
+                'email' => 'student10@example.com',
+                'password' => 'password123',
+                'sex' => 'female',
+                'gender' => 'female' // For backward compatibility
             ]
         ];
 
@@ -107,6 +175,8 @@ class UserTableSeeder extends Seeder
                     'fname' => $student['fname'],
                     'lname' => $student['lname'],
                     'student_id' => $student['student_id'],
+                    'sex' => $student['sex'],
+                    'gender' => $student['gender'], // For backward compatibility
                     'password' => Hash::make($student['password'])
                 ]
             );

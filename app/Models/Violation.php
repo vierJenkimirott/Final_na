@@ -11,6 +11,7 @@ class Violation extends Model
 
     protected $fillable = [
         'student_id',
+        'sex',
         'violation_date',
         'violation_type_id',
         'severity',

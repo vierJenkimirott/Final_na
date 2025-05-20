@@ -25,6 +25,8 @@ class User extends Authenticatable
         'student_id',
         'email',
         'password',
+        'gender', // Keeping for backward compatibility
+        'sex',
     ];
 
     /**

@@ -165,7 +165,7 @@
             <input type="text" id="searchInput" class="search-input" placeholder="Search students...">
         </div>
         
-        @if(count($students) > 0)
+        @if(isset($violations) && count($violations) > 0)
             <table class="students-table">
                 <thead>
                     <tr>
@@ -176,41 +176,39 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($students as $student)
-                        @foreach($student->violations as $violation)
-                            <tr>
-                                <td>{{ $student->fname }} {{ $student->lname }}</td>
-                                <td>
-                                    @if($violation->violationType)
-                                        {{ $violation->violationType->violation_name }}
-                                    @else
-                                        <span class="text-danger">N/A</span>
-                                    @endif
-                                </td>
-                                <td>{{ \Carbon\Carbon::parse($violation->violation_date)->format('M d, Y') }}</td>
-                                <td>
-                                    <span class="penalty-badge penalty-{{ $violation->penalty }}">
-                                        @switch($violation->penalty)
-                                            @case('W')
-                                                Warning
-                                                @break
-                                            @case('VW')
-                                                Verbal Warning
-                                                @break
-                                            @case('WW')
-                                                Written Warning
-                                                @break
-                                            @case('Pro')
-                                                Probation
-                                                @break
-                                            @case('Exp')
-                                                Expulsion
-                                                @break
-                                        @endswitch
-                                    </span>
-                                </td>
-                            </tr>
-                        @endforeach
+                    @foreach($violations as $violation)
+                        <tr>
+                            <td>{{ $violation->student->fname ?? '' }} {{ $violation->student->lname ?? '' }}</td>
+                            <td>
+                                @if($violation->violationType)
+                                    {{ $violation->violationType->violation_name }}
+                                @else
+                                    <span class="text-danger">N/A</span>
+                                @endif
+                            </td>
+                            <td>{{ \Carbon\Carbon::parse($violation->violation_date)->format('M d, Y') }}</td>
+                            <td>
+                                <span class="penalty-badge penalty-{{ $violation->penalty }}">
+                                    @switch($violation->penalty)
+                                        @case('W')
+                                            Warning
+                                            @break
+                                        @case('VW')
+                                            Verbal Warning
+                                            @break
+                                        @case('WW')
+                                            Written Warning
+                                            @break
+                                        @case('Pro')
+                                            Probation
+                                            @break
+                                        @case('Exp')
+                                            Expulsion
+                                            @break
+                                    @endswitch
+                                </span>
+                            </td>
+                        </tr>
                     @endforeach
                 </tbody>
             </table>

@@ -19,44 +19,78 @@
         <div class="form-container">
             <h2 class="form-title">Add New Violation</h2>
             
+            @if(session('error'))
+                <div class="alert alert-danger">
+                    {{ session('error') }}
+                </div>
+            @endif
+            
             <!-- Violation Form -->
-            <form id="violationForm" class="violation-form">
+            <form id="violationForm" class="violation-form" method="POST" action="{{ route('educator.add-violation-type') }}">
+                @csrf
                 <!-- Violation Name Input -->
                 <div class="form-group">
-                    <label for="violationName">Violation Name</label>
-                    <input type="text" class="form-field" id="violationName" placeholder="Enter violation name" required/>
+                    <label for="violation_name">Violation Name</label>
+                    <input type="text" class="form-field" id="violation_name" name="violation_name" placeholder="Enter violation name" required/>
+                    @error('violation_name')
+                        <div class="text-danger">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <!-- Category Selection -->
                 <div class="form-group">
                     <label for="category">Category</label>
-                    <select class="form-field" id="category" required>
+                    <select class="form-field" id="category" name="category" required>
                         <option value="" selected disabled>Select Category</option>
+                        @foreach($categories ?? [] as $category)
+                            <option value="{{ $category->category_name }}">{{ $category->category_name }}</option>
+                        @endforeach
                     </select>
+                    @error('category')
+                        <div class="text-danger">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <!-- Severity Selection -->
                 <div class="form-group">
                     <label for="severity">Severity</label>
-                    <select class="form-field" id="severity" required>
+                    <select class="form-field" id="severity" name="severity" required>
                         <option value="" selected disabled>Select Severity</option>
+                        @foreach(['Low', 'Medium', 'High', 'Very High'] as $severity)
+                            <option value="{{ $severity }}">{{ $severity }}</option>
+                        @endforeach
                     </select>
+                    @error('severity')
+                        <div class="text-danger">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <!-- Offense Selection -->
                 <div class="form-group">
                     <label for="offense">Offense</label>
-                    <select class="form-field" id="offense" required>
+                    <select class="form-field" id="offense" name="offense" required>
                         <option value="" selected disabled>Select Offense</option>
+                        @foreach(['1st', '2nd', '3rd'] as $offense)
+                            <option value="{{ $offense }}">{{ $offense }} Offense</option>
+                        @endforeach
                     </select>
+                    @error('offense')
+                        <div class="text-danger">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <!-- Penalty Selection -->
                 <div class="form-group">
                     <label for="penalty">Penalty</label>
-                    <select class="form-field" id="penalty" required>
+                    <select class="form-field" id="penalty" name="penalty" required>
                         <option value="" selected disabled>Select Penalty</option>
+                        @foreach([['value' => 'W', 'label' => 'Warning'], ['value' => 'VW', 'label' => 'Verbal Warning'], ['value' => 'WW', 'label' => 'Written Warning'], ['value' => 'Pro', 'label' => 'Probation'], ['value' => 'Exp', 'label' => 'Expulsion']] as $penalty)
+                            <option value="{{ $penalty['value'] }}">{{ $penalty['label'] }}</option>
+                        @endforeach
                     </select>
+                    @error('penalty')
+                        <div class="text-danger">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <!-- Form Action Buttons -->
@@ -84,117 +118,6 @@
 
     document.querySelector('.cancel-btn').addEventListener('click', () => {
         window.history.back();
-    });
-
-    // =============================================
-    // Form Data Fetching
-    // =============================================
-    /**
-     * Fetch and populate form data from the backend
-     * Populates categories, severities, offenses, and penalties
-     */
-    async function fetchFormData() {
-        try {
-            const response = await fetch('{{ route("educator.violation-form-data") }}');
-            const result = await response.json();
-
-            if (result.success) {
-                const { categories, severities, offenses, penalties } = result.data;
-
-                // Populate categories
-                const categorySelect = document.getElementById('category');
-                categories.forEach(category => {
-                    const option = document.createElement('option');
-                    option.value = category.category_name;
-                    option.textContent = category.category_name;
-                    categorySelect.appendChild(option);
-                });
-
-                // Populate severities
-                const severitySelect = document.getElementById('severity');
-                severities.forEach(severity => {
-                    const option = document.createElement('option');
-                    option.value = severity;
-                    option.textContent = severity;
-                    severitySelect.appendChild(option);
-                });
-
-                // Populate offenses
-                const offenseSelect = document.getElementById('offense');
-                offenses.forEach(offense => {
-                    const option = document.createElement('option');
-                    option.value = offense;
-                    option.textContent = offense + ' Offense';
-                    offenseSelect.appendChild(option);
-                });
-
-                // Populate penalties
-                const penaltySelect = document.getElementById('penalty');
-                penalties.forEach(penalty => {
-                    const option = document.createElement('option');
-                    option.value = penalty.value;
-                    option.textContent = penalty.label;
-                    penaltySelect.appendChild(option);
-                });
-            } else {
-                console.error('Error fetching form data:', result.message);
-                alert('Error loading form data. Please refresh the page.');
-            }
-        } catch (error) {
-            console.error('Error fetching form data:', error);
-            alert('Error loading form data. Please refresh the page.');
-        }
-    }
-
-    // Initialize form data when the page loads
-    document.addEventListener('DOMContentLoaded', fetchFormData);
-
-    // =============================================
-    // Form Submission Handler
-    // =============================================
-    /**
-     * Handle form submission
-     * Collects form data and sends it to the backend
-     */
-    document.getElementById('violationForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        // Get form data
-        const formData = {
-            violation_name: document.getElementById('violationName').value,
-            category: document.getElementById('category').value,
-            severity: document.getElementById('severity').value,
-            offense: document.getElementById('offense').value,
-            penalty: document.getElementById('penalty').value
-        };
-
-        try {
-            // Send data to backend
-            const response = await fetch('{{ route("educator.add-violation-type") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                // Show success message
-                alert('Violation type added successfully!');
-                // Redirect to violations list
-                window.location.href = '{{ route("educator.violation") }}';
-            } else {
-                // Show error message
-                alert('Error: ' + (result.message || 'Unknown error occurred'));
-            }
-        } catch (error) {
-            console.error('Error submitting form:', error);
-            alert('An error occurred while submitting the form. Please try again.');
-        }
     });
 </script>
 @endpush

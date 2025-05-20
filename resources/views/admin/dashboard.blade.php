@@ -117,14 +117,6 @@
             <h3>{{ $totalViolations }}</h3>
         </div>
     </div>
-
-    <!-- Rewards Card -->
-    <div class="col-md-6">
-        <div class="card">
-            <p class="title">Reward <img src="{{ asset('images/medal-removebg-preview.png') }}" alt="" class="icon"></p>
-            <h3>156</h3>
-        </div>
-    </div>
 </div>
 
 <!-- Charts and Reports Row -->

@@ -71,17 +71,11 @@ class AuthController extends Controller
             case 'educator':
                 return redirect()->intended(route('educator.dashboard'));
             case 'student':
-                return redirect()->intended(route('student.dashboard'));
+                return redirect('/student/violation');
             default:
                 return redirect('/login');
         }
     }
     
-    /**
-     * Display notifications
-     */
-    public function notifications()
-    {
-        return view('student.notifications', ['unreadCount' => 0]);
-    }
+
 }
