@@ -22,7 +22,16 @@
             <!-- Violation Form -->
             <form id="violatorForm" class="violation-form" method="POST" action="{{ route('educator.add-violator') }}">
                 @csrf
-                <meta name="csrf-token" content="{{ csrf_token() }}">
+                <!-- Display validation errors if any -->
+                @if ($errors->any())
+                <div class="alert alert-danger">
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
                 <!-- Student Selection -->
                 <div class="form-group">
                     <label for="student-select">Student</label>
@@ -41,7 +50,7 @@
                 <!-- Violation Date -->
                 <div class="form-group">
                     <label for="violation-date">Violation Date</label>
-                    <input type="date" class="form-field" id="violation-date" required />
+                    <input type="date" class="form-field" id="violation-date" name="violation_date" required />
                 </div>
 
                 <!-- Violation Category -->
@@ -66,7 +75,7 @@
                 <!-- Severity Selection -->
                 <div class="form-group" id="severity-group">
                     <label for="severity">Severity</label>
-                    <select class="form-field" id="severity" required>
+                    <select class="form-field" id="severity" name="severity" required>
                         <option value="" selected disabled>Select Severity</option>
                         @if(isset($severities) && count($severities) > 0)
                             @foreach($severities as $severity)
@@ -79,7 +88,7 @@
                 <!-- Offense Selection -->
                 <div class="form-group" id="offense-group">
                     <label for="offense">Offense</label>
-                    <select class="form-field" id="offense" required>
+                    <select class="form-field" id="offense" name="offense" required>
                         <option value="" selected disabled>Select Offense</option>
                         @if(isset($offenses) && count($offenses) > 0)
                             @foreach($offenses as $offense)
@@ -92,7 +101,7 @@
                 <!-- Penalty Selection -->
                 <div class="form-group" id="penalty-group">
                     <label for="penalty">Penalty</label>
-                    <select class="form-field" id="penalty" required>
+                    <select class="form-field" id="penalty" name="penalty" required>
                         <option value="" selected disabled>Select Penalty</option>
                         @if(isset($penalties) && count($penalties) > 0)
                             @foreach($penalties as $penalty)
@@ -105,8 +114,11 @@
                 <!-- Consequence Input -->
                 <div class="form-group" id="consequence-group">
                     <label for="consequence">Consequence</label>
-                    <input type="text" class="form-field" id="consequence" placeholder="Enter consequence" required />
+                    <input type="text" class="form-field" id="consequence" name="consequence" placeholder="Enter consequence" required />
                 </div>
+                
+                <!-- Hidden Status Field -->
+                <input type="hidden" name="status" value="active" />
 
                 <!-- Form Action Buttons -->
                 <div class="form-actions">
@@ -203,15 +215,25 @@
     document.getElementById('violation-type').addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
         console.log('Selected violation:', selectedOption);
-        const severity = selectedOption.dataset.severity;
+        let severity = selectedOption.dataset.severity;
         console.log('Severity from data attribute:', severity);
         
-        // Set the severity automatically without disabling the dropdown
-        const severitySelect = document.getElementById('severity');
+        // Capitalize first letter for consistency
         if (severity) {
-            severitySelect.value = severity;
-            // Keep the dropdown visible and enabled
-            // severitySelect.disabled = true; - removing this line
+            // Convert severity to proper format (capitalize first letter of each word)
+            severity = severity.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+            console.log('Formatted severity:', severity);
+            
+            // Set the severity in the dropdown
+            const severitySelect = document.getElementById('severity');
+            
+            // Find the matching option (case-insensitive)
+            for (let i = 0; i < severitySelect.options.length; i++) {
+                if (severitySelect.options[i].value.toLowerCase() === severity.toLowerCase()) {
+                    severitySelect.selectedIndex = i;
+                    break;
+                }
+            }
             
             // Update offense options based on severity
             updateOffenseOptions(severity);
@@ -239,31 +261,37 @@
         const offenseSelect = document.getElementById('offense');
         offenseSelect.innerHTML = '<option value="" selected disabled>Select Offense</option>';
         
-        if (severity === 'Low') {
+        // Normalize severity for case-insensitive comparison
+        const normalizedSeverity = severity.toLowerCase();
+        
+        if (normalizedSeverity === 'low') {
             offenseSelect.innerHTML += `
                 <option value="1st">1st Offense</option>
                 <option value="2nd">2nd Offense</option>
                 <option value="3rd">3rd Offense</option>
             `;
-        } else if (severity === 'Medium') {
+        } else if (normalizedSeverity === 'medium') {
             offenseSelect.innerHTML += `
                 <option value="1st">1st Offense</option>
                 <option value="2nd">2nd Offense</option>
                 <option value="3rd">3rd Offense</option>
             `;
-        } else if (severity === 'High') {
+        } else if (normalizedSeverity === 'high') {
             offenseSelect.innerHTML += `
                 <option value="1st">1st Offense</option>
                 <option value="2nd">2nd Offense</option>
                 <option value="3rd">3rd Offense</option>
             `;
-        } else if (severity === 'Very High') {
+        } else if (normalizedSeverity === 'very high') {
             offenseSelect.innerHTML += `
                 <option value="1st">1st Offense</option>
             `;
         } else {
+            // Default case - show all options
             offenseSelect.innerHTML += `
                 <option value="1st">1st Offense</option>
+                <option value="2nd">2nd Offense</option>
+                <option value="3rd">3rd Offense</option>
             `;
         }
     }
@@ -277,7 +305,10 @@
         const penaltySelect = document.getElementById('penalty');
         penaltySelect.innerHTML = '<option value="" selected disabled>Select Penalty</option>';
         
-        if (severity === 'Low') {
+        // Normalize severity for case-insensitive comparison
+        const normalizedSeverity = severity.toLowerCase();
+        
+        if (normalizedSeverity === 'low') {
             if (offense === '1st') {
                 penaltySelect.innerHTML += `<option value="W">Warning</option>`;
             } else if (offense === '2nd') {
@@ -285,7 +316,7 @@
             } else if (offense === '3rd') {
                 penaltySelect.innerHTML += `<option value="WW">Written Warning</option>`;
             }
-        } else if (severity === 'Medium') {
+        } else if (normalizedSeverity === 'medium') {
             if (offense === '1st') {
                 penaltySelect.innerHTML += `<option value="VW">Verbal Warning</option>`;
             } else if (offense === '2nd') {
@@ -293,7 +324,7 @@
             } else if (offense === '3rd') {
                 penaltySelect.innerHTML += `<option value="Pro">Probation</option>`;
             }
-        } else if (severity === 'High') {
+        } else if (normalizedSeverity === 'high') {
             if (offense === '1st') {
                 penaltySelect.innerHTML += `<option value="WW">Written Warning</option>`;
             } else if (offense === '2nd') {
@@ -301,12 +332,15 @@
             } else if (offense === '3rd') {
                 penaltySelect.innerHTML += `<option value="Exp">Expulsion</option>`;
             }
-        } else if (severity === 'Very High') {
+        } else if (normalizedSeverity === 'very high') {
             if (offense === '1st') {
-                penaltySelect.innerHTML += `<option value="Pro">Expulsion</option>`;
+                penaltySelect.innerHTML += `<option value="Exp">Expulsion</option>`;
             }
         } else {
+            // Default case - show all penalties
             penaltySelect.innerHTML += `
+                <option value="W">Warning</option>
+                <option value="VW">Verbal Warning</option>
                 <option value="WW">Written Warning</option>
                 <option value="Pro">Probation</option>
                 <option value="Exp">Expulsion</option>
@@ -314,139 +348,31 @@
         }
     }
 
-    // =============================================
-    // Form Submission Handler
-    // =============================================
-    /**
-     * Handle form submission
-     * Collects form data and sends it to the backend
-     */
-    document.getElementById('violatorForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
+    // Add a hidden status field to the form
+    const statusField = document.createElement('input');
+    statusField.type = 'hidden';
+    statusField.name = 'status';
+    statusField.value = 'active';
+    document.getElementById('violatorForm').appendChild(statusField);
+    
+    // Validate form before submission
+    document.getElementById('violatorForm').addEventListener('submit', function(e) {
+        const studentId = document.getElementById('student-select').value;
+        const violationDate = document.getElementById('violation-date').value;
+        const violationType = document.getElementById('violation-type').value;
+        const severity = document.getElementById('severity').value;
+        const offense = document.getElementById('offense').value;
+        const penalty = document.getElementById('penalty').value;
+        const consequence = document.getElementById('consequence').value;
         
-        // Get form data
-        const formData = {
-            student_id: document.getElementById('student-select').value,
-            violation_date: document.getElementById('violation-date').value,
-            violation_type_id: document.getElementById('violation-type').value,
-            severity: document.getElementById('severity').value,
-            offense: document.getElementById('offense').value,
-            penalty: document.getElementById('penalty').value,
-            consequence: document.getElementById('consequence').value
-        };
-
-        try {
-            console.log('Submitting form data:', formData);
-            
-            // Send data to backend
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            const response = await fetch('{{ route("educator.add-violator") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            });
-
-            console.log('Response status:', response.status);
-            const result = await response.json();
-            console.log('Response data:', result);
-
-            if (result.success) {
-                // Create a more detailed success message
-                const successMessage = `
-                    <div style="padding: 20px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; margin-bottom: 20px;">
-                        <h4 style="color: #155724; margin-top: 0;">✅ ${result.message}</h4>
-                        <p style="margin-bottom: 10px;">${result.details || ''}</p>
-                        <p>The student can now view this violation in their violation history.</p>
-                    </div>
-                `;
-                
-                // Create a modal to show the success message
-                const modal = document.createElement('div');
-                modal.style.position = 'fixed';
-                modal.style.top = '0';
-                modal.style.left = '0';
-                modal.style.width = '100%';
-                modal.style.height = '100%';
-                modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
-                modal.style.display = 'flex';
-                modal.style.justifyContent = 'center';
-                modal.style.alignItems = 'center';
-                modal.style.zIndex = '9999';
-                
-                const modalContent = document.createElement('div');
-                modalContent.style.backgroundColor = 'white';
-                modalContent.style.padding = '30px';
-                modalContent.style.borderRadius = '5px';
-                modalContent.style.maxWidth = '500px';
-                modalContent.style.width = '90%';
-                modalContent.innerHTML = `
-                    ${successMessage}
-                    <div style="display: flex; justify-content: flex-end;">
-                        <button id="viewViolationsBtn" style="margin-right: 10px; padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">View All Violations</button>
-                        <button id="addAnotherBtn" style="padding: 8px 16px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Add Another</button>
-                    </div>
-                `;
-                
-                modal.appendChild(modalContent);
-                document.body.appendChild(modal);
-                
-                // Add event listeners to the buttons
-                document.getElementById('viewViolationsBtn').addEventListener('click', () => {
-                    window.location.href = '{{ route("educator.violation") }}';
-                });
-                
-                document.getElementById('addAnotherBtn').addEventListener('click', () => {
-                    modal.remove();
-                    document.getElementById('violatorForm').reset();
-                    // Reset select2 dropdowns if they exist
-                    if (typeof $('#student-select').select2 === 'function') {
-                        $('#student-select').val('').trigger('change');
-                    }
-                });
-                
-                // Dispatch a custom event to notify the behavior chart of the new violation
-                if (result.realTimeUpdate) {
-                    // Create and dispatch the violationAdded event
-                    const violationAddedEvent = new CustomEvent('violationAdded', {
-                        detail: {
-                            violationId: result.violationId,
-                            studentId: result.studentId,
-                            month: result.month,
-                            severity: formData.severity,
-                            sex: result.sex,
-                            date: formData.violation_date
-                        },
-                        bubbles: true
-                    });
-                    
-                    // Dispatch the event
-                    window.dispatchEvent(violationAddedEvent);
-                    console.log('Violation added event dispatched:', violationAddedEvent);
-                    
-                    // Store the update info in localStorage so the behavior page can detect it when loaded
-                    // This helps when the behavior page is not currently open but will be opened later
-                    localStorage.setItem('behavior_update', JSON.stringify({
-                        timestamp: new Date().getTime(),
-                        violationId: result.violationId,
-                        studentId: result.studentId,
-                        month: result.month,
-                        severity: formData.severity,
-                        sex: result.sex,
-                        date: formData.violation_date
-                    }));
-                }
-            } else {
-                // Show error message with details
-                alert('Error: ' + (result.message || 'Unknown error occurred'));
-            }
-        } catch (error) {
-            console.error('Error submitting form:', error);
-            alert('An error occurred while submitting the form. Please check the console for details.');
+        if (!studentId || !violationDate || !violationType || !severity || !offense || !penalty) {
+            e.preventDefault();
+            alert('Please fill in all required fields');
+            return false;
         }
+        
+        // Form is valid, let it submit normally
+        return true;
     });
 </script>
 @endpush

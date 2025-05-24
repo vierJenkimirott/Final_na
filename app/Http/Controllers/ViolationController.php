@@ -12,16 +12,32 @@ use App\Http\Requests\StoreViolationTypeRequest;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Validation\ValidationException;
+use Exception;
 
 class ViolationController extends Controller
 {
     /**
      * Display a listing of violations
+     *
+     * @return \Illuminate\View\View
      */
     public function index()
     {
-        $violations = Violation::with(['student', 'violationType'])->orderBy('created_at', 'desc')->get();
-        return view('educator.violation', ['violations' => $violations]);
+        try {
+            // Eager load relationships and paginate for better performance
+            $violations = Violation::with(['student', 'violationType'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(15); // Paginate results for better performance with large datasets
+                
+            return view('educator.violation', ['violations' => $violations]);
+        } catch (Exception $e) {
+            Log::error('Error fetching violations: ' . $e->getMessage());
+            return view('educator.violation', ['violations' => collect()])
+                ->with('error', 'Unable to load violations. Please try again later.');
+        }
     }
 
     /**
@@ -41,7 +57,7 @@ class ViolationController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'student_id' => 'required|exists:users,id',
+            'student_id' => 'required|exists:users,student_id',
             'violation_type_id' => 'required|exists:violation_types,id',
             'violation_date' => 'required|date',
             'offense' => 'required|string',
@@ -51,13 +67,41 @@ class ViolationController extends Controller
         ]);
         
         // Get student sex for the record
-        $student = User::find($request->student_id);
-        $validated['sex'] = $student->sex;
+        $student = User::where('student_id', $request->student_id)->first();
+        
+        // Handle case where student might not be found
+        if ($student) {
+            $validated['sex'] = $student->sex;
+        } else {
+            // Default to a placeholder value if student not found
+            $validated['sex'] = 'unknown';
+            Log::warning('Student not found when updating violation', ['student_id' => $request->student_id]);
+        }
         
         // Get severity from the violation type
         $violationType = ViolationType::find($request->violation_type_id);
-        $severity = Severity::find($violationType->severity_id);
-        $validated['severity'] = $severity->severity_name;
+        
+        // Handle case where violation type might not have a valid severity
+        if ($violationType && $violationType->severity_id) {
+            $severity = Severity::find($violationType->severity_id);
+            
+            if ($severity) {
+                $validated['severity'] = $severity->severity_name;
+            } else {
+                // Default to a placeholder value if severity not found
+                $validated['severity'] = 'Medium';
+                Log::warning('Severity not found when updating violation', [
+                    'violation_type_id' => $request->violation_type_id,
+                    'severity_id' => $violationType->severity_id
+                ]);
+            }
+        } else {
+            // Default to a placeholder value if violation type or severity_id not found
+            $validated['severity'] = 'Medium';
+            Log::warning('Violation type not found or missing severity_id when updating violation', [
+                'violation_type_id' => $request->violation_type_id
+            ]);
+        }
         
         Violation::create($validated);
         
@@ -81,7 +125,7 @@ class ViolationController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'student_id' => 'required|exists:users,id',
+            'student_id' => 'required|exists:users,student_id',
             'violation_type_id' => 'required|exists:violation_types,id',
             'violation_date' => 'required|date',
             'offense' => 'required|string',
@@ -101,7 +145,19 @@ class ViolationController extends Controller
      */
     public function getViolationTypesByCategory($categoryId)
     {
-        $violationTypes = ViolationType::where('offense_category_id', $categoryId)->get();
+        $violationTypes = ViolationType::with('severityRelation')
+            ->where('offense_category_id', $categoryId)
+            ->get()
+            ->map(function($type) {
+                return [
+                    'id' => $type->id,
+                    'name' => $type->violation_name,
+                    'severity' => $type->severity,
+                    'description' => $type->description,
+                    'default_penalty' => $type->default_penalty
+                ];
+            });
+        
         return response()->json($violationTypes);
     }
 
@@ -165,36 +221,85 @@ class ViolationController extends Controller
     {
         $students = User::role('student')->get();
         $offenseCategories = OffenseCategory::all();
-        return view('educator.addViolator', compact('students', 'offenseCategories'));
+        $severities = ['Low', 'Medium', 'High', 'Very High'];
+        $offenses = ['1st', '2nd', '3rd'];
+        $penalties = [
+            ['value' => 'W', 'label' => 'Warning'],
+            ['value' => 'VW', 'label' => 'Verbal Warning'],
+            ['value' => 'WW', 'label' => 'Written Warning'],
+            ['value' => 'Pro', 'label' => 'Probation'],
+            ['value' => 'Exp', 'label' => 'Expulsion']
+        ];
+        
+        return view('educator.addViolator', compact('students', 'offenseCategories', 'severities', 'offenses', 'penalties'));
     }
 
     /**
      * Store a new violator record
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function addViolatorSubmit(Request $request)
     {
-        $validated = $request->validate([
-            'student_id' => 'required|exists:users,id',
-            'violation_type_id' => 'required|exists:violation_types,id',
-            'violation_date' => 'required|date',
-            'offense' => 'required|string',
-            'penalty' => 'required|string',
-            'consequence' => 'nullable|string',
-            'status' => 'required|in:active,resolved',
-        ]);
-        
-        // Get student sex for the record
-        $student = User::find($request->student_id);
-        $validated['sex'] = $student->sex;
-        
-        // Get severity from the violation type
-        $violationType = ViolationType::find($request->violation_type_id);
-        $severity = Severity::find($violationType->severity_id);
-        $validated['severity'] = $severity->severity_name;
-        
-        Violation::create($validated);
-        
-        return redirect()->route('educator.violation')->with('success', 'Violation record created successfully.');
+        try {
+            // Validate the request data
+            $validated = $request->validate([
+                'student_id' => 'required|exists:users,student_id',
+                'violation_type_id' => 'required|exists:violation_types,id',
+                'violation_date' => 'required|date',
+                'offense' => 'required|string',
+                'penalty' => 'required|string',
+                'consequence' => 'nullable|string',
+                'status' => 'required|in:active,resolved',
+            ]);
+            
+            // Start a database transaction for data consistency
+            DB::beginTransaction();
+            
+            // Get student information
+            $student = User::where('student_id', $request->student_id)->firstOrFail();
+            $validated['sex'] = $student->sex ?? 'unknown';
+            
+            // Get severity from the violation type
+            $violationType = ViolationType::with('severityRelation')->findOrFail($request->violation_type_id);
+            $validated['severity'] = $violationType->severityRelation->severity_name ?? $request->severity;
+            
+            // Add recorded_by if authenticated
+            if (Auth::check()) {
+                $validated['recorded_by'] = Auth::id();
+            }
+            
+            // Create the violation record
+            $violation = Violation::create($validated);
+            
+            // Commit the transaction
+            DB::commit();
+            
+            // Log the successful creation
+            Log::info('Violation record created', ['id' => $violation->id, 'student_id' => $student->student_id]);
+            
+            return redirect()->route('educator.violation')
+                ->with('success', 'Violation record created successfully.');
+                
+        } catch (ValidationException $e) {
+            // Validation errors are automatically handled by Laravel
+            return back()->withErrors($e->validator)->withInput();
+            
+        } catch (ModelNotFoundException $e) {
+            // Handle not found errors
+            DB::rollBack();
+            Log::error('Resource not found when creating violation: ' . $e->getMessage());
+            return back()->with('error', 'Student or violation type not found.')
+                ->withInput($request->except('password'));
+                
+        } catch (Exception $e) {
+            // Handle any other exceptions
+            DB::rollBack();
+            Log::error('Error creating violation record: ' . $e->getMessage());
+            return back()->with('error', 'An error occurred while creating the violation record. Please try again.')
+                ->withInput($request->except('password'));
+        }
     }
 
     /**
@@ -216,7 +321,7 @@ class ViolationController extends Controller
     public function updateViolation(Request $request, $id)
     {
         $validated = $request->validate([
-            'student_id' => 'required|exists:users,id',
+            'student_id' => 'required|exists:users,student_id',
             'violation_type_id' => 'required|exists:violation_types,id',
             'violation_date' => 'required|date',
             'offense' => 'required|string',
@@ -226,13 +331,41 @@ class ViolationController extends Controller
         ]);
         
         // Get student sex for the record
-        $student = User::find($request->student_id);
-        $validated['sex'] = $student->sex;
+        $student = User::where('student_id', $request->student_id)->first();
+        
+        // Handle case where student might not be found
+        if ($student) {
+            $validated['sex'] = $student->sex;
+        } else {
+            // Default to a placeholder value if student not found
+            $validated['sex'] = 'unknown';
+            Log::warning('Student not found when updating violation', ['student_id' => $request->student_id]);
+        }
         
         // Get severity from the violation type
         $violationType = ViolationType::find($request->violation_type_id);
-        $severity = Severity::find($violationType->severity_id);
-        $validated['severity'] = $severity->severity_name;
+        
+        // Handle case where violation type might not have a valid severity
+        if ($violationType && $violationType->severity_id) {
+            $severity = Severity::find($violationType->severity_id);
+            
+            if ($severity) {
+                $validated['severity'] = $severity->severity_name;
+            } else {
+                // Default to a placeholder value if severity not found
+                $validated['severity'] = 'Medium';
+                Log::warning('Severity not found when updating violation', [
+                    'violation_type_id' => $request->violation_type_id,
+                    'severity_id' => $violationType->severity_id
+                ]);
+            }
+        } else {
+            // Default to a placeholder value if violation type or severity_id not found
+            $validated['severity'] = 'Medium';
+            Log::warning('Violation type not found or missing severity_id when updating violation', [
+                'violation_type_id' => $request->violation_type_id
+            ]);
+        }
         
         // Update the violation
         $violation = Violation::findOrFail($id);
@@ -263,216 +396,299 @@ class ViolationController extends Controller
     public function getViolationStatsByPeriod(Request $request)
     {
         try {
-            $period = $request->input('period', 'month');
+            // Get and validate the period parameter
+            $period = $this->validatePeriod($request->input('period', 'month'));
             
-            // Initialize violationStats as an empty collection to avoid null issues
-            $violationStats = collect([]);
-            
-            // Get the current month and year
-            $currentMonth = now()->month;
-            $currentYear = now()->year;
-            
-            // Define the specific months that have violations
-            $specificMonths = [1, 4, 8, 11]; // January, April, August, November
-            
-            // Initialize variables
-            $startDate = null;
-            $endDate = now();
-            $relevantMonths = [];
-            $targetMonth = null;
-            $targetYear = null;
-            
-            // Determine date ranges based on period
-            if ($period === 'month') {
-                // If current month is one of the specific months, use it
-                if (in_array($currentMonth, $specificMonths)) {
-                    $targetMonth = $currentMonth;
-                    $targetYear = $currentYear;
-                    $startDate = now()->startOfMonth();
-                } else {
-                    // Find the most recent specific month
-                    $mostRecentMonth = null;
-                    foreach ($specificMonths as $month) {
-                        if ($month < $currentMonth && ($mostRecentMonth === null || $month > $mostRecentMonth)) {
-                            $mostRecentMonth = $month;
-                        }
-                    }
-                    
-                    // If no recent month found, use the last month of the year
-                    if ($mostRecentMonth === null) {
-                        $targetMonth = max($specificMonths);
-                        $targetYear = $currentYear - 1;
-                    } else {
-                        $targetMonth = $mostRecentMonth;
-                        $targetYear = $currentYear;
-                    }
-                    
-                    $startDate = Carbon::createFromDate($targetYear, $targetMonth, 1)->startOfMonth();
-                    $endDate = Carbon::createFromDate($targetYear, $targetMonth, 1)->endOfMonth();
-                }
-                
-                $relevantMonths[] = ['month' => $targetMonth, 'year' => $targetYear];
-            } 
-            elseif ($period === 'last_month') {
-                // Find the previous specific month
-                $currentMonthIndex = array_search($currentMonth, $specificMonths);
-                
-                if ($currentMonthIndex !== false && $currentMonthIndex > 0) {
-                    // Previous month in the same year
-                    $targetMonth = $specificMonths[$currentMonthIndex - 1];
-                    $targetYear = $currentYear;
-                } else {
-                    // Previous month is in the previous year
-                    $targetMonth = end($specificMonths);
-                    $targetYear = $currentYear - 1;
-                }
-                
-                $startDate = Carbon::createFromDate($targetYear, $targetMonth, 1)->startOfMonth();
-                $endDate = Carbon::createFromDate($targetYear, $targetMonth, 1)->endOfMonth();
-                
-                $relevantMonths[] = ['month' => $targetMonth, 'year' => $targetYear];
-            }
-            elseif ($period === 'last_3_months') {
-                // Find the current or most recent specific month
-                $recentMonth = null;
-                $relevantYear = $currentYear;
-                
-                if (in_array($currentMonth, $specificMonths)) {
-                    $recentMonth = $currentMonth;
-                } else {
-                    foreach ($specificMonths as $month) {
-                        if ($month < $currentMonth && ($recentMonth === null || $month > $recentMonth)) {
-                            $recentMonth = $month;
-                        }
-                    }
-                    
-                    if ($recentMonth === null) {
-                        $recentMonth = max($specificMonths);
-                        $relevantYear = $currentYear - 1;
-                    }
-                }
-                
-                // Add the recent month and find the two before it
-                $relevantMonths[] = ['month' => $recentMonth, 'year' => $relevantYear];
-                
-                // Find the two previous specific months
-                for ($i = 0; $i < 2; $i++) {
-                    $currentIndex = array_search($recentMonth, $specificMonths);
-                    if ($currentIndex > 0) {
-                        // Previous month in the same year
-                        $recentMonth = $specificMonths[$currentIndex - 1];
-                    } else {
-                        // Previous month is in the previous year
-                        $recentMonth = end($specificMonths);
-                        $relevantYear--;
-                    }
-                    $relevantMonths[] = ['month' => $recentMonth, 'year' => $relevantYear];
-                }
-                
-                // Set the date range to cover all relevant months
-                $earliestMonth = end($relevantMonths);
-                $startDate = Carbon::createFromDate($earliestMonth['year'], $earliestMonth['month'], 1)->startOfMonth();
-            }
-            elseif ($period === 'year') {
-                // Use all specific months in the current year
-                $startDate = Carbon::createFromDate($currentYear, min($specificMonths), 1)->startOfMonth();
-                
-                // Add all specific months in the current year to relevantMonths
-                foreach ($specificMonths as $month) {
-                    $relevantMonths[] = ['month' => $month, 'year' => $currentYear];
-                }
-            }
-            else {
-                // Default to current month
-                $startDate = now()->startOfMonth();
-                $targetMonth = $currentMonth;
-                $targetYear = $currentYear;
-                $relevantMonths[] = ['month' => $targetMonth, 'year' => $targetYear];
-            }
+            // Get date range for the selected period
+            $dateRange = $this->getDateRangeForPeriod($period);
+            $startDate = $dateRange['startDate'];
+            $endDate = $dateRange['endDate'];
+            $relevantMonths = $dateRange['relevantMonths'] ?? [];
             
             // Log the date range for debugging
-            Log::info('Violation stats query for period: ' . $period);
-            Log::info('Date range: ' . $startDate->format('Y-m-d') . ' to ' . $endDate->format('Y-m-d'));
+            Log::info('Violation stats query', [
+                'period' => $period,
+                'dateRange' => [
+                    'start' => $startDate->format('Y-m-d'),
+                    'end' => $endDate->format('Y-m-d')
+                ]
+            ]);
             
-            // Get all violations
-            $allViolations = DB::table('violations')
-                ->join('violation_types', 'violations.violation_type_id', '=', 'violation_types.id')
-                ->select('violations.*', 'violation_types.violation_name')
-                ->get();
+            // Get violation statistics directly from the database with optimized query
+            $violationStats = $this->getViolationStatsFromDatabase($period, $startDate, $endDate, $relevantMonths);
             
-            // Group manually by violation name
-            $manualStats = [];
-            
-            foreach ($allViolations as $violation) {
-                try {
-                    // Try to parse the date
-                    $date = new \DateTime($violation->violation_date);
-                    $violationMonth = (int)$date->format('m');
-                    $violationYear = (int)$date->format('Y');
-                    
-                    // Check if the violation date is within the range
-                    $inRange = false;
-                    
-                    // For specific periods, check if the month is one of the specific months
-                    if ($period === 'month' || $period === 'last_month') {
-                        // For month/last_month, check exact month and year
-                        if ($violationMonth === $targetMonth && $violationYear === $targetYear) {
-                            $inRange = true;
-                        }
-                    } elseif ($period === 'last_3_months') {
-                        // For last_3_months, check if the month is one of the relevant months
-                        foreach ($relevantMonths as $relevantMonth) {
-                            if ($violationMonth === $relevantMonth['month'] && $violationYear === $relevantMonth['year']) {
-                                $inRange = true;
-                                break;
-                            }
-                        }
-                    } elseif ($period === 'year') {
-                        // For year, check if the month is one of the specific months and the year matches
-                        if (in_array($violationMonth, $specificMonths) && $violationYear === $currentYear) {
-                            $inRange = true;
-                        }
-                    }
-                    
-                    if ($inRange) {
-                        if (!isset($manualStats[$violation->violation_name])) {
-                            $manualStats[$violation->violation_name] = 0;
-                        }
-                        $manualStats[$violation->violation_name]++;
-                    }
-                } catch (\Exception $e) {
-                    // Skip violations with unparseable dates
-                    continue;
-                }
-            }
-            
-            // Convert to the expected format if manualStats is not empty
-            $violationStats = collect();
-            
-            if (!empty($manualStats)) {
-                // Process each violation statistic
-                foreach ($manualStats as $name => $count) {
-                    // Create a simple array and convert to object
-                    $data = array(
-                        'violation_name' => $name,
-                        'count' => $count
-                    );
-                    
-                    // Add to collection
-                    $violationStats->push((object) $data);
-                }
-            }
-            
-            // Sort by count descending
-            $violationStats = $violationStats->sortByDesc('count')->values();
-            
-            // Log the count and return the results (violationStats is now always a collection, never null)
-            Log::info('Violation stats results count: ' . $violationStats->count());
+            // Log the results and return
+            Log::info('Violation stats results count: ' . count($violationStats));
             return response()->json($violationStats);
-        } catch (\Exception $e) {
+            
+        } catch (Exception $e) {
             Log::error('Error in getViolationStatsByPeriod: ' . $e->getMessage());
             Log::error($e->getTraceAsString());
-            return response()->json([], 500);
+            return response()->json([
+                'error' => 'An error occurred while retrieving violation statistics.',
+                'message' => app()->environment('production') ? null : $e->getMessage()
+            ], 500);
         }
     }
+    
+    /**
+     * Get violation statistics from database
+     * 
+     * @param string $period
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @param array $relevantMonths
+     * @return array
+     */
+    private function getViolationStatsFromDatabase($period, $startDate, $endDate, $relevantMonths)
+    {
+        try {
+            // Query to get violation statistics grouped by violation type
+            $stats = DB::table('violations')
+                ->join('violation_types', 'violations.violation_type_id', '=', 'violation_types.id')
+                ->select(
+                    'violation_types.id',
+                    'violation_types.violation_name',
+                    DB::raw('COUNT(violations.id) as count')
+                )
+                ->where('violations.status', 'active')
+                ->whereBetween('violations.violation_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->groupBy('violation_types.id', 'violation_types.violation_name')
+                ->orderBy('count', 'desc')
+                ->limit(10)
+                ->get();
+            
+            // Log the results for debugging
+            Log::info('Violation stats query results', [
+                'count' => count($stats),
+                'period' => $period,
+                'startDate' => $startDate->format('Y-m-d'),
+                'endDate' => $endDate->format('Y-m-d')
+            ]);
+            
+            return $stats;
+        } catch (\Exception $e) {
+            Log::error('Error in getViolationStatsFromDatabase: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Validate the period parameter
+     *
+     * @param string $period
+     * @return string
+     */
+    private function validatePeriod($period)
+    {
+        $validPeriods = ['month', 'last_month', 'last_3_months', 'year'];
+        
+        if (!in_array($period, $validPeriods)) {
+            // Default to 'month' if invalid period provided
+            return 'month';
+        }
+        
+        return $period;
+    }
+    
+    /**
+     * Get date range for the selected period
+     * 
+     * @param string $period
+     * @return array
+     */
+    private function getDateRangeForPeriod($period)
+    {
+        $now = Carbon::now();
+        $currentMonth = $now->month;
+        $currentYear = $now->year;
+        
+        switch ($period) {
+            case 'month':
+                $startDate = Carbon::createFromDate($currentYear, $currentMonth, 1)->startOfDay();
+                $endDate = Carbon::createFromDate($currentYear, $currentMonth, 1)->endOfMonth()->endOfDay();
+                break;
+                
+            case 'last_month':
+                $lastMonth = $now->copy()->subMonth();
+                $startDate = Carbon::createFromDate($lastMonth->year, $lastMonth->month, 1)->startOfDay();
+                $endDate = Carbon::createFromDate($lastMonth->year, $lastMonth->month, 1)->endOfMonth()->endOfDay();
+                break;
+                
+            case 'last_3_months':
+                $startDate = $now->copy()->subMonths(3)->startOfMonth()->startOfDay();
+                $endDate = $now->copy()->endOfDay();
+                break;
+                
+            case 'year':
+                $startDate = Carbon::createFromDate($currentYear, 1, 1)->startOfDay();
+                $endDate = Carbon::createFromDate($currentYear, 12, 31)->endOfDay();
+                break;
+                
+            default:
+                // Default to current month
+                $startDate = Carbon::createFromDate($currentYear, $currentMonth, 1)->startOfDay();
+                $endDate = Carbon::createFromDate($currentYear, $currentMonth, 1)->endOfMonth()->endOfDay();
+        }
+        
+        return [
+            'startDate' => $startDate,
+            'endDate' => $endDate
+        ];
+    }
+
+    // End of ViolationController class methods
+    
+    /**
+     * Get date range for the 'month' period
+     *
+     * @param int $currentMonth
+     * @param int $currentYear
+     * @param array $specificMonths
+     * @return array
+     */
+    private function getMonthPeriodRange($currentMonth, $currentYear, $specificMonths)
+    {
+        $targetMonth = null;
+        $targetYear = null;
+        $startDate = null;
+        $endDate = null;
+        
+        // If current month is one of the specific months, use it
+        if (in_array($currentMonth, $specificMonths)) {
+            $targetMonth = $currentMonth;
+            $targetYear = $currentYear;
+            $startDate = Carbon::createFromDate($currentYear, $currentMonth, 1)->startOfMonth();
+            $endDate = Carbon::createFromDate($currentYear, $currentMonth, 1)->endOfMonth();
+        } else {
+            // Find the most recent specific month
+            $mostRecentMonth = null;
+            foreach ($specificMonths as $month) {
+                if ($month < $currentMonth && ($mostRecentMonth === null || $month > $mostRecentMonth)) {
+                    $mostRecentMonth = $month;
+                }
+            }
+            
+            // If no recent month found, use the last month of the year
+            if ($mostRecentMonth === null) {
+                $targetMonth = max($specificMonths);
+                $targetYear = $currentYear - 1;
+            } else {
+                $targetMonth = $mostRecentMonth;
+                $targetYear = $currentYear;
+            }
+            
+            $startDate = Carbon::createFromDate($targetYear, $targetMonth, 1)->startOfMonth();
+            $endDate = Carbon::createFromDate($targetYear, $targetMonth, 1)->endOfMonth();
+        }
+        
+        return [
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'targetMonth' => $targetMonth,
+            'targetYear' => $targetYear
+        ];
+    }
+    
+    /**
+     * Get date range for the 'last_month' period
+     *
+     * @param int $currentMonth
+     * @param int $currentYear
+     * @param array $specificMonths
+     * @return array
+     */
+    private function getLastMonthPeriodRange($currentMonth, $currentYear, $specificMonths)
+    {
+        $targetMonth = null;
+        $targetYear = null;
+        
+        // Find the previous specific month
+        $currentMonthIndex = array_search($currentMonth, $specificMonths);
+        
+        if ($currentMonthIndex !== false && $currentMonthIndex > 0) {
+            // Previous month in the same year
+            $targetMonth = $specificMonths[$currentMonthIndex - 1];
+            $targetYear = $currentYear;
+        } else {
+            // Previous month is in the previous year
+            $targetMonth = end($specificMonths);
+            $targetYear = $currentYear - 1;
+        }
+        
+        $startDate = Carbon::createFromDate($targetYear, $targetMonth, 1)->startOfMonth();
+        $endDate = Carbon::createFromDate($targetYear, $targetMonth, 1)->endOfMonth();
+        
+        return [
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'targetMonth' => $targetMonth,
+            'targetYear' => $targetYear
+        ];
+    }
+    
+    /**
+     * Get date range for the 'last_3_months' period
+     *
+     * @param int $currentMonth
+     * @param int $currentYear
+     * @param array $specificMonths
+     * @return array
+     */
+    private function getLast3MonthsPeriodRange($currentMonth, $currentYear, $specificMonths)
+    {
+        $relevantMonths = [];
+        
+        // Find the current or most recent specific month
+        $recentMonth = null;
+        $relevantYear = $currentYear;
+        
+        if (in_array($currentMonth, $specificMonths)) {
+            $recentMonth = $currentMonth;
+        } else {
+            foreach ($specificMonths as $month) {
+                if ($month < $currentMonth && ($recentMonth === null || $month > $recentMonth)) {
+                    $recentMonth = $month;
+                }
+            }
+            
+            if ($recentMonth === null) {
+                $recentMonth = max($specificMonths);
+                $relevantYear = $currentYear - 1;
+            }
+        }
+        
+        // Add the recent month and find the two before it
+        $relevantMonths[] = ['month' => $recentMonth, 'year' => $relevantYear];
+        
+        // Find the two previous specific months
+        for ($i = 0; $i < 2; $i++) {
+            $currentIndex = array_search($recentMonth, $specificMonths);
+            if ($currentIndex > 0) {
+                // Previous month in the same year
+                $recentMonth = $specificMonths[$currentIndex - 1];
+            } else {
+                // Previous month is in the previous year
+                $recentMonth = end($specificMonths);
+                $relevantYear--;
+            }
+            $relevantMonths[] = ['month' => $recentMonth, 'year' => $relevantYear];
+        }
+        
+        // Set the date range to cover all relevant months
+        $earliestMonth = end($relevantMonths);
+        $startDate = Carbon::createFromDate($earliestMonth['year'], $earliestMonth['month'], 1)->startOfMonth();
+        $latestMonth = reset($relevantMonths);
+        $endDate = Carbon::createFromDate($latestMonth['year'], $latestMonth['month'], 1)->endOfMonth();
+        
+        return [
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'relevantMonths' => $relevantMonths
+        ];
+    }
+    
+    // Using the studentsByPenalty method from EducatorController instead
+    
+    // End of ViolationController methods
 }

@@ -3,50 +3,9 @@
 @section('title', 'Student Behavior Monitoring')
 
 @section('css')  
-    <link rel="stylesheet" href="{{ asset('css/behavior-charts.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/behavior.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Stats Cards */
-        .stat-box {
-            background-color: #fff;
-            border-radius: 8px;
-            padding: 1.25rem;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
-        }
-        
-        .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-            font-size: 1.5rem;
-            color: #fff;
-        }
-        
-        .stat-icon.primary { background-color: #4e73df; }
-        .stat-icon.warning { background-color: #f6c23e; }
-        .stat-icon.danger { background-color: #e74a3b; }
-        
-        .stat-content h6 {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-            color: #5a5c69;
-        }
-        
-        .stat-content h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 0;
-        }
         
         /* Period Buttons */
         .period-btn {
@@ -142,23 +101,81 @@
 
 @section('content')
     <div class="container-fluid">
+        <!-- Students List Modal -->
+        <div class="modal fade" id="studentsListModal" tabindex="-1" aria-labelledby="studentsListModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="studentsListModalLabel"><i class="fas fa-users me-2"></i>All Students</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="studentSearch" class="form-control" placeholder="Search by name or ID...">
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="studentsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Student ID</th>
+                                        <th>Sex</th>
+                                        <th>Violations</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentsList">
+                                    <!-- Student rows will be populated here -->
+                                    @foreach(\App\Models\User::whereNotNull('student_id')->get() as $student)
+                                    <tr>
+                                        <td>{{ $student->name }}</td>
+                                        <td>{{ $student->student_id }}</td>
+                                        <td>{{ $student->sex ?? 'Not specified' }}</td>
+                                        <td>
+                                            @php
+                                                $violationCount = \App\Models\Violation::where('student_id', $student->student_id)->count();
+                                            @endphp
+                                            <span class="badge {{ $violationCount > 0 ? 'bg-danger' : 'bg-success' }}">
+                                                {{ $violationCount }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ route('educator.student-violations', ['student_id' => $student->student_id]) }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <h2 class="mb-4">Student Behavior Monitoring</h2>
         
         <!-- Stat Cards Section -->
         <div class="row mb-4">
             <!-- Total Students Card -->
             <div class="col-md-6">
-                <a href="{{ route('educator.student-violations') }}" class="stat-box-link">
+                <button type="button" class="stat-box-link btn btn-link p-0 border-0 w-100 text-start" id="total-students-btn" data-bs-toggle="modal" data-bs-target="#studentsListModal">
                     <div class="stat-box">
                         <div class="stat-icon primary">
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="stat-content">
                             <h6>Total Students</h6>
-                            <h2 class="total-students">5</h2>
+                            <h2 class="total-students">{{ $totalStudents }}</h2>
                         </div>
                     </div>
-                </a>
+                </button>
             </div>
             
             <!-- Students Needing Attention Card -->
@@ -170,7 +187,8 @@
                         </div>
                         <div class="stat-content">
                             <h6>Students Needing Attention</h6>
-                            <h2 class="attention-students">0</h2>
+                            <h2 class="attention-students">{{ $studentsWithMultipleViolations }}</h2>
+                            <div class="small text-muted mt-1">With more than 2 violations</div>
                         </div>
                     </div>
                 </a>
@@ -186,9 +204,6 @@
                         <div class="text-white last-updated small me-3">
                             <i class="fas fa-clock me-1"></i> Last updated: {{ date('M d, Y H:i:s') }}
                         </div>
-                        <button id="print-chart" class="btn btn-sm btn-light me-2">
-                            <i class="fas fa-print"></i> Print Report
-                        </button>
                     </div>
                 </div>
             </div>
@@ -210,73 +225,7 @@
                     </div>
                 </div>
                 
-                <!-- Chart Analytics Summary -->
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="card h-100 border-left-primary shadow-sm">
-                            <div class="card-body">
-                                <div class="row align-items-center">
-                                    <div class="col-auto">
-                                        <i class="fas fa-chart-bar fa-2x text-primary"></i>
-                                    </div>
-                                    <div class="col">
-                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Average Score</div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="average-score">85</div>
-                                        <div class="small text-success mt-1" id="score-trend"><i class="fas fa-arrow-up me-1"></i>3.2% from last period</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card h-100 border-left-success shadow-sm">
-                            <div class="card-body">
-                                <div class="row align-items-center">
-                                    <div class="col-auto">
-                                        <i class="fas fa-check-circle fa-2x text-success"></i>
-                                    </div>
-                                    <div class="col">
-                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Excellent Behavior</div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="excellent-count">65%</div>
-                                        <div class="small text-success mt-1"><i class="fas fa-arrow-up me-1"></i>5.4% from last period</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card h-100 border-left-warning shadow-sm">
-                            <div class="card-body">
-                                <div class="row align-items-center">
-                                    <div class="col-auto">
-                                        <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
-                                    </div>
-                                    <div class="col">
-                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Needs Improvement</div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="needs-improvement-count">25%</div>
-                                        <div class="small text-danger mt-1"><i class="fas fa-arrow-up me-1"></i>2.1% from last period</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card h-100 border-left-danger shadow-sm">
-                            <div class="card-body">
-                                <div class="row align-items-center">
-                                    <div class="col-auto">
-                                        <i class="fas fa-flag fa-2x text-danger"></i>
-                                    </div>
-                                    <div class="col">
-                                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Critical Cases</div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="critical-count">10%</div>
-                                        <div class="small text-danger mt-1"><i class="fas fa-arrow-up me-1"></i>1.5% from last period</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <!-- Main chart section starts directly here -->
                 
                 <!-- Main Chart -->
                 <div class="chart-container position-relative" style="height: 400px;">
@@ -426,6 +375,28 @@
                     refreshBtn.disabled = false;
                 }
             }, 1000);
+        });
+        // Student search functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const studentSearch = document.getElementById('studentSearch');
+            if (studentSearch) {
+                studentSearch.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const studentRows = document.querySelectorAll('#studentsList tr');
+                    
+                    studentRows.forEach(row => {
+                        const name = row.cells[0].textContent.toLowerCase();
+                        const studentId = row.cells[1].textContent.toLowerCase();
+                        const searchText = name + ' ' + studentId;
+                        
+                        if (searchText.includes(searchTerm)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            }
         });
     </script>
 @endpush

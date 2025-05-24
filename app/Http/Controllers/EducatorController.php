@@ -6,11 +6,24 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Violation;
 use App\Models\ViolationType;
+use App\Models\OffenseCategory;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Exception;
 
+/**
+ * EducatorController
+ * Handles all educator-related functionality including violation management,
+ * student tracking, and dashboard statistics.
+ */
 class EducatorController extends Controller
 {
+    // =============================================
+    // DASHBOARD METHODS
+    // =============================================
+    
     /**
      * Display the educator dashboard
      * 
@@ -19,194 +32,418 @@ class EducatorController extends Controller
      */
     public function dashboard(Request $request)
     {
-        // Get top violators and counts
-        $topViolators = User::role('student')
-            ->withCount('violations')
-            ->having('violations_count', '>', 0)
-            ->orderBy('violations_count', 'desc')
-            ->take(5)
-            ->get();
-
-        $totalViolations = Violation::count();
-        $totalStudents = User::role('student')->count();
-        $recentViolations = Violation::with(['student', 'violationType'])
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
-        $violatorCount = User::role('student')->whereHas('violations')->count();
-        $nonViolatorCount = $totalStudents - $violatorCount;
+        try {
+            // Get total students
+            $totalStudents = User::role('student')->count();
+            
+            // Get total violations
+            $totalViolations = Violation::count();
+            
+            // Get top violators (students with most violations)
+            try {
+                // First, check if the violations table exists
+                if (!Schema::hasTable('violations')) {
+                    throw new \Exception('Violations table does not exist');
+                }
+                
+                // Get all violations
+                $allViolations = DB::table('violations')->get();
+                
+                // Log the total violations found
+                \Log::info('Total violations found: ' . $allViolations->count());
+                
+                // Group violations by student_id and count them
+                $violationsPerStudent = $allViolations->groupBy('student_id')
+                    ->map(function ($group) {
+                        return count($group);
+                    })
+                    ->sortDesc()
+                    ->take(5);
+                
+                // Log the violations per student
+                \Log::info('Violations per student: ' . json_encode($violationsPerStudent));
+                
+                // Get all student IDs with violations
+                $studentIds = $violationsPerStudent->keys()->toArray();
+                
+                // Get all users with these student IDs
+                $users = DB::table('users')->whereIn('student_id', $studentIds)->get();
+                
+                // Log the users found
+                \Log::info('Users found: ' . $users->count());
+                
+                // Create a lookup array for quick access to user data
+                $userLookup = [];
+                foreach ($users as $user) {
+                    $userLookup[$user->student_id] = $user;
+                }
+                
+                // Create the final top violators collection
+                $topViolators = collect();
+                foreach ($violationsPerStudent as $studentId => $count) {
+                    $user = $userLookup[$studentId] ?? null;
+                    
+                    if ($user) {
+                        \Log::info("Adding violator: {$user->name} with {$count} violations");
+                        $topViolators->push((object) [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'student_id' => $studentId,
+                            'violations_count' => $count
+                        ]);
+                    } else {
+                        \Log::warning("No user found for student_id: {$studentId}");
+                        // Add a placeholder for missing users
+                        $topViolators->push((object) [
+                            'id' => 0,
+                            'name' => "Student {$studentId}",
+                            'student_id' => $studentId,
+                            'violations_count' => $count
+                        ]);
+                    }
+                }
+                
+                // Log the final top violators collection
+                \Log::info('Final top violators: ' . json_encode($topViolators));
+                
+                // If no violators found, log this information
+                if ($topViolators->isEmpty()) {
+                    \Log::info('No violators found in the database');
+                    // Keep it as an empty collection, don't convert to array
+                    // This ensures consistent type handling in the view
+                }
+                
+                // Log for debugging
+                \Log::info('Top violators query result: ' . $topViolators->count() . ' records found with violations');
+                foreach ($topViolators as $violator) {
+                    \Log::info("Violator: {$violator->name} ({$violator->student_id}) - {$violator->violations_count} violations");
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error fetching top violators: ' . $e->getMessage());
+                // Initialize with an empty collection on error to be consistent
+                $topViolators = collect();
+            }
+            
+            // Get recent violations - safely handling potential missing tables
+            try {
+                // Check if violation_types table exists
+                $hasViolationTypesTable = Schema::hasTable('violation_types');
+                
+                if ($hasViolationTypesTable) {
+                    $recentViolations = Violation::with(['student'])
+                        ->select(
+                            'violations.*',
+                            'users.name as student_name'
+                        )
+                        ->join('users', 'violations.student_id', '=', 'users.student_id')
+                        ->orderBy('violations.created_at', 'desc')
+                        ->take(5)
+                        ->get();
+                } else {
+                    // Simplified query without violation_types
+                    $recentViolations = Violation::select(
+                            'violations.*',
+                            'users.name as student_name'
+                        )
+                        ->join('users', 'violations.student_id', '=', 'users.student_id')
+                        ->orderBy('violations.created_at', 'desc')
+                        ->take(5)
+                        ->get();
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error fetching recent violations: ' . $e->getMessage());
+                $recentViolations = collect([]);
+            }
+            
+            // Get violations by month
+            $violationsByMonth = DB::table('violations')
+                ->select(DB::raw('MONTH(created_at) as month'), DB::raw('COUNT(*) as count'))
+                ->whereYear('created_at', date('Y'))
+                ->groupBy('month')
+                ->orderBy('month')
+                ->get();
+            
+            // Get violations by type - safely handling potential missing tables
+            try {
+                // Check if violation_types table exists
+                $hasViolationTypesTable = Schema::hasTable('violation_types');
+                
+                if ($hasViolationTypesTable) {
+                    $violationsByType = DB::table('violations')
+                        ->join('violation_types', 'violations.violation_type_id', '=', 'violation_types.id')
+                        ->select('violation_types.name', DB::raw('COUNT(violations.id) as count'))
+                        ->groupBy('violation_types.id', 'violation_types.name')
+                        ->orderBy('count', 'desc')
+                        ->take(5)
+                        ->get();
+                } else {
+                    // Group by violation_type_id instead if table doesn't exist
+                    $violationsByType = DB::table('violations')
+                        ->select('violation_type_id as name', DB::raw('COUNT(id) as count'))
+                        ->groupBy('violation_type_id')
+                        ->orderBy('count', 'desc')
+                        ->take(5)
+                        ->get();
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error fetching violations by type: ' . $e->getMessage());
+                $violationsByType = collect([]);
+            }
+            
+            // Get count of students with violations
+            $violatorCount = User::role('student')
+                ->whereHas('violations')
+                ->count();
+            
+            $nonViolatorCount = $totalStudents - $violatorCount;
+            
+            // Get the period parameter from the URL or default to 'month'
+            $period = $request->input('period', 'month');
+            
+            // Get violation statistics based on the period
+            try {
+                $violationStats = $this->getViolationStatsByPeriod($period);
+            } catch (Exception $e) {
+                Log::error('Error getting violation stats: ' . $e->getMessage());
+                $violationStats = [];
+            }
+            
+            return view('educator.dashboard', [
+                'topViolators' => $topViolators,
+                'totalViolations' => $totalViolations,
+                'totalStudents' => $totalStudents,
+                'recentViolations' => $recentViolations,
+                'violationsByMonth' => $violationsByMonth,
+                'violationsByType' => $violationsByType,
+                'violatorCount' => $violatorCount,
+                'nonViolatorCount' => $nonViolatorCount,
+                'violationStats' => $violationStats
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error in dashboard: ' . $e->getMessage());
+            return view('educator.dashboard', [
+                'topViolators' => collect(),
+                'totalViolations' => 0,
+                'totalStudents' => 0,
+                'recentViolations' => [],
+                'violationsByMonth' => [],
+                'violationsByType' => [],
+                'violatorCount' => 0,
+                'nonViolatorCount' => 0,
+                'violationStats' => [],
+                'error' => 'Unable to load dashboard data'
+            ]);
+        }
+    }
+    
+    // Dashboard helper methods
+    
+    /**
+     * Get violation statistics by period
+     * 
+     * @param string $period The period to get statistics for (month, last_month, last_3_months)
+     * @return \Illuminate\Support\Collection Violation statistics
+     */
+    private function getViolationStatsByPeriod($period = 'month')
+    {
+        Log::info('Violation stats query', ['period' => $period]);
         
-        // Get the period parameter from the URL or default to 'month'
-        $period = $request->input('period', 'month');
+        // Determine date range based on period
+        $dateRange = $this->getDateRangeForPeriod($period);
         
-        // Get violation statistics based on the period
-        $violationStats = $this->getViolationStats($period);
-
-        return view('educator.dashboard', compact(
-            'topViolators', 'totalViolations', 'totalStudents', 
-            'recentViolations', 'violatorCount', 'nonViolatorCount', 'violationStats'
-        ));
+        try {
+            // Check if violation_types table exists
+            if (Schema::hasTable('violation_types')) {
+                // Join with violation_types table to get names
+                $stats = DB::table('violations')
+                    ->select(
+                        'violations.violation_type_id', 
+                        'violation_types.violation_name as violation_name', 
+                        DB::raw('COUNT(*) as count')
+                    )
+                    ->leftJoin('violation_types', 'violations.violation_type_id', '=', 'violation_types.id')
+                    ->whereBetween('violations.violation_date', [$dateRange['start'], $dateRange['end']])
+                    ->groupBy('violations.violation_type_id', 'violation_types.violation_name')
+                    ->orderBy('count', 'desc')
+                    ->limit(5)
+                    ->get();
+                
+                // If no data found, return empty collection
+                if ($stats->isEmpty()) {
+                    Log::info('No violation stats found for period: ' . $period);
+                    return collect([]);
+                }
+                
+                // Ensure each item has a violation_name
+                $stats = $stats->map(function($item) {
+                    if (empty($item->violation_name)) {
+                        $item->violation_name = 'Type ' . $item->violation_type_id;
+                    }
+                    return $item;
+                });
+            } else {
+                // Group by violation_type_id only if violation_types table doesn't exist
+                $stats = DB::table('violations')
+                    ->select('violation_type_id', DB::raw('COUNT(*) as count'))
+                    ->whereBetween('violation_date', [$dateRange['start'], $dateRange['end']])
+                    ->groupBy('violation_type_id')
+                    ->orderBy('count', 'desc')
+                    ->limit(5)
+                    ->get()
+                    ->map(function($item) {
+                        $item->violation_name = 'Type ' . $item->violation_type_id;
+                        return $item;
+                    });
+            }
+            
+            Log::info('Violation stats query results: ' . $stats->count() . ' records');
+            return $stats;
+            
+        } catch (\Exception $e) {
+            Log::error('Error in violation stats query: ' . $e->getMessage());
+            // Return empty collection on error
+            return collect([]);
+        }
     }
     
     /**
-     * Get violation statistics for the dashboard
-     * This method returns the violation statistics based on the specified period
-     * focusing on the specific months that have violations (Jan, Apr, Aug, Nov)
+     * Get date range for a given period
      * 
-     * @param string $period The period to get statistics for (month, last_month, last_3_months, year)
-     * @return array
+     * @param string $period The period (month, last_month, last_3_months)
+     * @return array Start and end dates
      */
-    private function getViolationStats($period = 'month')
+    private function getDateRangeForPeriod($period)
     {
-        // Define the specific months that have violations
-        $specificMonths = [1, 4, 8, 11]; // January, April, August, November
-        
-        // Get the current month and year
-        $currentMonth = now()->month;
-        $currentYear = now()->year;
-        
-        // Determine the date range based on the selected period
-        $startDate = null;
-        $endDate = now();
-        $relevantMonths = [];
+        $now = Carbon::now();
         
         switch ($period) {
-            case 'month':
-                // If current month is one of the specific months, use it
-                // Otherwise, find the most recent specific month
-                if (in_array($currentMonth, $specificMonths)) {
-                    $targetMonth = $currentMonth;
-                    $targetYear = $currentYear;
-                } else {
-                    // Find the most recent specific month
-                    $mostRecentMonth = null;
-                    foreach ($specificMonths as $month) {
-                        if ($month < $currentMonth && ($mostRecentMonth === null || $month > $mostRecentMonth)) {
-                            $mostRecentMonth = $month;
-                        }
-                    }
-                    
-                    // If no recent month found, use the last month of the year
-                    if ($mostRecentMonth === null) {
-                        $targetMonth = max($specificMonths);
-                        $targetYear = $currentYear - 1;
-                    } else {
-                        $targetMonth = $mostRecentMonth;
-                        $targetYear = $currentYear;
-                    }
-                }
-                
-                $relevantMonths[] = ['month' => $targetMonth, 'year' => $targetYear];
-                break;
-                
             case 'last_month':
-                // Find the previous specific month
-                $currentMonthIndex = array_search($currentMonth, $specificMonths);
-                
-                if ($currentMonthIndex !== false && $currentMonthIndex > 0) {
-                    // Previous month in the same year
-                    $targetMonth = $specificMonths[$currentMonthIndex - 1];
-                    $targetYear = $currentYear;
-                } else {
-                    // Previous month is in the previous year
-                    $targetMonth = end($specificMonths);
-                    $targetYear = $currentYear - 1;
-                }
-                
-                $relevantMonths[] = ['month' => $targetMonth, 'year' => $targetYear];
+                $start = $now->copy()->subMonth()->startOfMonth()->format('Y-m-d');
+                $end = $now->copy()->subMonth()->endOfMonth()->format('Y-m-d');
                 break;
-                
+            
             case 'last_3_months':
-                // Include the current or most recent specific month and the two before it
-                $relevantYear = $currentYear;
-                
-                // Find the current or most recent specific month
-                $recentMonth = null;
-                if (in_array($currentMonth, $specificMonths)) {
-                    $recentMonth = $currentMonth;
-                } else {
-                    foreach ($specificMonths as $month) {
-                        if ($month < $currentMonth && ($recentMonth === null || $month > $recentMonth)) {
-                            $recentMonth = $month;
-                        }
-                    }
-                    
-                    if ($recentMonth === null) {
-                        $recentMonth = max($specificMonths);
-                        $relevantYear = $currentYear - 1;
-                    }
-                }
-                
-                // Add the recent month and find the two before it
-                $relevantMonths[] = ['month' => $recentMonth, 'year' => $relevantYear];
-                
-                // Find the two previous specific months
-                for ($i = 0; $i < 2; $i++) {
-                    $currentIndex = array_search($recentMonth, $specificMonths);
-                    if ($currentIndex > 0) {
-                        // Previous month in the same year
-                        $recentMonth = $specificMonths[$currentIndex - 1];
-                    } else {
-                        // Previous month is in the previous year
-                        $recentMonth = end($specificMonths);
-                        $relevantYear--;
-                    }
-                    $relevantMonths[] = ['month' => $recentMonth, 'year' => $relevantYear];
-                }
+                $start = $now->copy()->subMonths(3)->startOfMonth()->format('Y-m-d');
+                $end = $now->copy()->endOfMonth()->format('Y-m-d');
                 break;
-                
-            case 'year':
-                // Use all specific months in the current year
-                foreach ($specificMonths as $month) {
-                    $relevantMonths[] = ['month' => $month, 'year' => $currentYear];
-                }
-                break;
-                
+            
+            case 'month':
             default:
-                // Default to current month
-                if (in_array($currentMonth, $specificMonths)) {
-                    $relevantMonths[] = ['month' => $currentMonth, 'year' => $currentYear];
-                } else {
-                    // Find the most recent specific month
-                    $mostRecentMonth = null;
-                    foreach ($specificMonths as $month) {
-                        if ($month < $currentMonth && ($mostRecentMonth === null || $month > $mostRecentMonth)) {
-                            $mostRecentMonth = $month;
-                        }
-                    }
-                    
-                    if ($mostRecentMonth === null) {
-                        $mostRecentMonth = max($specificMonths);
-                        $relevantMonths[] = ['month' => $mostRecentMonth, 'year' => $currentYear - 1];
-                    } else {
-                        $relevantMonths[] = ['month' => $mostRecentMonth, 'year' => $currentYear];
-                    }
-                }
+                $start = $now->copy()->startOfMonth()->format('Y-m-d');
+                $end = $now->copy()->endOfMonth()->format('Y-m-d');
+                break;
         }
         
-        // Build the query conditions for the relevant months
-        $query = DB::table('violations')
-            ->join('violation_types', 'violations.violation_type_id', '=', 'violation_types.id');
-        
-        // Add conditions for each relevant month
-        $query->where(function($q) use ($relevantMonths) {
-            foreach ($relevantMonths as $index => $monthData) {
-                $method = $index === 0 ? 'where' : 'orWhere';
-                $q->$method(function($subQuery) use ($monthData) {
-                    $subQuery->whereRaw("MONTH(violation_date) = ? AND YEAR(violation_date) = ?", 
-                        [$monthData['month'], $monthData['year']]);
-                });
-            }
-        });
-        
-        // Complete the query
-        $violations = $query
-            ->select('violation_types.violation_name', DB::raw('count(*) as count'))
-            ->groupBy('violation_types.violation_name')
-            ->orderBy('count', 'desc')
-            ->get();
+        return ['start' => $start, 'end' => $end];
+    }
+    
+    // =============================================
+    // VIOLATION MANAGEMENT METHODS
+    // =============================================
+    
+    /**
+     * View a specific violation
+     * @param int $id The violation ID
+     * @return \Illuminate\View\View
+     */
+    public function viewViolation($id)
+    {
+        try {
+            $violation = Violation::with(['student', 'violationType', 'violationType.offenseCategory'])
+                ->findOrFail($id);
             
-        return $violations;
+            return view('educator.viewViolation', [
+                'violation' => $violation
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error viewing violation: ' . $e->getMessage());
+            return redirect()->route('educator.violation')
+                ->with('error', 'Unable to find the requested violation record.');
+        }
+    }
+    
+    /**
+     * Show the form for creating a new violation type
+     */
+    public function showViolationTypeForm()
+    {
+        $categories = OffenseCategory::all();
+        return view('educator.newViolation', [
+            'categories' => $categories
+        ]);
+    }
+    
+    /**
+     * Create a new violation type
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function createViolationType(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'description' => 'required|string',
+                'category_id' => 'required|exists:offense_categories,id',
+                'penalty' => 'required|string|max:50',
+                'severity' => 'required|string|in:low,medium,high,very high'
+            ]);
+            
+            $violationType = new ViolationType();
+            $violationType->name = $validated['name'];
+            $violationType->description = $validated['description'];
+            $violationType->offense_category_id = $validated['category_id'];
+            $violationType->penalty = $validated['penalty'];
+            $violationType->severity = $validated['severity'];
+            $violationType->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Violation type created successfully',
+                'data' => $violationType
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error creating violation type: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create violation type: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Filter and display students by penalty type
+     * 
+     * @param string $penalty The penalty code (W, VW, WW, Pro, Exp)
+     * @return \Illuminate\View\View
+     */
+    public function studentsByPenalty($penalty)
+    {
+        try {
+            // Validate the penalty type
+            $validPenalties = ['W', 'VW', 'WW', 'Pro', 'Exp'];
+            if (!in_array($penalty, $validPenalties)) {
+                return redirect()->route('educator.violation')
+                    ->with('error', 'Invalid penalty type specified.');
+            }
+            
+            // Get all active violations with the specified penalty
+            $violations = \App\Models\Violation::where('penalty', $penalty)
+                ->where('status', 'active')
+                ->with(['student', 'violationType'])
+                ->orderBy('violation_date', 'desc')
+                ->get();
+            
+            return view('educator.studentsByPenalty', [
+                'violations' => $violations,
+                'penalty' => $penalty
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in studentsByPenalty: ' . $e->getMessage());
+            return redirect()->route('educator.dashboard')
+                ->with('error', 'Unable to load students by penalty.');
+        }
     }
     
     /**
@@ -214,20 +451,179 @@ class EducatorController extends Controller
      */
     public function behavior()
     {
-        // Get students who need attention (more than 2 violations)
-        $studentsNeedingAttention = User::role('student')
-            ->withCount('violations')
-            ->having('violations_count', '>', 2)
-            ->orderBy('violations_count', 'desc')
+        // Get total students count from the database
+        $totalStudents = User::role('student')->count();
+        
+        // Get count of students with more than 2 violations
+        $studentsWithMultipleViolations = User::role('student')
+            ->select('users.id')
+            ->join('violations', 'users.student_id', '=', 'violations.student_id')
+            ->where('violations.status', 'active')
+            ->groupBy('users.id')
+            ->havingRaw('COUNT(violations.id) > 2')
+            ->count();
+        
+        return view('educator.behavior', [
+            'totalStudents' => $totalStudents,
+            'studentsWithMultipleViolations' => $studentsWithMultipleViolations
+        ]);
+    }
+    
+    /**
+     * Display the behavior page with student statistics
+     */
+    public function behaviorStats()
+    {
+        $stats = $this->getStudentStats();
+        return view('educator.behaviorStats', $stats);
+    }
+    
+    /**
+     * API endpoint to get behavior data for the chart
+     */
+    public function getBehaviorData(Request $request)
+    {
+        $monthsToShow = $request->input('months', 6);
+        return $this->getBehaviorDataBySex($monthsToShow);
+    }
+    
+    /**
+     * Get severity level based on penalty
+     * @param string $penalty The penalty code
+     * @return string The severity level
+     */
+    protected function getSeverityFromPenalty($penalty)
+    {
+        switch ($penalty) {
+            case 'W':
+                return 'low';
+            case 'VW':
+                return 'medium';
+            case 'WW':
+                return 'high';
+            case 'Pro':
+            case 'Exp':
+                return 'very high';
+            default:
+                return 'medium';
+        }
+    }
+    
+    /**
+     * Get penalty code from penalty name
+     * @param string $penalty The penalty name
+     * @return string The penalty code
+     */
+    protected function getPenaltyCode($penalty)
+    {
+        switch (strtolower($penalty)) {
+            case 'warning':
+                return 'W';
+            case 'verbal warning':
+                return 'VW';
+            case 'written warning':
+                return 'WW';
+            case 'probation':
+                return 'Pro';
+            case 'expulsion':
+                return 'Exp';
+            default:
+                return $penalty;
+        }
+    }
+    
+    /**
+     * Get violation statistics for the dashboard
+     * 
+     * @param string $period The period to get statistics for (month, last_month, last_3_months, year)
+     * @return array
+     */
+    protected function getViolationStats($period = 'month')
+    {
+        $now = Carbon::now();
+        $currentMonth = $now->month;
+        $currentYear = $now->year;
+        
+        // Define date ranges based on period
+        switch ($period) {
+            case 'month':
+                $startDate = Carbon::createFromDate($currentYear, $currentMonth, 1)->startOfDay();
+                $endDate = Carbon::createFromDate($currentYear, $currentMonth, 1)->endOfMonth()->endOfDay();
+                $periodLabel = 'This Month';
+                break;
+                
+            case 'last_month':
+                $lastMonth = $now->copy()->subMonth();
+                $startDate = Carbon::createFromDate($lastMonth->year, $lastMonth->month, 1)->startOfDay();
+                $endDate = Carbon::createFromDate($lastMonth->year, $lastMonth->month, 1)->endOfMonth()->endOfDay();
+                $periodLabel = 'Last Month';
+                break;
+                
+            case 'last_3_months':
+                $startDate = $now->copy()->subMonths(3)->startOfMonth()->startOfDay();
+                $endDate = $now->copy()->endOfDay();
+                $periodLabel = 'Last 3 Months';
+                break;
+                
+            case 'year':
+                $startDate = Carbon::createFromDate($currentYear, 1, 1)->startOfDay();
+                $endDate = Carbon::createFromDate($currentYear, 12, 31)->endOfDay();
+                $periodLabel = 'This Year';
+                break;
+                
+            default:
+                $startDate = Carbon::createFromDate($currentYear, $currentMonth, 1)->startOfDay();
+                $endDate = Carbon::createFromDate($currentYear, $currentMonth, 1)->endOfMonth()->endOfDay();
+                $periodLabel = 'This Month';
+        }
+        
+        // Get total violations for this period
+        $totalViolations = Violation::where('status', 'active')
+            ->whereBetween('violation_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->count();
+        
+        // Get violations by type for this period
+        $violationsByType = DB::table('violations')
+            ->join('violation_types', 'violations.violation_type_id', '=', 'violation_types.id')
+            ->select('violation_types.violation_name', DB::raw('COUNT(*) as count'))
+            ->where('violations.status', 'active')
+            ->whereBetween('violations.violation_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->groupBy('violation_types.id', 'violation_types.violation_name')
+            ->orderBy('count', 'desc')
+            ->take(5)
             ->get();
-            
-        return view('educator.behavior', compact('studentsNeedingAttention'));
+        
+        // Get violations by severity for this period
+        $violationsBySeverity = DB::table('violations')
+            ->join('violation_types', 'violations.violation_type_id', '=', 'violation_types.id')
+            ->select('violation_types.severity', DB::raw('COUNT(*) as count'))
+            ->where(function($q) use ($query) {
+                // Apply the same date filters as the main query
+                if ($query->getQuery()->wheres) {
+                    foreach ($query->getQuery()->wheres as $where) {
+                        if (isset($where['column']) && 
+                            (strpos($where['column'], 'created_at') !== false)) {
+                            $q->where($where['column'], $where['operator'], $where['value']);
+                        }
+                    }
+                }
+            })
+            ->groupBy('violation_types.severity')
+            ->orderBy('count', 'desc')
+            ->get();
+        
+        return [
+            'totalViolations' => $totalViolations,
+            'violationsByType' => $violationsByType,
+            'violationsBySeverity' => $violationsBySeverity,
+            'periodLabel' => $periodLabel
+        ];
     }
     
     /**
      * Get student statistics for behavior monitoring
      */
-    private function getStudentStats()
+    protected function getStudentStats()
     {
         return [
             'totalStudents' => User::role('student')->count(),
@@ -237,51 +633,35 @@ class EducatorController extends Controller
                 ->count()
         ];
     }
-
-    /**
-     * Display the behavior page with student statistics
-     */
-    public function behaviorStats()
-    {
-        $stats = $this->getStudentStats();
-        $behaviorData = $this->getBehaviorDataBySex();
-            
-        return view('educator.behavior', [
-            'totalStudents' => $stats['totalStudents'],
-            'studentsNeedingAttention' => $stats['studentsNeedingAttention'],
-            'behaviorData' => $behaviorData
-        ]);
-    }
     
     /**
-     * API endpoint to get behavior data for the chart
+     * Convert penalty code to a human-readable name
+     *
+     * @param string $penalty The penalty code
+     * @return string The full name of the penalty
      */
-    public function getBehaviorData(Request $request)
+    protected function getPenaltyName($penalty)
     {
-        try {
-            $months = $request->input('months', 6);
-            $behaviorData = $this->getBehaviorDataBySex($months);
-            
-            // Add additional data for the frontend
-            $stats = $this->getStudentStats();
-            $behaviorData = array_merge($behaviorData, $stats);
-                
-            return response()->json($behaviorData);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => true, 
-                'message' => $e->getMessage(),
-                'labels' => [],
-                'boys' => [],
-                'girls' => []
-            ], 500);
+        switch ($penalty) {
+            case 'W':
+                return 'Warning';
+            case 'VW':
+                return 'Verbal Warning';
+            case 'WW':
+                return 'Written Warning';
+            case 'Pro':
+                return 'Probation';
+            case 'Exp':
+                return 'Expulsion';
+            default:
+                return 'Unknown Penalty';
         }
     }
-    
+
     /**
      * Get behavior data by sex for the chart
      */
-    private function getBehaviorDataBySex($monthsToShow = 6)
+    protected function getBehaviorDataBySex($monthsToShow = 6)
     {
         try {
             $labels = [];
@@ -289,6 +669,7 @@ class EducatorController extends Controller
             $womenData = [];
             $currentDate = now();
             $allMonths = [];
+            $totalViolations = 0;
             
             // Generate months array based on requested period
             if ($monthsToShow == 12) {
@@ -331,8 +712,7 @@ class EducatorController extends Controller
                 if (in_array($monthData->name, ['February', 'April', 'June'])) {
                     \Log::info("Processing {$monthData->name} {$yearNum} - Total violations: {$allViolations->count()}");
                     
-                    // FORCE detection of violations for February and June by directly querying the database
-                    // This is a more aggressive approach to ensure we catch all violations for these months
+                    // FORCE detection of violations for these months by directly querying the database
                     $forcedViolations = DB::table('violations')
                         ->where('status', 'active')
                         ->get();
@@ -341,7 +721,7 @@ class EducatorController extends Controller
                     foreach ($forcedViolations as $violation) {
                         \Log::info("Checking violation ID: {$violation->id}, Date: {$violation->violation_date}, Sex: {$violation->sex}");
                         
-                        // For February and June, check if the date string contains the month name in any form
+                        // Check if the date string contains the month name in any form
                         $violationDate = strtolower($violation->violation_date);
                         $monthLower = strtolower($monthData->name);
                         $monthShort = strtolower(substr($monthData->name, 0, 3)); // feb, jun, apr
@@ -358,7 +738,7 @@ class EducatorController extends Controller
                     }
                 }
                     
-                // Filter boys violations for this month with comprehensive date checking
+                // Filter men violations for this month with comprehensive date checking
                 $menViolations = $allViolations->filter(function($violation) use ($monthData, $monthNum, $yearNum) {
                     // Check if this is a male/man violation
                     $isMale = in_array(strtolower($violation->sex), ['male', 'm', 'boy', 'man', 'men']);
@@ -397,7 +777,7 @@ class EducatorController extends Controller
                     return false;
                 });
                 
-                // Filter girls violations for this month with comprehensive date checking
+                // Filter women violations for this month with comprehensive date checking
                 $womenViolations = $allViolations->filter(function($violation) use ($monthData, $monthNum, $yearNum) {
                     // Check if this is a female/woman violation
                     $isFemale = in_array(strtolower($violation->sex), ['female', 'f', 'girl', 'woman', 'women']);
@@ -440,13 +820,12 @@ class EducatorController extends Controller
                 $menScore = 100;
                 $womenScore = 100;
                 
-                // Special handling for problematic months (February, June)
+                // Special handling for problematic months
                 if (in_array($monthData->name, ['February', 'June']) && $menViolations->count() > 0) {
                     \Log::info("Found {$menViolations->count()} men violations for {$monthData->name}");
                     \Log::info("Applying special handling for {$monthData->name}");
                     
                     // For these months, ensure we apply at least some deduction if violations exist
-                    // This is a fallback in case the severity-based deductions don't work
                     $hasDeduction = false;
                     
                     // We'll check if any deductions will be applied in the normal processing
@@ -465,7 +844,7 @@ class EducatorController extends Controller
                     }
                 }
                 
-                // Process boys violations normally
+                // Process men violations normally
                 foreach ($menViolations as $violation) {
                     // Log each violation for debugging
                     \Log::info("Processing violation ID: {$violation->id}, Date: {$violation->violation_date}, Severity: {$violation->severity}");
@@ -502,16 +881,11 @@ class EducatorController extends Controller
                     }
                 }
                 
-                // Special handling for problematic months (February, June)
+                // Apply similar logic for women violations
                 if (in_array($monthData->name, ['February', 'June']) && $womenViolations->count() > 0) {
                     \Log::info("Found {$womenViolations->count()} women violations for {$monthData->name}");
-                    \Log::info("Applying special handling for {$monthData->name}");
                     
-                    // For these months, ensure we apply at least some deduction if violations exist
-                    // This is a fallback in case the severity-based deductions don't work
                     $hasDeduction = false;
-                    
-                    // We'll check if any deductions will be applied in the normal processing
                     foreach ($womenViolations as $violation) {
                         $severity = strtolower($violation->severity ?? '');
                         if (!empty($severity) || !empty($violation->penalty)) {
@@ -520,46 +894,33 @@ class EducatorController extends Controller
                         }
                     }
                     
-                    // If no deductions would be applied, force a minimum deduction
                     if (!$hasDeduction) {
-                        \Log::info("Forcing minimum deduction for {$monthData->name}");
-                        $womenScore -= 15; // Apply a default medium deduction
+                        $womenScore -= 15;
                     }
                 }
                 
-                // Process girls violations normally
+                // Process women violations normally
                 foreach ($womenViolations as $violation) {
-                    // Log each violation for debugging
-                    \Log::info("Processing woman violation ID: {$violation->id}, Date: {$violation->violation_date}, Severity: {$violation->severity}");
-                    
                     $severity = strtolower($violation->severity ?? '');
                     
                     if (strpos($severity, 'low') !== false) {
-                        $womenScore -= 5; // Low severity
-                        \Log::info("Applied -5 deduction for Low severity");
+                        $womenScore -= 5;
                     } elseif (strpos($severity, 'medium') !== false) {
-                        $womenScore -= 10; // Medium severity
-                        \Log::info("Applied -10 deduction for Medium severity");
+                        $womenScore -= 10;
                     } elseif (strpos($severity, 'high') !== false && strpos($severity, 'very') === false) {
-                        $womenScore -= 15; // High severity
-                        \Log::info("Applied -15 deduction for High severity");
+                        $womenScore -= 15;
                     } elseif (strpos($severity, 'very high') !== false) {
-                        $womenScore -= 20; // Very High severity
-                        \Log::info("Applied -20 deduction for Very High severity");
+                        $womenScore -= 20;
                     } else {
                         // Default deductions based on penalty
                         if ($violation->penalty == 'VW') {
-                            $womenScore -= 10; // Verbal Warning
-                            \Log::info("Applied -10 deduction for Verbal Warning");
+                            $womenScore -= 10;
                         } elseif ($violation->penalty == 'WW') {
-                            $womenScore -= 15; // Written Warning
-                            \Log::info("Applied -15 deduction for Written Warning");
+                            $womenScore -= 15;
                         } elseif ($violation->penalty == 'Pro' || $violation->penalty == 'Exp') {
-                            $womenScore -= 20; // Probation or Expulsion
-                            \Log::info("Applied -20 deduction for {$violation->penalty}");
+                            $womenScore -= 20;
                         } else {
-                            $womenScore -= 10; // Default
-                            \Log::info("Applied -10 default deduction");
+                            $womenScore -= 10;
                         }
                     }
                 }
@@ -589,85 +950,5 @@ class EducatorController extends Controller
             ];
         }
     }
-
-    /**
-     * View a specific violation
-     */
-    public function viewViolation($id)
-    {
-        $violation = Violation::with(['student', 'violationType'])->findOrFail($id);
-        return view('educator.viewViolation', compact('violation'));
-    }
     
-    /**
-     * Filter and display students by penalty type
-     *
-     * @param string $penalty The penalty code (W, VW, WW, Pro, Exp)
-     * @return \Illuminate\View\View
-     */
-    public function studentsByPenalty($penalty)
-    {
-        // Validate the penalty type
-        $validPenalties = ['W', 'VW', 'WW', 'Pro', 'Exp'];
-        if (!in_array($penalty, $validPenalties)) {
-            return redirect()->route('educator.violation')->with('error', 'Invalid penalty type');
-        }
-        
-        // Get all active violations with the specified penalty
-        $violations = Violation::with(['student', 'violationType'])
-            ->where('penalty', $penalty)
-            ->where('status', 'active')
-            ->orderBy('violation_date', 'desc')
-            ->get();
-        
-        // Get the penalty full name for display
-        $penaltyNames = [
-            'W' => 'Warning',
-            'VW' => 'Verbal Warning',
-            'WW' => 'Written Warning',
-            'Pro' => 'Probation',
-            'Exp' => 'Expulsion'
-        ];
-        
-        $penaltyName = $penaltyNames[$penalty] ?? 'Unknown';
-        
-        return view('educator.studentsByPenalty', [
-            'violations' => $violations,
-            'penalty' => $penalty,
-            'penaltyName' => $penaltyName
-        ]);
-    }
-    
-    /**
-     * Create a new violation type
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function createViolationType(Request $request)
-    {
-        try {
-            // Validate the request data
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'severity' => 'required|string|in:Low,Medium,High,Very High',
-                'penalty' => 'required|string|in:W,VW,WW,Pro,Exp'
-            ]);
-            
-            // Create the violation type
-            $violationType = ViolationType::create($validated);
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Violation type created successfully',
-                'data' => $violationType
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create violation type: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 }

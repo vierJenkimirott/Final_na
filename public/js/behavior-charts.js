@@ -73,28 +73,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <th>Value</th>
                             </tr>
                             <tr>
-                                <td>Average Score</td>
-                                <td>${document.getElementById('average-score').textContent}</td>
-                            </tr>
-                            <tr>
                                 <td>Men Average</td>
-                                <td>${document.getElementById('men-avg').textContent}</td>
+                                <td>${document.getElementById('men-avg')?.textContent || 'N/A'}</td>
                             </tr>
                             <tr>
                                 <td>Women Average</td>
-                                <td>${document.getElementById('women-avg').textContent}</td>
-                            </tr>
-                            <tr>
-                                <td>Excellent Behavior</td>
-                                <td>${document.getElementById('excellent-count').textContent}</td>
-                            </tr>
-                            <tr>
-                                <td>Needs Improvement</td>
-                                <td>${document.getElementById('needs-improvement-count').textContent}</td>
-                            </tr>
-                            <tr>
-                                <td>Critical Cases</td>
-                                <td>${document.getElementById('critical-count').textContent}</td>
+                                <td>${document.getElementById('women-avg')?.textContent || 'N/A'}</td>
                             </tr>
                         </table>
                         <div class="footer">
@@ -303,58 +287,23 @@ function updateAnalytics(data) {
     const allScores = [...menScores, ...womenScores];
     
     // Calculate average score
-    const averageScore = Math.round(allScores.reduce((sum, score) => sum + score, 0) / allScores.length);
-    const menAverage = Math.round(menScores.reduce((sum, score) => sum + score, 0) / menScores.length);
-    const womenAverage = Math.round(womenScores.reduce((sum, score) => sum + score, 0) / womenScores.length);
+    const menAverage = menScores.length > 0 ? Math.round(menScores.reduce((sum, score) => sum + score, 0) / menScores.length) : 0;
+    const womenAverage = womenScores.length > 0 ? Math.round(womenScores.reduce((sum, score) => sum + score, 0) / womenScores.length) : 0;
     
-    // Calculate score distributions
-    const excellentCount = allScores.filter(score => score >= 90).length;
-    const goodCount = allScores.filter(score => score >= 70 && score < 90).length;
-    const needsImprovementCount = allScores.filter(score => score >= 50 && score < 70).length;
-    const criticalCount = allScores.filter(score => score < 50).length;
+    // Update men and women averages in the legend
+    const menAvgElement = document.getElementById('men-avg');
+    const womenAvgElement = document.getElementById('women-avg');
     
-    // Calculate percentages
-    const excellentPercentage = Math.round((excellentCount / allScores.length) * 100);
-    const needsImprovementPercentage = Math.round((needsImprovementCount / allScores.length) * 100);
-    const criticalPercentage = Math.round((criticalCount / allScores.length) * 100);
-    
-    // Update UI elements
-    document.getElementById('average-score').textContent = averageScore;
-    document.getElementById('excellent-count').textContent = excellentPercentage + '%';
-    document.getElementById('needs-improvement-count').textContent = needsImprovementPercentage + '%';
-    document.getElementById('critical-count').textContent = criticalPercentage + '%';
-    document.getElementById('men-avg').textContent = menAverage + ' pts';
-    document.getElementById('women-avg').textContent = womenAverage + ' pts';
-    
-    // Calculate trend (comparing last two months)
-    if (menScores.length >= 2 && womenScores.length >= 2) {
-        const lastMonthMen = menScores[menScores.length - 1];
-        const prevMonthMen = menScores[menScores.length - 2];
-        const lastMonthWomen = womenScores[womenScores.length - 1];
-        const prevMonthWomen = womenScores[womenScores.length - 2];
-        
-        const lastMonthAvg = (lastMonthMen + lastMonthWomen) / 2;
-        const prevMonthAvg = (prevMonthMen + prevMonthWomen) / 2;
-        
-        // Calculate percentage change
-        const percentChange = ((lastMonthAvg - prevMonthAvg) / prevMonthAvg) * 100;
-        const roundedChange = Math.abs(Math.round(percentChange * 10) / 10);
-        
-        // Update trend indicator
-        const trendElement = document.getElementById('score-trend');
-        if (trendElement) {
-            if (percentChange > 0) {
-                trendElement.className = 'small text-success mt-1';
-                trendElement.innerHTML = `<i class="fas fa-arrow-up me-1"></i>${roundedChange}% from last period`;
-            } else if (percentChange < 0) {
-                trendElement.className = 'small text-danger mt-1';
-                trendElement.innerHTML = `<i class="fas fa-arrow-down me-1"></i>${roundedChange}% from last period`;
-            } else {
-                trendElement.className = 'small text-muted mt-1';
-                trendElement.innerHTML = `<i class="fas fa-equals me-1"></i>No change from last period`;
-            }
-        }
+    if (menAvgElement) {
+        menAvgElement.textContent = menAverage + ' pts';
     }
+    
+    if (womenAvgElement) {
+        womenAvgElement.textContent = womenAverage + ' pts';
+    }
+    
+    // We've removed the stat cards, so we don't need to update those elements anymore
+    // This ensures the chart still works even without the stat cards
 }
 
 /**

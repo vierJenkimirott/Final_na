@@ -3,112 +3,163 @@
 @section('content')
     <!-- Main Container -->
     <div class="container">
-        <h2>Edit Violation</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Edit Violation</h2>
+            <a href="{{ route('educator.violation') }}" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>Back to Violations</a>
+        </div>
+        
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
         
         <!-- Edit Violation Form -->
-        <form action="{{ route('educator_update_violation', ['id' => $violation->id]) }}" method="POST">
+        <form action="{{ route('educator.update-violation', ['id' => $violation->id]) }}" method="POST">
             @csrf
             @method('PUT')
             
-            <!-- Student Selection -->
-            <div class="form-group">
-                <label for="student_id">Student</label>
-                <select name="student_id" id="student_id" class="form-control" required>
-                    <option value="">Select Student</option>
-                    @foreach($students as $student)
-                        <option value="{{ $student->student_id }}" {{ $violation->student_id == $student->student_id ? 'selected' : '' }}>
-                            {{ $student->lname }}, {{ $student->fname }}
-                        </option>
-                    @endforeach
-                </select>
+            <div class="row">
+                <!-- Student Selection -->
+                <div class="col-md-6 mb-3">
+                    <label for="student_id" class="form-label">Student <span class="text-danger">*</span></label>
+                    <select name="student_id" id="student_id" class="form-select @error('student_id') is-invalid @enderror" required>
+                        <option value="">Select Student</option>
+                        @foreach($students as $student)
+                            <option value="{{ $student->student_id }}" {{ $violation->student_id == $student->student_id ? 'selected' : '' }}>
+                                {{ $student->lname }}, {{ $student->fname }} ({{ $student->student_id }})
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('student_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                
+                <!-- Violation Date -->
+                <div class="col-md-6 mb-3">
+                    <label for="violation_date" class="form-label">Violation Date <span class="text-danger">*</span></label>
+                    <input type="date" name="violation_date" id="violation_date" class="form-control @error('violation_date') is-invalid @enderror" 
+                           value="{{ \Carbon\Carbon::parse($violation->violation_date)->format('Y-m-d') }}" required>
+                    @error('violation_date')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
             </div>
             
-            <!-- Violation Date -->
-            <div class="form-group">
-                <label for="violation_date">Violation Date</label>
-                <input type="date" name="violation_date" id="violation_date" class="form-control" 
-                       value="{{ \Carbon\Carbon::parse($violation->violation_date)->format('Y-m-d') }}" required>
+            <div class="row">
+                <!-- Category Selection -->
+                <div class="col-md-6 mb-3">
+                    <label for="offense_category_id" class="form-label">Category <span class="text-danger">*</span></label>
+                    <select name="offense_category_id" id="offense_category_id" class="form-select @error('offense_category_id') is-invalid @enderror" required>
+                        <option value="">Select Category</option>
+                        @foreach($offenseCategories as $category)
+                            <option value="{{ $category->id }}" {{ $violation->offenseCategory->id == $category->id ? 'selected' : '' }}>
+                                {{ $category->category_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('offense_category_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+                
+                <!-- Violation Type Selection -->
+                <div class="col-md-6 mb-3">
+                    <label for="violation_type_id" class="form-label">Violation Type <span class="text-danger">*</span></label>
+                    <select name="violation_type_id" id="violation_type_id" class="form-select @error('violation_type_id') is-invalid @enderror" required>
+                        <option value="">Select Violation Type</option>
+                        @foreach($violation->offenseCategory->violationTypes as $type)
+                            <option value="{{ $type->id }}" {{ $violation->violation_type_id == $type->id ? 'selected' : '' }}>
+                                {{ $type->violation_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('violation_type_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
             </div>
             
-            <!-- Category Selection -->
-            <div class="form-group">
-                <label for="offense_category_id">Category</label>
-                <select name="offense_category_id" id="offense_category_id" class="form-control" required>
-                    <option value="">Select Category</option>
-                    @foreach($offenseCategories as $category)
-                        <option value="{{ $category->id }}" {{ $violation->offenseCategory->id == $category->id ? 'selected' : '' }}>
-                            {{ $category->category_name }}
-                        </option>
-                    @endforeach
-                </select>
+            <div class="row">
+                <!-- Severity Selection -->
+                <div class="col-md-6 mb-3">
+                    <label for="severity" class="form-label">Severity <span class="text-danger">*</span></label>
+                    <select name="severity" id="severity" class="form-select @error('severity') is-invalid @enderror" required>
+                        <option value="">Select Severity</option>
+                        <option value="Low" {{ $violation->severity == 'Low' ? 'selected' : '' }}>Low</option>
+                        <option value="Medium" {{ $violation->severity == 'Medium' ? 'selected' : '' }}>Medium</option>
+                        <option value="High" {{ $violation->severity == 'High' ? 'selected' : '' }}>High</option>
+                        <option value="Very High" {{ $violation->severity == 'Very High' ? 'selected' : '' }}>Very High</option>
+                    </select>
+                    @error('severity')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <small class="form-text text-muted">Severity level affects behavior score deductions</small>
+                </div>
+                
+                <!-- Penalty Selection -->
+                <div class="col-md-6 mb-3">
+                    <label for="penalty" class="form-label">Penalty <span class="text-danger">*</span></label>
+                    <select name="penalty" id="penalty" class="form-select @error('penalty') is-invalid @enderror" required>
+                        <option value="">Select Penalty</option>
+                        <option value="W" {{ $violation->penalty == 'W' ? 'selected' : '' }}>Warning</option>
+                        <option value="VW" {{ $violation->penalty == 'VW' ? 'selected' : '' }}>Verbal Warning</option>
+                        <option value="WW" {{ $violation->penalty == 'WW' ? 'selected' : '' }}>Written Warning</option>
+                        <option value="Pro" {{ $violation->penalty == 'Pro' ? 'selected' : '' }}>Probation</option>
+                        <option value="Exp" {{ $violation->penalty == 'Exp' ? 'selected' : '' }}>Expulsion</option>
+                    </select>
+                    @error('penalty')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
             </div>
             
-            <!-- Violation Type Selection -->
-            <div class="form-group">
-                <label for="violation_type_id">Violation Type</label>
-                <select name="violation_type_id" id="violation_type_id" class="form-control" required>
-                    <option value="">Select Violation Type</option>
-                    @foreach($violation->offenseCategory->violationTypes as $type)
-                        <option value="{{ $type->id }}" {{ $violation->violation_type_id == $type->id ? 'selected' : '' }}>
-                            {{ $type->violation_name }}
-                        </option>
-                    @endforeach
-                </select>
+            <!-- Offense Description -->
+            <div class="mb-3">
+                <label for="offense" class="form-label">Offense Description <span class="text-danger">*</span></label>
+                <textarea name="offense" id="offense" class="form-control @error('offense') is-invalid @enderror" rows="3" required>{{ $violation->offense }}</textarea>
+                @error('offense')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+                <small class="form-text text-muted">Provide a detailed description of the violation</small>
             </div>
             
-            <!-- Severity Selection -->
-            <div class="form-group">
-                <label for="severity">Severity</label>
-                <select name="severity" id="severity" class="form-control" required>
-                    <option value="Low" {{ $violation->severity == 'Low' ? 'selected' : '' }}>Low</option>
-                    <option value="Medium" {{ $violation->severity == 'Medium' ? 'selected' : '' }}>Medium</option>
-                    <option value="High" {{ $violation->severity == 'High' ? 'selected' : '' }}>High</option>
-                    <option value="Very High" {{ $violation->severity == 'Very High' ? 'selected' : '' }}>Very High</option>
-                </select>
-            </div>
-            
-            <!-- Offense Selection -->
-            <div class="form-group">
-                <label for="offense">Offense</label>
-                <select name="offense" id="offense" class="form-control" required>
-                    <option value="1st" {{ $violation->offense == '1st' ? 'selected' : '' }}>1st Offense</option>
-                    <option value="2nd" {{ $violation->offense == '2nd' ? 'selected' : '' }}>2nd Offense</option>
-                    <option value="3rd" {{ $violation->offense == '3rd' ? 'selected' : '' }}>3rd Offense</option>
-                </select>
-            </div>
-            
-            <!-- Penalty Selection -->
-            <div class="form-group">
-                <label for="penalty">Penalty</label>
-                <select name="penalty" id="penalty" class="form-control" required>
-                    <option value="W" {{ $violation->penalty == 'W' ? 'selected' : '' }}>Warning</option>
-                    <option value="VW" {{ $violation->penalty == 'VW' ? 'selected' : '' }}>Verbal Warning</option>
-                    <option value="WW" {{ $violation->penalty == 'WW' ? 'selected' : '' }}>Written Warning</option>
-                    <option value="Pro" {{ $violation->penalty == 'Pro' ? 'selected' : '' }}>Probation</option>
-                    <option value="Exp" {{ $violation->penalty == 'Exp' ? 'selected' : '' }}>Expulsion</option>
-                </select>
-            </div>
-            
-            <!-- Consequence Input -->
-            <div class="form-group">
-                <label for="consequence">Consequence</label>
-                <textarea name="consequence" id="consequence" class="form-control" rows="3" required>{{ $violation->consequence }}</textarea>
+            <!-- Consequence Description -->
+            <div class="mb-3">
+                <label for="consequence" class="form-label">Consequence <span class="text-danger">*</span></label>
+                <textarea name="consequence" id="consequence" class="form-control @error('consequence') is-invalid @enderror" rows="3" required>{{ $violation->consequence }}</textarea>
+                @error('consequence')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+                <small class="form-text text-muted">Describe the consequences or actions taken</small>
             </div>
             
             <!-- Status Selection -->
-            <div class="form-group">
-                <label for="status">Status</label>
-                <select name="status" id="status" class="form-control" required>
-                    <option value="pending" {{ $violation->status == 'pending' ? 'selected' : '' }}>Pending</option>
+            <div class="mb-3">
+                <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+                <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
+                    <option value="active" {{ $violation->status == 'active' ? 'selected' : '' }}>Active</option>
                     <option value="resolved" {{ $violation->status == 'resolved' ? 'selected' : '' }}>Resolved</option>
-                    <option value="cancelled" {{ $violation->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                 </select>
+                @error('status')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+                <small class="form-text text-muted">Set to 'Resolved' when the violation has been addressed</small>
             </div>
             
-            <!-- Form Action Buttons -->
-            <div class="action-buttons">
-                <a href="{{ route('educator.violation') }}" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary">Update Violation</button>
+            <!-- Submit Button -->
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ route('educator.violation') }}" class="btn btn-secondary"><i class="fas fa-times me-2"></i>Cancel</a>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Update Violation</button>
             </div>
         </form>
     </div>

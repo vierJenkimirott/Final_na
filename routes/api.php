@@ -17,3 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Violation statistics for the educator dashboard
+Route::get('/violation-stats', 'App\Http\Controllers\ViolationController@getViolationStatsByPeriod');
+

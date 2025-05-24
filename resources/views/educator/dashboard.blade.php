@@ -2,447 +2,124 @@
 
 @section('title', 'Educator Dashboard')
 
-@section('content')
-<!-- Custom CSS Styles -->
+@section('css')
 <style>
-    /* Base Styles */
-    .card {
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        border-radius: 10px;
-        border: none;
-    }
-    
-    h2 {
-        color: #2c3e50;
-        margin-bottom: 1.5rem;
-        font-size: 1.8rem;
-        font-weight: 600;
-    }
-    
-    .card h2 {
-        font-size: 1.5rem;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #f0f0f0;
-    }
-    
-    /* Educator Header */
-    .educator-header {
-        background: linear-gradient(135deg, #3a7bd5, #00d2ff);
-        border-radius: 15px;
-        padding: 20px 30px;
-        margin-bottom: 25px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        position: relative;
-        overflow: hidden;
-        color: white;
-    }
-    
-    .educator-header::before {
-        content: '';
-        position: absolute;
-        top: 0; right: 0;
-        width: 150px; height: 100%;
-        background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIgY3g9IjUwIiBjeT0iNTAiIHI9IjUwIi8+PC9zdmc+') repeat;
-        opacity: 0.2;
-    }
-    
-    .educator-name {
-        font-size: 2rem;
-        font-weight: 600;
-        margin: 0;
-        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
-    }
-    
-    .educator-role {
-        color: rgba(255, 255, 255, 0.9);
-        font-size: 1.1rem;
-        margin-top: 5px;
-    }
-    
-    .last-login {
-        position: absolute;
-        top: 20px; right: 30px;
-        color: rgba(255, 255, 255, 0.8);
-        font-size: 0.85rem;
-    }
-    
-    .last-login i { margin-right: 5px; }
-    
-    /* Stats Display */
-    .educator-stats {
-        display: flex;
-        margin-top: 15px;
-    }
-    
-    .stat-item {
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        padding: 8px 15px;
-        margin-right: 15px;
-    }
-    
-    .stat-value {
-        color: white;
-        font-weight: 600;
-        font-size: 1.2rem;
-        margin: 0;
-    }
-    
-    .stat-label {
-        color: rgba(255, 255, 255, 0.8);
-        font-size: 0.8rem;
-        margin: 0;
-    }
-    
-    /* Date Time Card */
-    #date-time-card {
-        background: linear-gradient(135deg, #2c3e50, #4ca1af);
-        color: white;
-        border: none;
-        position: relative;
-        overflow: hidden;
-        transition: all 0.3s ease;
-    }
-    
-    #date-time-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIgY3g9IjIwIiBjeT0iMjAiIHI9IjIwIi8+PC9zdmc+') repeat;
-        opacity: 0.1;
-        z-index: 0;
-    }
-    
-    #date-time-card .title {
-        color: rgba(255, 255, 255, 0.9);
-        font-weight: 500;
-        font-size: 1.1rem;
-        position: relative;
-        z-index: 1;
-    }
-    
-    #date-time-card h3 {
-        color: white;
-        font-weight: 600;
-        font-size: 1.4rem;
-        margin-top: 10px;
-        position: relative;
-        z-index: 1;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-    }
-    
-    #date-time-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-    }
-    
-    /* Violation Report Card */
+    /* Violation Report Card Styling */
     .violation-report-card {
-        height: 400px;
-        display: flex;
-        flex-direction: column;
-        background-color: #fff;
-        border-radius: 15px;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        padding: 25px;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .violation-report-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 5px;
-        background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
-    }
-    
-    .violation-report-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        padding: 20px;
+        height: 100%;
     }
     
     .violation-report-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 25px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid #f0f0f0;
+        margin-bottom: 20px;
     }
     
     .violation-report-header h2 {
-        font-size: 1.6rem;
-        font-weight: 700;
+        font-size: 1.5rem;
         margin: 0;
+        font-weight: 600;
         color: #333;
-        display: flex;
-        align-items: center;
     }
     
-    .violation-report-header h2::before {
-        content: '\f3ed';
-        font-family: 'Font Awesome 5 Free';
-        font-weight: 900;
-        margin-right: 10px;
-        color: #6a11cb;
-    }
-    
-    /* Filter Dropdown */
-    #violation-filter {
-        width: 180px;
-        padding: 10px 15px;
-        border: 2px solid #eaeaea;
-        border-radius: 10px;
+    .filter-wrapper select {
+        padding: 6px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #f8f9fa;
         font-size: 0.9rem;
-        font-weight: 500;
-        color: #444;
-        background-color: #fff;
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%236a11cb' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: calc(100% - 15px) center;
-        padding-right: 40px;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     }
     
-    #violation-filter:focus {
-        outline: none;
-        border-color: #6a11cb;
-        box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.15);
-    }
-    
-    #violation-filter:hover {
-        border-color: #6a11cb;
-    }
-    
-    /* Violation Stats */
     .violation-stats {
-        overflow-y: auto;
-        flex-grow: 1;
-        padding-right: 5px;
+        margin-bottom: 15px;
     }
-    
-    .violation-stats::-webkit-scrollbar { width: 8px; }
-    .violation-stats::-webkit-scrollbar-track { background: #f5f5f5; border-radius: 10px; }
-    .violation-stats::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #6a11cb 0%, #2575fc 100%); border-radius: 10px; }
-    .violation-stats::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #5a0cb1 0%, #1565e6 100%); }
     
     .violation-report-list {
-        padding: 0;
-    }
-    
-    /* Violation Item */
-    .violation-item {
-        margin-bottom: 20px;
-        padding: 12px 15px;
-        background-color: #f9f9f9;
-        border-radius: 10px;
-        transition: all 0.2s ease;
-        border-left: 4px solid #6a11cb;
-    }
-    
-    .violation-item:hover {
-        background-color: #f0f0f0;
-        transform: translateX(5px);
-    }
-    
-    .violation-name {
-        font-weight: 600;
-        font-size: 1rem;
-        color: #333;
-        margin-bottom: 8px;
-        display: block;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
+        flex-direction: column;
+        gap: 15px;
     }
     
-    /* Progress Bar */
-    .progress {
-        height: 12px;
-        background-color: #e9ecef;
-        border-radius: 10px;
-        position: relative;
+    .violation-item {
+        margin-bottom: 15px;
+    }
+    
+    .violation-text {
+        font-size: 0.9rem;
         margin-bottom: 5px;
-        overflow: visible;
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        color: #333;
+    }
+    
+    .progress {
+        height: 10px;
+        background-color: #e9ecef;
+        border-radius: 5px;
+        overflow: hidden;
     }
     
     .progress-bar {
-        background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+        background-color: #007bff;
         height: 100%;
-        border-radius: 10px;
-        position: relative;
-        transition: width 0.6s ease;
-        animation: pulse 2s infinite;
     }
     
-    @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.8; }
-        100% { opacity: 1; }
-    }
-    
-    .progress-bar::after {
-        content: '';
-        position: absolute;
-        right: 0;
-        top: 0;
-        height: 100%;
-        width: 5px;
-        background-color: rgba(255, 255, 255, 0.5);
-        border-radius: 0 10px 10px 0;
-    }
-    
-    /* Count Display */
-    .violation-count {
-        display: inline-block;
-        padding: 3px 10px;
-        background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
-        color: white;
-        font-weight: 700;
-        font-size: 0.85rem;
-        border-radius: 20px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        min-width: 30px;
-        text-align: center;
-    }
-    
-    /* Violation Footer */
     .violation-footer {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 15px;
+        font-size: 0.8rem;
+        color: #6c757d;
+        border-top: 1px solid #eee;
         padding-top: 15px;
-        border-top: 1px solid #f0f0f0;
+        margin-top: auto;
     }
     
     .violation-info {
-        font-size: 0.85rem;
-        color: #666;
-    }
-    
-    .violation-info i {
-        color: #6a11cb;
-        margin-right: 5px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
     
     .btn-refresh-violations {
-        background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
-        color: white;
+        background: none;
         border: none;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        color: #6c757d;
         cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        padding: 5px;
+        border-radius: 4px;
     }
     
     .btn-refresh-violations:hover {
-        transform: rotate(180deg);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        background-color: #f8f9fa;
+        color: #007bff;
     }
     
-    /* Empty State */
-    .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 40px 20px;
-        text-align: center;
-    }
-    
-    .empty-state i {
-        font-size: 3rem;
-        color: #6a11cb;
-        margin-bottom: 15px;
-        opacity: 0.7;
-    }
-    
-    .empty-state h5 {
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin-bottom: 10px;
-        color: #333;
-    }
-    
-    /* Loading Animation */
-    .loading-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 200px;
-    }
-    
-    .spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid rgba(0, 0, 0, 0.1);
-        border-radius: 50%;
-        border-top: 4px solid #0d6efd;
-        animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    /* Empty State */
     .empty-state {
         text-align: center;
-        padding: 30px 20px;
-    }
-    
-    .empty-state i {
-        font-size: 3rem;
+        padding: 30px 0;
         color: #6c757d;
-        margin-bottom: 15px;
-        opacity: 0.5;
     }
     
-    /* Student & Violator Info */
-    .profile-img {
-        border: 3px solid #fff;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s;
-    }
-    
-    .profile-img:hover { transform: scale(1.05); }
-    
-    .violator-info { transition: transform 0.2s; }
-    .violator-info:hover { transform: translateX(5px); }
-    
-    .badge-danger {
-        background-color: #dc3545;
-        padding: 5px 10px;
-        font-size: 0.8rem;
-        border-radius: 15px;
+    .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        color: #adb5bd;
     }
 </style>
+@endsection
 
-<!-- Modern Educator Profile Header -->
+@section('content')
+<!-- Educator Profile Header -->
 <div class="educator-header">
     <div class="last-login">
         <i class="fas fa-clock"></i> Last login: {{ date('M d, Y h:i A', strtotime(Auth::user()->last_login ?? now())) }}
     </div>
-    
     <h1 class="educator-name">{{ Auth::user()->name }}</h1>
     <p class="educator-role">Educator <span class="badge bg-light text-primary" style="font-size: 0.7rem; vertical-align: middle;">Active</span></p>
-    
     <div class="educator-stats">
         <div class="stat-item">
             <p class="stat-value">{{ $totalViolations }}</p>
@@ -459,64 +136,65 @@
     </div>
 </div>
 
-<!-- Statistics Cards Row -->
+<!-- Stats Row -->
 <div class="row g-3">
-    <!-- Violations Card -->
     <div class="col-md-6">
         <div class="card">
-            <p class="title">Violation <img src="{{ asset('images/warning-removebg-preview.png') }}" alt="" class="icon"></p>
-            <h3>{{ $totalViolations }}</h3>
+            <p class="title">Total Student Violations <img src="{{ asset('images/warning-removebg-preview.png') }}" alt="" class="icon"></p>
+            <h3>{{ DB::table('violations')->where('status', 'active')->count() }}</h3>
+            <p class="text-muted small">Active violations in the system</p>
         </div>
     </div>
-    
-    <!-- Real-time Date and Time Card -->
     <div class="col-md-6">
-        <div class="card" id="date-time-card">
-            <p class="title">Current Date & Time <i class="fas fa-clock" style="color: #3a7bd5;"></i></p>
-            <h3 id="current-time">{{ now()->format('M d, Y h:i:s A') }}</h3>
+        <div class="card" style="background-color: #2c3e50; color: white;">
+            <p class="title">Current Date & Time <i class="fas fa-clock" style="margin-left: 5px;"></i></p>
+            <h3 id="current-time">Loading...</h3>
         </div>
     </div>
 </div>
-
-<!-- Add JavaScript for real-time clock -->
-<script>
-function updateClock() {
-    const now = new Date();
-    const options = { 
-        weekday: 'long',
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-    };
-    document.getElementById('current-time').textContent = now.toLocaleDateString('en-US', options);
-}
-
-// Update the clock immediately and then every second
-updateClock();
-setInterval(updateClock, 1000);
-</script>
-
-
 
 <!-- Charts and Reports Row -->
 <div class="row g-3 mt-3">
     <!-- Violation Status Overview Chart -->
     <div class="col-md-6">
-        <div class="card violation-status-overview-card" style="height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <h2 style="width: 100%; text-align: center;">Violation Status Overview</h2>
-            <div style="width: 100%; height: 320px; display: flex; justify-content: center; align-items: center;">
-                <canvas id="behaviorChart" style="max-width: 100%; max-height: 100%;"></canvas>
+        <div class="card violation-status-overview-card" style="border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); height: 100%;">
+            @php
+                // Calculate violation statistics
+                $totalStudents = DB::table('users')
+                    ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
+                    ->join('roles', 'user_roles.role_id', '=', 'roles.id')
+                    ->where('roles.name', 'student')
+                    ->count();
+                
+                $violatorCount = DB::table('users')
+                    ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
+                    ->join('roles', 'user_roles.role_id', '=', 'roles.id')
+                    ->where('roles.name', 'student')
+                    ->whereExists(function($query) {
+                        $query->select(DB::raw(1))
+                              ->from('violations')
+                              ->whereRaw('violations.student_id = users.student_id')
+                              ->where('violations.status', 'active');
+                    })
+                    ->count();
+                
+                $nonViolatorCount = $totalStudents - $violatorCount;
+                $violatorPercentage = $totalStudents > 0 ? round(($violatorCount / $totalStudents) * 100, 1) : 0;
+                $nonViolatorPercentage = $totalStudents > 0 ? round(($nonViolatorCount / $totalStudents) * 100, 1) : 0;
+            @endphp
+            
+            <div style="padding: 20px;">
+                <h2 style="text-align: center; color: #2c3e50; font-size: 1.5rem; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">Violation Status Overview</h2>
+                <div style="position: relative; height: 250px; width: 100%;">
+                    <canvas id="violationStatusChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Violation Report Card -->
     <div class="col-md-6">
-        <div class="violation-report-card">
+        <div class="card violation-report-card" style="border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); height: 100%;">
             <div class="violation-report-header">
                 <h2>Violation Report</h2>
                 <div class="filter-wrapper">
@@ -532,15 +210,10 @@ setInterval(updateClock, 1000);
             <div class="violation-stats">
                 <div id="violation-list" class="violation-report-list">
                     @if(count($violationStats) > 0)
-                        @php
-                            $maxCount = $violationStats->max('count');
-                        @endphp
+                        @php $maxCount = $violationStats->max('count'); @endphp
                         @foreach($violationStats as $violation)
                             <div class="violation-item">
-                                <span class="violation-name">
-                                    <span><i class="fas fa-exclamation-triangle mr-2"></i> {{ $violation->violation_name }}</span>
-                                    <span class="violation-count">{{ $violation->count }}</span>
-                                </span>
+                                <div class="violation-text">{{ $violation->violation_name }}</div>
                                 <div class="progress">
                                     <div class="progress-bar" style="width: {{ ($violation->count / $maxCount) * 100 }}%;"></div>
                                 </div>
@@ -566,184 +239,185 @@ setInterval(updateClock, 1000);
 <!-- Top Violators Section -->
 <div class="row mt-3">
     <div class="col-12">
-        <div class="card" style="height: 350px; padding: 20px; overflow-y: auto;">
-            <h2 class="text-left">Top Violators</h2>
-            @forelse ($topViolators as $violator)
-                <div class="d-flex align-items-center mb-3">
-                    <img src="{{ asset('images/newprof.png')}}" alt="{{ $violator->fname }} {{ $violator->lname }}" class="profile-img" style="width: 80px; height: 80px; border-radius: 50%; margin-right: 15px;">
-                    <div class="violator-info">
-                        <h5 class="mb-0">{{ $violator->fname }} {{ $violator->lname }}</h5>
-                        <p class="text-muted mb-0">{{ $violator->student_id }}</p>
-                        <span class="badge badge-danger">{{ $violator->violation_count }} violations</span>
+        <div class="card top-violators-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Top Violators</h5>
+                <a href="{{ route('educator.dashboard') }}" class="btn btn-sm btn-outline-primary btn-refresh-violations" title="Refresh Data"><i class="fas fa-sync-alt"></i></a>
+            </div>
+            <div class="card-body">
+                @php
+                    // Ensure $topViolators is properly handled whether it's a collection or array
+                    $hasViolators = false;
+                    
+                    if (isset($topViolators)) {
+                        if (is_object($topViolators) && method_exists($topViolators, 'count')) {
+                            $hasViolators = $topViolators->count() > 0;
+                        } elseif (is_array($topViolators)) {
+                            $hasViolators = count($topViolators) > 0;
+                        }
+                    }
+                @endphp
+                
+                @if($hasViolators)
+                    @foreach($topViolators as $violator)
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{{ asset('images/newprof.png')}}" alt="{{ $violator->name ?? 'Student' }}" class="profile-img" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 15px;">
+                            <div class="violator-info">
+                                <h6 class="mb-0 fw-bold">{{ $violator->name ?? 'Student' }}</h6>
+                                <p class="text-muted small mb-0">{{ $violator->student_id }}</p>
+                                <span class="badge bg-danger">{{ $violator->violations_count }} {{ Str::plural('violation', $violator->violations_count) }}</span>
+                            </div>
+                        </div>
+                    @endforeach
+                @else
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No violation records found.
                     </div>
-                </div>
-            @empty
-                <p class="text-muted">No violations recorded.</p>
-            @endforelse
+                @endif
+            </div>
         </div>
     </div>
 </div>
 @endsection
 
-<!-- JavaScript Section -->
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Initialize Behavior Chart
     document.addEventListener('DOMContentLoaded', function() {
-        const ctx = document.getElementById('behaviorChart').getContext('2d');
+        // Initialize clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+            });
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
         
-        // Calculate percentages for the chart
-        const totalStudents = {{ $totalStudents }};
-        const violatorCount = {{ $violatorCount }};
-        const nonViolatorCount = {{ $nonViolatorCount }};
-        
-        const violatorPercentage = ((violatorCount / totalStudents) * 100).toFixed(1);
-        const nonViolatorPercentage = ((nonViolatorCount / totalStudents) * 100).toFixed(1);
-        
-        // Chart configuration
-        const data = {
-            labels: [
-                `Violators (${violatorPercentage}%)`,
-                `Non-Violators (${nonViolatorPercentage}%)`
-            ],
-            datasets: [{
-                data: [violatorCount, nonViolatorCount],
-                backgroundColor: [
-                    '#FF6B6B',  // Red for violators
-                    '#4CAF50'   // Green for non-violators
-                ],
-                borderWidth: 0
-            }]
-        };
-
-        const config = {
-            type: 'pie',
-            data: data,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 20,
-                            font: {
-                                size: 12
+        // Initialize pie chart
+        const violationStatusChart = new Chart(
+            document.getElementById('violationStatusChart').getContext('2d'), 
+            {
+                type: 'pie',
+                data: {
+                    labels: ['Violators', 'Non-Violators'],
+                    datasets: [{
+                        data: [{{ $violatorCount }}, {{ $nonViolatorCount }}],
+                        backgroundColor: ['#FF6B6B', '#4CAF50'],
+                        borderColor: ['#fff', '#fff'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map(function(label, i) {
+                                            const meta = chart.getDatasetMeta(0);
+                                            const style = meta.controller.getStyle(i);
+                                            const count = data.datasets[0].data[i];
+                                            const total = {{ $violatorCount + $nonViolatorCount }};
+                                            const percentage = total > 0 ? Math.round((count / total) * 100 * 10) / 10 : 0;
+                                            
+                                            return {
+                                                text: `${label} (${percentage}%) - ${count} students`,
+                                                fillStyle: style.backgroundColor,
+                                                strokeStyle: style.borderColor,
+                                                lineWidth: style.borderWidth,
+                                                hidden: isNaN(data.datasets[0].data[i]) || meta.data[i].hidden,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
                             }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.raw || 0;
-                                return `${label}: ${value} students`;
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const count = context.raw || 0;
+                                    const total = {{ $violatorCount + $nonViolatorCount }};
+                                    const percentage = total > 0 ? Math.round((count / total) * 100 * 10) / 10 : 0;
+                                    return `${label}: ${percentage}% (${count} students)`;
+                                }
                             }
                         }
                     }
                 }
             }
-        };
-
-        new Chart(ctx, config);
-    });
-
-    // Handle filter change for violation report
-    document.getElementById('violation-filter').addEventListener('change', function() {
-        const period = this.value;
-        updateViolationReport(period);
-    });
-    
-    // Initialize the refresh button for violation report
-    document.querySelector('.btn-refresh-violations').addEventListener('click', function() {
-        const period = document.getElementById('violation-filter').value;
-        updateViolationReport(period);
-    });
-    
-    // Function to update violation report via AJAX
-    function updateViolationReport(period) {
-        // Show loading state
-        const violationList = document.getElementById('violation-list');
-        violationList.innerHTML = `
-            <div class="loading-container">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        `;
+        );
         
-        // Make AJAX request to get violation stats
-        fetch(`/api/violation-stats?period=${period}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Clear loading state
-            violationList.innerHTML = '';
+        // Violation report functions
+        function updateViolationReport(period) {
+            const violationList = document.getElementById('violation-list');
+            violationList.innerHTML = '<div class="loading-container"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
             
-            if (data.length > 0) {
-                // Find max count for percentage calculation
-                const maxCount = Math.max(...data.map(item => item.count));
+            fetch(`/api/violation-stats?period=${period}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                violationList.innerHTML = '';
                 
-                // Generate HTML for each violation
-                data.forEach(violation => {
-                    const percentage = (violation.count / maxCount) * 100;
-                    const violationItem = document.createElement('div');
-                    violationItem.className = 'violation-item';
-                    violationItem.innerHTML = `
-                        <span class="violation-name">
-                            <span><i class="fas fa-exclamation-triangle mr-2"></i> ${violation.violation_name}</span>
-                            <span class="violation-count">${violation.count}</span>
-                        </span>
-                        <div class="progress">
-                            <div class="progress-bar" style="width: ${percentage}%;"></div>
-                        </div>
-                    `;
-                    violationList.appendChild(violationItem);
-                });
-            } else {
-                // Show empty state
-                violationList.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-clipboard-check"></i>
-                        <h5>No Violations</h5>
-                        <p class="text-muted">No violations recorded for this period.</p>
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching violation stats:', error);
-            violationList.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <h5>Error Loading Data</h5>
-                    <p class="text-muted">There was a problem loading the violation data.</p>
-                </div>
-            `;
-        });
-    }
-
-    // Initialize event listeners
-    document.addEventListener("DOMContentLoaded", function () {
-        // Initialize violation report with current filter value
-        const currentPeriod = document.getElementById('violation-filter').value;
-        updateViolationReport(currentPeriod);
+                if (data.length > 0) {
+                    const maxCount = Math.max(...data.map(item => item.count));
+                    data.forEach(violation => {
+                        const violationItem = document.createElement('div');
+                        violationItem.className = 'violation-item';
+                        violationItem.innerHTML = `
+                            <span class="violation-name">
+                                <span><i class="fas fa-exclamation-triangle mr-2"></i> ${violation.violation_name}</span>
+                                <span class="violation-count">${violation.count}</span>
+                            </span>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: ${(violation.count / maxCount) * 100}%;"></div>
+                            </div>
+                        `;
+                        violationList.appendChild(violationItem);
+                    });
+                } else {
+                    violationList.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-check"></i><h5>No Violations</h5><p class="text-muted">No violations recorded for this period.</p></div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching violation stats:', error);
+                violationList.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h5>Error Loading Data</h5><p class="text-muted">There was a problem loading the violation data.</p></div>';
+            });
+        }
         
-        // Set up spinner animation for the refresh button
+        // Event listeners
+        document.getElementById('violation-filter').addEventListener('change', function() {
+            updateViolationReport(this.value);
+        });
+        
         const refreshButton = document.querySelector('.btn-refresh-violations');
+        refreshButton.addEventListener('click', function() {
+            updateViolationReport(document.getElementById('violation-filter').value);
+        });
+        
         refreshButton.addEventListener('mouseenter', function() {
             this.style.transform = 'rotate(180deg)';
         });
+        
         refreshButton.addEventListener('mouseleave', function() {
             this.style.transform = 'rotate(0deg)';
         });
+        
+        // Initialize violation report
+        updateViolationReport(document.getElementById('violation-filter').value);
     });
 </script>
 @endpush

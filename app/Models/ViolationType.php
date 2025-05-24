@@ -13,8 +13,11 @@ class ViolationType extends Model
         'offense_category_id',
         'violation_name',
         'description',
-        'default_penalty'
+        'default_penalty',
+        'severity_id'
     ];
+    
+    protected $appends = ['severity'];
 
     // Define the relationship with the OffenseCategory model
     public function offenseCategory()
@@ -27,4 +30,16 @@ class ViolationType extends Model
     {
         return $this->hasMany(Violation::class, 'violation_type_id');
     }
-} 
+    
+    // Define the relationship with the Severity model
+    public function severityRelation()
+    {
+        return $this->belongsTo(Severity::class, 'severity_id');
+    }
+    
+    // Get the severity attribute
+    public function getSeverityAttribute()
+    {
+        return $this->severityRelation ? $this->severityRelation->severity_name : null;
+    }
+}

@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EducatorController;
 use App\Http\Controllers\ViolationController;
@@ -20,7 +19,21 @@ Route::post('/student/logout', [AuthController::class, 'logout'])->name('student
 
 // Admin Routes
 Route::prefix('admin')->middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->group(function () {
-    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    // Dashboard
+    Route::get('/dashboard', [\App\Http\Controllers\AdminController::class, 'dashboard'])->name('admin.dashboard');
+    
+    // User Management
+    Route::get('/create-user', [\App\Http\Controllers\AdminController::class, 'createUser'])->name('admin.create_user');
+    Route::post('/store-user', [\App\Http\Controllers\AdminController::class, 'storeUser'])->name('admin.store_user');
+    Route::get('/edit-user/{id}', [\App\Http\Controllers\AdminController::class, 'editUser'])->name('admin.edit_user');
+    Route::put('/update-user/{id}', [\App\Http\Controllers\AdminController::class, 'updateUser'])->name('admin.update_user');
+    Route::delete('/delete-user/{id}', [\App\Http\Controllers\AdminController::class, 'destroyUser'])->name('admin.delete_user');
+    
+    // Student Management
+    Route::get('/manage-student', [\App\Http\Controllers\AdminController::class, 'manageStudent'])->name('admin.manage_student');
+    
+    // Educator Management
+    Route::get('/manage-educator', [\App\Http\Controllers\AdminController::class, 'manageEducator'])->name('admin.manage_educator');
 });
 
 // Educator Routes
@@ -35,16 +48,19 @@ Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMidd
     Route::get('/add-violator', [ViolationController::class, 'addViolatorForm'])->name('educator.add-violator-form');
     Route::post('/add-violator', [ViolationController::class, 'addViolatorSubmit'])->name('educator.add-violator');
     
+    // View students by penalty type
+    Route::get('/students-by-penalty/{penalty}', [EducatorController::class, 'studentsByPenalty'])->name('educator.students-by-penalty');
+    
     // Edit and Update Violation
     Route::get('/edit-violation/{id}', [ViolationController::class, 'editViolation'])->name('educator.edit-violation');
-    Route::put('/update-violation/{id}', [ViolationController::class, 'updateViolation'])->name('educator_update_violation');
+    Route::put('/update-violation/{id}', [ViolationController::class, 'updateViolation'])->name('educator.update-violation');
     
     // View Violation
     Route::get('/view-violation/{id}', [EducatorController::class, 'viewViolation'])->name('educator.view-violation');
     
     // New Violation Type Form and Submission
-    Route::get('/new-violation', [ViolationController::class, 'createViolationType'])->name('educator.new-violation');
-    Route::get('/add-violation', [ViolationController::class, 'createViolationType'])->name('educator.add-violation');
+    Route::get('/new-violation', [EducatorController::class, 'showViolationTypeForm'])->name('educator.new-violation');
+    Route::get('/add-violation', [EducatorController::class, 'showViolationTypeForm'])->name('educator.add-violation');
     Route::post('/add-violation-type', [ViolationController::class, 'storeViolationType'])->name('educator.add-violation-type');
     
     // API Routes for Form Data

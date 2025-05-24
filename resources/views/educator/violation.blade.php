@@ -5,177 +5,118 @@
     <link rel="stylesheet" href="{{ asset('css/violation.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <!-- Custom Styles -->
     <style>
-        /* Main Layout Styles */
-        main {
-            padding: 20px 0;
-        }
-        
-        h2 {
-            margin-bottom: 20px;
-            color: #333;
-        }
-        
-        /* Action Buttons */
-        .top-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .btn {
-            background-color: #4e73df;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 4px;
-            text-decoration: none;
-            transition: background-color 0.3s ease;
-        }
-        
-        .btn:hover {
-            background-color: #2e59d9;
-        }
-        
-        /* Warning Box Styling */
+        /* Warning Section Layout */
         .warning-section {
             display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
             gap: 15px;
-            margin-bottom: 25px;
         }
         
         .column {
-            flex: 1;
             display: flex;
             flex-direction: column;
             gap: 15px;
+            flex: 1;
         }
         
         .column.center {
             justify-content: center;
         }
         
+        /* Warning Box Styling */
         .warning-box {
-            background-color: #f8f9fc;
-            border-radius: 5px;
+            background-color: white;
+            border-radius: 8px;
             padding: 15px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: #333;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            text-decoration: none;
-            color: inherit;
+            align-items: center;
             transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
+            position: relative;
+            overflow: hidden;
         }
         
         .warning-box:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
         
         .warning-box.tall {
-            height: 120px;
+            height: 150px;
         }
         
         .warning-box.wide {
-            height: 100%;
+            height: 150px;
+            width: 100%;
         }
         
-        .warning-box span {
-            font-size: 24px;
-            font-weight: bold;
-            margin-top: 10px;
-            color: #4e73df;
-        }
-        
-        /* Violation Table Styles */
-        .violation-table {
-            background-color: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-        }
-        
-        .search-bar {
+        /* Penalty Header Styling */
+        .penalty-header {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 10px;
+            font-weight: 600;
         }
         
-        .search-bar input, .search-bar select {
-            padding: 8px 12px;
-            border: 1px solid #d1d3e2;
-            border-radius: 4px;
+        .count-badge {
+            background-color: #f0f0f0;
+            color: #2c7be5;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
             font-size: 14px;
         }
         
-        .search-bar input {
-            flex: 1;
-        }
-        
-        table {
+        /* Student List Styling */
+        .student-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.85rem;
+            margin-top: 5px;
             width: 100%;
-            border-collapse: collapse;
+            overflow: hidden;
+            max-height: 80px;
         }
         
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e3e6f0;
+        .student-item {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 2px 0;
+            color: #555;
+            font-size: 12px;
         }
         
-        th {
-            background-color: #f8f9fc;
-            font-weight: 600;
-            color: #4e73df;
+        .more-link {
+            font-size: 0.8rem;
+            font-style: italic;
+            text-align: right;
+            margin-top: 2px;
+            color: #2c7be5;
         }
         
-        tr:hover {
-            background-color: #f8f9fc;
+        .warning-box.wide .student-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px 10px;
+            max-height: 100px;
         }
         
-        /* Severity and Status Styling */
-        .low {
-            color: #ffc107;
-        }
-        
-        .medium {
-            color: #fd7e14;
-        }
-        
-        .high {
-            color: #e74a3b;
-        }
-        
-        .very-high {
-            color: #6f42c1;
-        }
-        
-        .active {
-            color: #1cc88a;
-        }
-        
-        .inactive {
-            color: #858796;
-        }
-        
-        /* Action Icons Styling */
-        .action-icon {
-            color: #666;
-            margin: 0 5px;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-        
-        .action-icon:hover {
-            color: #333;
-        }
-        
-        .action-icon i {
-            font-size: 1.1em;
+        /* Icon styling */
+        .warning-box i {
+            margin-bottom: 10px;
         }
     </style>
 @endsection
@@ -200,40 +141,110 @@
 
             <!-- Warning Statistics Section -->
             <section class="warning-section">
-                <!-- Left Column - Warning and Written Warning -->
+                <!-- Penalty Statistics Boxes -->
                 <div class="column">
+                    @php
+                        // Get unique students with Warning penalty
+                        $warningStudents = DB::table('violations')
+                            ->join('users', 'violations.student_id', '=', 'users.student_id')
+                            ->select('users.fname', 'users.lname', 'users.student_id')
+                            ->where('violations.penalty', 'W')
+                            ->where('violations.status', 'active')
+                            ->groupBy('users.student_id', 'users.fname', 'users.lname')
+                            ->get();
+                        $warningCount = count($warningStudents);
+                    @endphp
                     <a href="{{ route('educator.students-by-penalty', ['penalty' => 'W']) }}" class="warning-box tall">
-                        <i class="fas fa-exclamation-circle mb-2" style="font-size: 1.5rem; color: #ffc107;"></i>
-                        Warning Students
-                        <span>{{ DB::table('violations')->where('penalty', 'W')->where('status', 'active')->count() }}</span>
+                        <i class="fas fa-exclamation-circle" style="font-size: 1.5rem; color: #ffc107;"></i>
+                        <div class="penalty-header">
+                            <span>Warning Students</span>
+                            <span class="count-badge">{{ $warningCount }}</span>
+                        </div>
+
                     </a>
+                    
+                    @php
+                        // Get unique students with Written Warning penalty
+                        $writtenWarningStudents = DB::table('violations')
+                            ->join('users', 'violations.student_id', '=', 'users.student_id')
+                            ->select('users.fname', 'users.lname', 'users.student_id')
+                            ->where('violations.penalty', 'WW')
+                            ->where('violations.status', 'active')
+                            ->groupBy('users.student_id', 'users.fname', 'users.lname')
+                            ->get();
+                        $writtenWarningCount = count($writtenWarningStudents);
+                    @endphp
                     <a href="{{ route('educator.students-by-penalty', ['penalty' => 'WW']) }}" class="warning-box tall">
-                        <i class="fas fa-file-alt mb-2" style="font-size: 1.5rem; color: #4e73df;"></i>
-                        Written Warning Students
-                        <span>{{ DB::table('violations')->where('penalty', 'WW')->where('status', 'active')->count() }}</span>
+                        <i class="fas fa-file-alt" style="font-size: 1.5rem; color: #4e73df;"></i>
+                        <div class="penalty-header">
+                            <span>Written Warning</span>
+                            <span class="count-badge">{{ $writtenWarningCount }}</span>
+                        </div>
+
                     </a>
                 </div>
-
-                <!-- Center Column - Verbal Warning -->
+                
                 <div class="column center">
+                    @php
+                        // Get unique students with Verbal Warning penalty
+                        $verbalWarningStudents = DB::table('violations')
+                            ->join('users', 'violations.student_id', '=', 'users.student_id')
+                            ->select('users.fname', 'users.lname', 'users.student_id')
+                            ->where('violations.penalty', 'VW')
+                            ->where('violations.status', 'active')
+                            ->groupBy('users.student_id', 'users.fname', 'users.lname')
+                            ->get();
+                        $verbalWarningCount = count($verbalWarningStudents);
+                    @endphp
                     <a href="{{ route('educator.students-by-penalty', ['penalty' => 'VW']) }}" class="warning-box wide">
-                        <i class="fas fa-comments mb-2" style="font-size: 1.5rem; color: #36b9cc;"></i>
-                        Verbal Warning Students
-                        <span>{{ DB::table('violations')->where('penalty', 'VW')->where('status', 'active')->count() }}</span>
+                        <i class="fas fa-comments" style="font-size: 1.5rem; color: #36b9cc;"></i>
+                        <div class="penalty-header">
+                            <span>Verbal Warning</span>
+                            <span class="count-badge">{{ $verbalWarningCount }}</span>
+                        </div>
+
                     </a>
                 </div>
-
-                <!-- Right Column - Probation and Expulsion -->
+                
                 <div class="column">
+                    @php
+                        // Get unique students with Probation penalty
+                        $probationStudents = DB::table('violations')
+                            ->join('users', 'violations.student_id', '=', 'users.student_id')
+                            ->select('users.fname', 'users.lname', 'users.student_id')
+                            ->where('violations.penalty', 'Pro')
+                            ->where('violations.status', 'active')
+                            ->groupBy('users.student_id', 'users.fname', 'users.lname')
+                            ->get();
+                        $probationCount = count($probationStudents);
+                    @endphp
                     <a href="{{ route('educator.students-by-penalty', ['penalty' => 'Pro']) }}" class="warning-box tall">
-                        <i class="fas fa-user-clock mb-2" style="font-size: 1.5rem; color: #f6c23e;"></i>
-                        Probation Students
-                        <span>{{ DB::table('violations')->where('penalty', 'Pro')->where('status', 'active')->count() }}</span>
+                        <i class="fas fa-user-clock" style="font-size: 1.5rem; color: #f6c23e;"></i>
+                        <div class="penalty-header">
+                            <span>Probation</span>
+                            <span class="count-badge">{{ $probationCount }}</span>
+                        </div>
+
                     </a>
+                    
+                    @php
+                        // Get unique students with Expulsion penalty
+                        $expulsionStudents = DB::table('violations')
+                            ->join('users', 'violations.student_id', '=', 'users.student_id')
+                            ->select('users.fname', 'users.lname', 'users.student_id')
+                            ->where('violations.penalty', 'Exp')
+                            ->where('violations.status', 'active')
+                            ->groupBy('users.student_id', 'users.fname', 'users.lname')
+                            ->get();
+                        $expulsionCount = count($expulsionStudents);
+                    @endphp
                     <a href="{{ route('educator.students-by-penalty', ['penalty' => 'Exp']) }}" class="warning-box tall">
-                        <i class="fas fa-user-slash mb-2" style="font-size: 1.5rem; color: #e74a3b;"></i>
-                        Expulsion Students
-                        <span>{{ DB::table('violations')->where('penalty', 'Exp')->where('status', 'active')->count() }}</span>
+                        <i class="fas fa-user-slash" style="font-size: 1.5rem; color: #e74a3b;"></i>
+                        <div class="penalty-header">
+                            <span>Expulsion</span>
+                            <span class="count-badge">{{ $expulsionCount }}</span>
+                        </div>
+
                     </a>
                 </div>
             </section>
@@ -261,7 +272,6 @@
                                 <th>Category</th>
                                 <th>Student</th>
                                 <th>Severity</th>
-                                <th>Offense</th>
                                 <th>Penalty</th>
                                 <th>Date</th>
                                 <th>Status</th>
@@ -271,63 +281,32 @@
                         <tbody class="violation-list">
                             @foreach ($violations as $violation)
                                 <tr>
+                                    <td>{{ $violation->violationType->violation_name ?? 'N/A' }}</td>
+                                    <td>{{ $violation->violationType->offenseCategory->category_name ?? 'N/A' }}</td>
+                                    <td>{{ $violation->student ? $violation->student->fname.' '.$violation->student->lname : 'N/A' }}</td>
                                     <td>
-                                        @if($violation->violationType)
-                                            {{ $violation->violationType->violation_name }}
-                                        @else
-                                            <span class="text-danger">N/A</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($violation->violationType && $violation->violationType->offenseCategory)
-                                            {{ $violation->violationType->offenseCategory->category_name }}
-                                        @else
-                                            <span class="text-danger">N/A</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($violation->student)
-                                            {{ $violation->student->fname }} {{ $violation->student->lname }}
-                                        @else
-                                            <span class="text-danger">N/A</span>
-                                        @endif
-                                    </td>
-                                    <td class="{{ strtolower($violation->severity) }}">
                                         <span class="badge bg-{{ strtolower($violation->severity) === 'low' ? 'warning' : (strtolower($violation->severity) === 'medium' ? 'info' : (strtolower($violation->severity) === 'high' ? 'danger' : 'dark')) }}">{{ $violation->severity }}</span>
                                     </td>
-                                    <td>{{ $violation->offense }}</td>
                                     <td>
-                                        @switch($violation->penalty)
-                                            @case('W')
-                                                <span class="badge bg-warning text-dark">Warning</span>
-                                                @break
-                                            @case('VW')
-                                                <span class="badge bg-info text-dark">Verbal Warning</span>
-                                                @break
-                                            @case('WW')
-                                                <span class="badge bg-primary">Written Warning</span>
-                                                @break
-                                            @case('Pro')
-                                                <span class="badge bg-warning text-dark">Probation</span>
-                                                @break
-                                            @case('Exp')
-                                                <span class="badge bg-danger">Expulsion</span>
-                                                @break
-                                        @endswitch
+                                        @php
+                                            $penaltyLabels = [
+                                                'W' => ['label' => 'Warning', 'class' => 'bg-warning text-dark'],
+                                                'VW' => ['label' => 'Verbal Warning', 'class' => 'bg-info text-dark'],
+                                                'WW' => ['label' => 'Written Warning', 'class' => 'bg-primary'],
+                                                'Pro' => ['label' => 'Probation', 'class' => 'bg-warning text-dark'],
+                                                'Exp' => ['label' => 'Expulsion', 'class' => 'bg-danger']
+                                            ];
+                                            $penaltyInfo = $penaltyLabels[$violation->penalty] ?? ['label' => $violation->penalty, 'class' => 'bg-secondary'];
+                                        @endphp
+                                        <span class="badge {{ $penaltyInfo['class'] }}">{{ $penaltyInfo['label'] }}</span>
                                     </td>
                                     <td>{{ \Carbon\Carbon::parse($violation->violation_date)->format('M d, Y') }}</td>
                                     <td>
                                         <span class="badge {{ $violation->status === 'active' ? 'bg-success' : 'bg-secondary' }}">{{ ucfirst($violation->status) }}</span>
                                     </td>
                                     <td>
-                                        <div class="action-buttons">
-                                            <a href="{{ route('educator.edit-violation', ['id' => $violation->id]) }}" class="action-btn" title="Edit Violation">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <a href="{{ route('educator.view-violation', ['id' => $violation->id]) }}" class="action-btn" title="View Details">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        </div>
+                                        <a href="{{ route('educator.edit-violation', ['id' => $violation->id]) }}" class="action-btn" title="Edit"><i class="fas fa-edit"></i></a>
+                                        <a href="{{ route('educator.view-violation', ['id' => $violation->id]) }}" class="action-btn" title="View"><i class="fas fa-eye"></i></a>
                                     </td>
                                 </tr>
                             @endforeach

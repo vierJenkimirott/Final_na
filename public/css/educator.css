@@ -1,3 +1,4 @@
+/* Base Styles */
 .nav-topbar img {
     height: 40px;
 }
@@ -179,15 +180,30 @@ button{
     font-weight: bold;
 }
 
+/* Card Styles */
 .card {
     background: white;
-    border-radius: 8px;
+    border-radius: 10px;
     border: none;
     padding: 1.5rem;
     margin-bottom: 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     display: flex;
     height: 150px;
+}
+
+/* Typography */
+h2 {
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+.card h2 {
+    font-size: 1.5rem;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
 }
 
 /* Top stat cards */
@@ -200,6 +216,75 @@ button{
     font-weight: 500;
     color: #333;
     margin-right: auto;
+}
+
+/* Educator Header */
+.educator-header {
+    background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+    border-radius: 15px;
+    padding: 20px 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+    color: white;
+}
+
+.educator-header::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 150px; height: 100%;
+    background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIgY3g9IjUwIiBjeT0iNTAiIHI9IjUwIi8+PC9zdmc+') repeat;
+    opacity: 0.2;
+}
+
+.educator-name {
+    font-size: 2rem;
+    font-weight: 600;
+    margin: 0;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.educator-role {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.1rem;
+    margin-top: 5px;
+}
+
+.last-login {
+    position: absolute;
+    top: 20px; right: 30px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+}
+
+.last-login i { margin-right: 5px; }
+
+/* Stats Display */
+.educator-stats {
+    display: flex;
+    margin-top: 15px;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 8px 15px;
+    margin-right: 15px;
+}
+
+.stat-value {
+    color: white;
+    font-weight: 600;
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.stat-label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+    margin: 0;
 }
 
 .number {
@@ -306,6 +391,129 @@ button{
     text-align: right;
     font-size: 0.875rem;
     color: #666;
+}
+
+/* Violation Report Card */
+.violation-report-card {
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+    background-color: #fff;
+    border-radius: 15px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    padding: 25px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.violation-report-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 5px;
+    background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+}
+
+.violation-report-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+}
+
+.violation-report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.violation-report-header h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0;
+    color: #333;
+    display: flex;
+    align-items: center;
+}
+
+.violation-report-header h2::before {
+    content: '\f3ed';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    margin-right: 10px;
+    color: #6a11cb;
+}
+
+/* Filter Dropdown */
+#violation-filter {
+    width: 180px;
+    padding: 10px 15px;
+    border: 2px solid #eaeaea;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #444;
+    background-color: #fff;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%236a11cb' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: calc(100% - 15px) center;
+    padding-right: 40px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+#violation-filter:focus {
+    outline: none;
+    border-color: #6a11cb;
+    box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.15);
+}
+
+#violation-filter:hover {
+    border-color: #6a11cb;
+}
+
+/* Violation Stats */
+.violation-stats {
+    overflow-y: auto;
+    flex-grow: 1;
+    padding-right: 5px;
+}
+
+.violation-stats::-webkit-scrollbar { width: 8px; }
+.violation-stats::-webkit-scrollbar-track { background: #f5f5f5; border-radius: 10px; }
+.violation-stats::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #6a11cb 0%, #2575fc 100%); border-radius: 10px; }
+.violation-stats::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #5a0cb1 0%, #1565e6 100%); }
+
+.violation-report-list {
+    padding: 0;
+}
+
+/* Violation Item */
+.violation-item {
+    margin-bottom: 20px;
+    padding: 12px 15px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    border-left: 4px solid #6a11cb;
+}
+
+.violation-item:hover {
+    background-color: #f0f0f0;
+    transform: translateX(5px);
+}
+
+.violation-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 8px;
 }
 
 /* Top violators */

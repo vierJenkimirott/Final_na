@@ -4,44 +4,8 @@
 
 @section('css')
 <link rel="stylesheet" href="{{ asset('css/student-violation.css') }}">
-<link rel="stylesheet" href="{{ asset('css/behavior-charts.css') }}">
+<link rel="stylesheet" href="{{ asset('css/behavior.css') }}">
 <style>
-    /* Filter Buttons */
-    .filter-buttons {
-        margin-bottom: 15px;
-        text-align: center;
-    }
-    .filter-buttons button {
-        padding: 8px 15px;
-        margin: 0 5px;
-        background-color: #f0f0f0;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-    .filter-buttons button.active {
-        background-color: #4bc0c0;
-        color: white;
-        border-color: #4bc0c0;
-    }
-    
-    /* Loading & Notifications */
-    .loading-indicator {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-    }
-    .spinner {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #3498db;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        margin: 0 auto 10px;
-        animation: spin 2s linear infinite;
-    }
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
@@ -106,7 +70,10 @@
         </div>
     </div>
     <div class="violation-scale" style="margin-top: 10px; text-align: center;">
-        <p><strong>Violation Impact:</strong> Low = -5 points | Medium = -10 points | High = -15 points | Very High = -20 points</p>
+        <p>
+            <strong>Violation Impact:</strong> Low = -5 points | Medium = -10 points | High = -15 points | Very High = -20 points
+            <span class="badge badge-pill badge-danger ml-2" style="display: none;" id="violation-count">0</span>
+        </p>
     </div>
     
     <!-- Notification -->
@@ -186,6 +153,20 @@
         gradient.addColorStop(0, 'rgba(75, 192, 192, 0.2)');
         gradient.addColorStop(1, 'rgba(255, 99, 132, 0.1)');
         
+        // Find months with violations (score < 100)
+        const violationMonths = [];
+        data.scoreData.forEach((score, index) => {
+            if (score < 100) {
+                violationMonths.push({
+                    month: data.labels[index],
+                    score: score,
+                    index: index
+                });
+            }
+        });
+        
+        console.log('Months with violations:', violationMonths);
+        
         return {
             type: 'line',
             data: {
@@ -206,8 +187,20 @@
                         return '#ff6384';
                     },
                     pointBorderColor: '#fff',
-                    pointRadius: 6,
-                    pointHoverRadius: 8
+                    pointRadius: function(context) {
+                        // Make violation points larger
+                        const score = context.raw;
+                        return score < 100 ? 8 : 6;
+                    },
+                    pointHoverRadius: function(context) {
+                        const score = context.raw;
+                        return score < 100 ? 10 : 8;
+                    },
+                    pointStyle: function(context) {
+                        // Use a different point style for violations
+                        const score = context.raw;
+                        return score < 100 ? 'rectRot' : 'circle';
+                    }
                 }]
             },
             options: {
@@ -251,6 +244,21 @@
             .then(data => {
                 hideLoading();
                 lastUpdateTimestamp = data.lastUpdate || Math.floor(Date.now() / 1000);
+                
+                // Log the data received from the server
+                console.log('Behavior data received:', data);
+                
+                // Check if we have violations count
+                if (data.violationsCount) {
+                    console.log(`Found ${data.violationsCount} violations for this student`);
+                    
+                    // Add a small indicator to the page showing violation count
+                    const violationCountEl = document.getElementById('violation-count');
+                    if (violationCountEl) {
+                        violationCountEl.textContent = data.violationsCount;
+                        violationCountEl.style.display = 'inline-block';
+                    }
+                }
                 
                 // Destroy existing chart if it exists
                 if (behaviorChart) behaviorChart.destroy();
