@@ -1,11 +1,21 @@
 @extends('layouts.educator')
 
+@section('title', 'Manage Student Violations')
+
 @section('css')
     <!-- External CSS and Script Dependencies -->
     <link rel="stylesheet" href="{{ asset('css/violation.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
+        .main-content {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+            padding: 1.5rem;
+            margin-top: 60px;
+            background: #f8f9fa;
+            min-height: calc(100vh - 60px);
+}
         /* Warning Section Layout */
         .warning-section {
             display: flex;
@@ -68,9 +78,9 @@
         .count-badge {
             background-color: #f0f0f0;
             color: #2c7be5;
-            border-radius: 50%;
+            border-radius: 200px;
             width: 28px;
-            height: 28px;
+            height: auto;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -122,10 +132,10 @@
 @endsection
 
 @section('content')
-    <div class="container-fluid px-4">
+    <div class="container-fluid px-1">
         <!-- Page Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="h3 mb-0 text-gray-800">Manage Student Violations</h2>
+            <h2 class="fw-bold">Manage Student Violations</h2>
         </div>
 
         <main>

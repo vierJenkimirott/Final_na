@@ -3,6 +3,10 @@
 @section('title', 'Educator Dashboard')
 
 @section('css')
+<link rel="stylesheet" href="{{ asset('css/educator.css') }}">
+@endsection
+
+@section('css')
 <style>
     /* Violation Report Card Styling */
     .violation-report-card {
@@ -109,6 +113,9 @@
         margin-bottom: 10px;
         color: #adb5bd;
     }
+    
+
+    
 </style>
 @endsection
 

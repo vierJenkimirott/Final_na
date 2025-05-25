@@ -75,14 +75,7 @@
                 <!-- Severity Selection -->
                 <div class="form-group" id="severity-group">
                     <label for="severity">Severity</label>
-                    <select class="form-field" id="severity" name="severity" required>
-                        <option value="" selected disabled>Select Severity</option>
-                        @if(isset($severities) && count($severities) > 0)
-                            @foreach($severities as $severity)
-                                <option value="{{ $severity }}">{{ $severity }}</option>
-                            @endforeach
-                        @endif
-                    </select>
+                    <input type="text" class="form-field" id="severity" name="severity" readonly />
                 </div>
 
                 <!-- Offense Selection -->
@@ -114,7 +107,17 @@
                 <!-- Consequence Input -->
                 <div class="form-group" id="consequence-group">
                     <label for="consequence">Consequence</label>
-                    <input type="text" class="form-field" id="consequence" name="consequence" placeholder="Enter consequence" required />
+                    <select class="form-field" id="consequence-select" name="consequence_select" required>
+                        <option value="" selected disabled>Select a recommended consequence</option>
+                        <option value="No cellphone for 1 week">No cellphone for 1 week</option>
+                        <option value="No going out for 1 month">No going out for 1 month</option>
+                        <option value="Community Service">Community Service</option>
+                        <option value="Kitchen team for 1 month">Kitchen team for 1 month</option>
+                        <option value="No internet access for 3 days">No internet access for 3 days</option>
+                        <option value="Extra assignment">Extra assignment</option>
+                        <option value="other">Other (specify below)</option>
+                    </select>
+                    <input type="text" class="form-field" id="consequence-input" name="consequence" placeholder="Enter custom consequence" style="display:none; margin-top:8px;" />
                 </div>
                 
                 <!-- Hidden Status Field -->
@@ -185,6 +188,7 @@
                             option.value = violation.id;
                             option.textContent = violation.name;
                             option.dataset.severity = violation.severity; // Store severity in data attribute
+                            console.log('Adding violation type:', violation.name, 'with severity:', violation.severity);
                             violationTypeSelect.appendChild(option);
                         });
                     } else {
@@ -215,28 +219,19 @@
     document.getElementById('violation-type').addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
         console.log('Selected violation:', selectedOption);
-        let severity = selectedOption.dataset.severity;
+        const severity = selectedOption.dataset.severity;
         console.log('Severity from data attribute:', severity);
         
-        // Capitalize first letter for consistency
         if (severity) {
-            // Convert severity to proper format (capitalize first letter of each word)
-            severity = severity.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
-            console.log('Formatted severity:', severity);
-            
-            // Set the severity in the dropdown
-            const severitySelect = document.getElementById('severity');
-            
-            // Find the matching option (case-insensitive)
-            for (let i = 0; i < severitySelect.options.length; i++) {
-                if (severitySelect.options[i].value.toLowerCase() === severity.toLowerCase()) {
-                    severitySelect.selectedIndex = i;
-                    break;
-                }
-            }
+            // Set the severity in the input field
+            document.getElementById('severity').value = severity;
             
             // Update offense options based on severity
             updateOffenseOptions(severity);
+            
+            // Reset offense and penalty selections
+            document.getElementById('offense').selectedIndex = 0;
+            document.getElementById('penalty').selectedIndex = 0;
         }
     });
 
@@ -248,6 +243,19 @@
         const severity = document.getElementById('severity').value;
         const offense = this.value;
         updatePenaltyOptions(severity, offense);
+    });
+
+    document.getElementById('consequence-select').addEventListener('change', function() {
+        const input = document.getElementById('consequence-input');
+        if (this.value === 'other') {
+            input.style.display = 'block';
+            input.required = true;
+            input.value = '';
+        } else {
+            input.style.display = 'none';
+            input.required = false;
+            input.value = this.value; // Set the input value to the selected dropdown value
+        }
     });
 
     // =============================================

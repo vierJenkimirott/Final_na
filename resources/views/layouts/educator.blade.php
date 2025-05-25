@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Staff Dashboard</title>
+    <title>@yield('title', 'Staff Dashboard')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="stylesheet" href="{{ asset('css/educator.css') }}">
@@ -55,7 +55,7 @@
                 <li class="p-3 {{ request()->routeIs('educator.violation') ? 'active' : ''}}"><a href="{{ route('educator.violation') }}" class="text-decoration-none"><img src="{{ asset('images/warning (1).png') }}" alt=""> Violations</a></li>
                 <li class="p-3 {{ request()->routeIs('educator.behavior') ? 'active' : '' }}"><a href="{{ route('educator.behavior') }}" class="text-decoration-none"><img src="{{ asset('images/online-report.png') }}" alt=""> Behavior Monitoring</a></li>
 
-                <li class="p-3 {{ request()->routeIs('student.manual') ? 'active' : ''}}"><a href="{{ route('student.manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt=""> Student Violation Manual</a></li>
+                <li class="p-3 {{ request()->routeIs('educator.manual') ? 'active' : ''}}"><a href="{{ route('educator.manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt=""> Student Violation Manual</a></li>
 
                 <!-- <div class="dropdown-container">
                     <a href="page2.html">General Behavior</a>
@@ -80,21 +80,21 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-        const dropdownBtn = document.querySelector(".dropdown-btn");
-        const dropdownContainer = document.querySelector(".dropdown-container");
+            const dropdownBtn = document.querySelector(".dropdown-btn");
+            const dropdownContainer = document.querySelector(".dropdown-container");
 
-        if (dropdownBtn && dropdownContainer) {
-            dropdownBtn.addEventListener("click", function (event) {
-            // Prevent the default link behavior
-            event.preventDefault();
+            if (dropdownBtn && dropdownContainer) {
+                dropdownBtn.addEventListener("click", function (event) {
+                // Prevent the default link behavior
+                event.preventDefault();
             
-            // Toggle the dropdown visibility
-            const isVisible = dropdownContainer.style.display === "block";
-            dropdownContainer.style.display = isVisible ? "none" : "block";
+                // Toggle the dropdown visibility
+                const isVisible = dropdownContainer.style.display === "block";
+                dropdownContainer.style.display = isVisible ? "none" : "block";
             
-            // Navigate to the first page in the dropdown (page2.html)
+                // Navigate to the first page in the dropdown (page2.html)
+            })};
         });
-    });
 
         // Close the dropdown if the user clicks outside of it
         window.addEventListener("click", function (event) {
@@ -102,12 +102,12 @@
                 dropdownContainer.classList.remove("show");
             }
         });
-        }
+        
 
     </script>
     
     <!-- Bootstrap JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Chart.js and plugins -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
@@ -119,9 +119,10 @@
         if (typeof Chart !== 'undefined') {
             Chart.register(ChartDataLabels);
         }
+        
     </script>
-    
     @stack('scripts')
     @yield('scripts')
+    
 </body>
 </html>

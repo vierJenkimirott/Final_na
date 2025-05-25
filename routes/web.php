@@ -6,7 +6,7 @@ use App\Http\Controllers\ViolationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Student\StudentController;
 use App\Http\Controllers\StudentManualController;
-
+use App\Http\Controllers\EducatorManualController;
 Route::get('/', function () {
     return redirect('/login');
 });
@@ -86,6 +86,11 @@ Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMidd
     Route::get('/generate-sample-violations', [EducatorController::class, 'generateSampleViolations'])->name('educator.generate-sample-violations');
 
 
+    // Manual edit routes
+    Route::get('/manual/edit', [EducatorController::class, 'editManual'])->name('educator.manual.edit');
+    Route::post('/manual/update', [EducatorController::class, 'updateManual'])->name('educator.manual.update');
+    Route::get('/student-manual', [StudentManualController::class, 'index'])->name('student-manual')->middleware('auth');
+
 });
 
 // API Routes
@@ -105,13 +110,19 @@ Route::prefix('student')->middleware(['auth'])->group(function () {
     Route::get('/check-violation-updates', [StudentController::class, 'checkForViolationUpdates'])->name('student.check-violation-updates');
 
 
-    // Manual routes
-    Route::get('/manual', [StudentManualController::class, 'index'])->name('student.manual');
 
+// For students
+Route::get('/student-manual', [StudentManualController::class, 'index'])->name('student.manual');
 
+// For educators
+Route::get('/educator-manual', [EducatorManualController::class, 'index'])->name('educator.manual');
+    
+    
 
 
 });
+
+
 
 Route::fallback(function () {
     return redirect('/login');

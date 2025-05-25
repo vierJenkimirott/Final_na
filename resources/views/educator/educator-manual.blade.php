@@ -8,15 +8,25 @@
 
 @section('content')
     <div class="container">
+        <!-- Remove the first Edit Manual button -->
+        
         <div class="main-heading">
-            <img src="{{ asset('images/PN-logo-removebg-preview.png') }}" alt="" style="width: 200px; height: 200px; display: block; margin: auto;">
-            <h1 style="text-align: center;">PN Student Violation Manual</h1>
+            <img src="{{ asset('images/PN-logo-removebg-preview.png') }}" alt="">
+            <h1>PN Student Violation Manual</h1>
         </div>
-        <h2 style="text-align: center;">Empowering Responsible Center Life Through Awareness and Discipline.</h2>
+        <h2>Empowering Responsible Center Life Through Awareness and Discipline.</h2>
         <p>Welcome, scholars! This manual helps you understand the rules and expectations while living at the center. Staying informed is the first step to success and harmony!</p>
 
         <div class="violation-table">
-            <h3>Violation Categories and Penalties</h3>
+            <!-- Add a class for styling in the external CSS -->
+            <div class="violation-header">
+                <h3>Violation Categories and Penalties</h3>
+                @if(auth()->user()->roles->where('name', 'educator')->isNotEmpty())
+                <a href="{{ route('educator.manual.edit') }}" class="btn btn-primary">
+                    <i class="fas fa-edit"></i> Edit Manual
+                </a>
+                @endif
+            </div>
             
             @foreach($categories as $index => $category)
             <div class="category-section">
@@ -97,3 +107,9 @@
         </div>
     </div>
 @endsection
+
+
+
+
+
+
