@@ -1,6 +1,6 @@
 @extends('layouts.student')
 
-@section('title', 'Violation History')
+@section('title', 'Student Violation')
 
 @section('css')
 <link rel="stylesheet" href="{{ asset('css/student-violation.css') }}">

@@ -152,7 +152,7 @@ class ViolationController extends Controller
                 return [
                     'id' => $type->id,
                     'name' => $type->violation_name,
-                    'severity' => $type->severity,
+                    'severity' => $type->severityRelation ? $type->severityRelation->severity_name : null,
                     'description' => $type->description,
                     'default_penalty' => $type->default_penalty
                 ];

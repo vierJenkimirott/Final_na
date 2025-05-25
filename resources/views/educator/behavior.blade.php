@@ -100,7 +100,7 @@
 @endsection
 
 @section('content')
-    <div class="container-fluid">
+    <div class="container-fluid px-1">
         <!-- Students List Modal -->
         <div class="modal fade" id="studentsListModal" tabindex="-1" aria-labelledby="studentsListModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg">

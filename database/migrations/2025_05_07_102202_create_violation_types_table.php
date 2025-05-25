@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('violation_name', 500);
             $table->text('description')->nullable();
             $table->enum('default_penalty', ['W', 'VW', 'WW', 'Pro', 'Exp'])->comment('W=Warning, VW=Verbal Warning, WW=Written Warning, Pro=Probation, Exp=Expulsion');
+            $table->foreignId('severity_id')->nullable()->constrained('severities')->onDelete('set null');
             $table->timestamps();
         });
     }

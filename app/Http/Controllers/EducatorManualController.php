@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 
-class StudentManualController extends Controller
+class EducatorManualController extends Controller
 {
     protected $unreadCount = 0;
 
@@ -29,14 +29,13 @@ class StudentManualController extends Controller
     }
 
     public function index()
-    {
-        // Get all offense categories with their violation types
-        $categories = OffenseCategory::with(['violationTypes' => function($query) {
-            $query->orderBy('violation_name');
-        }])->get();
+{
+    $categories = OffenseCategory::with(['violationTypes' => function($query) {
+        $query->orderBy('violation_name');
+    }])->get();
 
-        return view('student.student-manual', compact('categories'));
-    }
+    return view('educator.educator-manual', compact('categories'));
+}
 
     
 }

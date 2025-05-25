@@ -22,7 +22,7 @@ h2 {
     color: #2c3e50;
     margin-bottom: 2rem;
     font-size: 2rem;
-    font-weight: 600;
+    
 }
   
 .top-buttons {
@@ -116,7 +116,7 @@ h2 {
 .search-bar {
     display: flex;
     gap: 1rem;
-    margin-bottom: 2rem;
+    /* margin-bottom: 2rem; */
     background: white;
     padding: 1rem;
     border-radius: 12px;
@@ -148,96 +148,115 @@ h2 {
     cursor: pointer;
 }
   
+/* --- Table Container --- */
 .violation-table {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(44, 62, 80, 0.08);
     overflow: hidden;
-    padding: 0.5rem;
+    padding: 1.5rem 1rem;
+    margin-top: 1rem;
+    margin-bottom: 2rem;
+    transition: box-shadow 0.3s;
 }
-  
+
+/* --- Table Responsive --- */
 .table-responsive {
-    max-height: 75vh;
+    max-height: 70vh;
     overflow-y: auto;
-    padding: 0.5rem;
+    padding: 0.5rem 0;
 }
   
 table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
+    background: transparent;
 }
   
-th, td {
-    padding: 1.25rem 1rem;
-    text-align: left;
-    border-bottom: 1px solid #eee;
-    vertical-align: middle;
-}
-  
+/* --- Table Head --- */
 th {
-    background-color: #f1f5f9;
-    font-weight: 600;
-    color: #2c3e50;
+    background: linear-gradient(90deg, #e3f0fa 0%, #f8fafc 100%);
+    font-weight: 700;
+    color: #2563eb;
     text-transform: uppercase;
-    font-size: 0.875rem;
-    letter-spacing: 0.05em;
+    font-size: 1rem;
+    letter-spacing: 0.07em;
     position: sticky;
     top: 0;
     z-index: 10;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    height: 60px;
+    box-shadow: 0 2px 6px rgba(44,62,80,0.04);
+    height: 56px;
+    border-bottom: 2px solid #e0e7ef;
+    padding: 1rem 1.25rem;
 }
-  
-tr:hover {
-    background-color: #f8f9fa;
+
+/* --- Table Body --- */
+td {
+    padding: 1rem 1.25rem;
+    background: #fff;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    font-size: 0.97rem;
+    vertical-align: middle;
+    transition: background 0.2s;
 }
-  
-tr {
-    transition: all 0.2s ease;
+
+/* --- Row Hover --- */
+tr:hover td {
+    background: #f0f6ff;
 }
-  
-tbody tr:nth-child(even) {
-    background-color: #f8fafc;
+
+/* --- Zebra Striping --- */
+tbody tr:nth-child(even) td {
+    background: #f8fafc;
 }
-  
-.low {
-    color: #27ae60;
-    font-weight: 500;
+
+/* --- Rounded Corners for First/Last Cells --- */
+tbody tr:first-child td:first-child {
+    border-top-left-radius: 12px;
 }
-  
-.medium {
-    color: #f39c12;
-    font-weight: 500;
+tbody tr:first-child td:last-child {
+    border-top-right-radius: 12px;
 }
-  
-.high {
-    color: #e74c3c;
-    font-weight: 500;
+tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 12px;
 }
-  
-.very-high {
-    color: #c0392b;
-    font-weight: 500;
+tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 12px;
 }
-  
-/* Badge styling */
-.badge {
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 600;
+
+/* --- Severity Badges --- */
+.low, .medium, .high, .very-high {
     display: inline-block;
-    text-align: center;
-    min-width: 90px;
+    padding: 0.35em 0.9em;
+    border-radius: 1em;
+    font-weight: 600;
+    font-size: 0.93em;
+    letter-spacing: 0.03em;
 }
-  
-/* Action buttons styling */
+.low { background: #eafaf1; color: #27ae60; }
+.medium { background: #fff7e6; color: #f39c12; }
+.high { background: #fff0ef; color: #e74c3c; }
+.very-high { background: #fbeaea; color: #c0392b; }
+
+/* --- Status Badges --- */
+.pending, .resolved {
+    display: inline-block;
+    padding: 0.35em 0.9em;
+    border-radius: 1em;
+    font-weight: 600;
+    font-size: 0.93em;
+    letter-spacing: 0.03em;
+}
+.pending { background: #fff7e6; color: #f39c12; }
+.resolved { background: #eafaf1; color: #27ae60; }
+
+/* --- Action Buttons --- */
 .action-buttons {
     display: flex;
     gap: 8px;
 }
-  
 .action-btn {
     width: 36px;
     height: 36px;
@@ -246,83 +265,27 @@ tbody tr:nth-child(even) {
     align-items: center;
     justify-content: center;
     background-color: #f1f5f9;
-    color: #64748b;
+    color: #2563eb;
     border: none;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.2s, color 0.2s;
     text-decoration: none;
-}
-
-.action-btn:hover {
-    background-color: #e2e8f0;
-    color: #334155;
-}
-  
-/* Table cell width control */
-th:nth-child(1), td:nth-child(1) { width: 20%; } /* Violation */
-th:nth-child(2), td:nth-child(2) { width: 12%; } /* Category */
-th:nth-child(3), td:nth-child(3) { width: 12%; } /* Student */
-th:nth-child(4), td:nth-child(4) { width: 10%; } /* Severity */
-th:nth-child(5), td:nth-child(5) { width: 10%; } /* Penalty */
-th:nth-child(6), td:nth-child(6) { width: 10%; } /* Date */
-th:nth-child(7), td:nth-child(7) { width: 8%; } /* Status */
-th:nth-child(8), td:nth-child(8) { width: 8%; } /* Action */
-  
-.pending {
-    color: #f39c12;
-    font-weight: 500;
-}
-  
-.resolved {
-    color: #27ae60;
-    font-weight: 500;
-}
-  
-.action-icon {
-    color: #666;
-    margin: 0 5px;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    padding: 0.5rem;
-    border-radius: 6px;
-    background: #f8f9fa;
-}
-  
-.action-icon:hover {
-    color: #3498db;
-    background: #e3f2fd;
-}
-  
-.action-icon i {
     font-size: 1.1em;
 }
-  
-/* Responsive Design */
-@media (max-width: 1200px) {
-    .warning-section {
-        flex-wrap: wrap;
-    }
-    
-    .column {
-        flex: 1 1 calc(50% - 1rem);
-    }
+.action-btn:hover {
+    background-color: #e0e7ef;
+    color: #1d4ed8;
+    box-shadow: 0 2px 8px rgba(44,62,80,0.08);
 }
-  
+
+/* --- Responsive Table --- */
 @media (max-width: 768px) {
-    .main-content {
-        margin-left: 0;
-        width: 100%;
+    .violation-table {
+        padding: 0.5rem 0.2rem;
+        border-radius: 8px;
     }
-    
-    .column {
-        flex: 1 1 100%;
-    }
-    
-    .search-bar {
-        flex-direction: column;
-    }
-    
-    .search-bar select {
-        width: 100%;
+    th, td {
+        padding: 0.7rem 0.5rem;
+        font-size: 0.95rem;
     }
 }

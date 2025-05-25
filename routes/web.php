@@ -6,7 +6,7 @@ use App\Http\Controllers\ViolationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Student\StudentController;
 use App\Http\Controllers\StudentManualController;
-
+use App\Http\Controllers\EducatorManualController;
 Route::get('/', function () {
     return redirect('/login');
 });
@@ -104,7 +104,13 @@ Route::prefix('student')->middleware(['auth'])->group(function () {
 
     
     // Manual routes
-    Route::get('/manual', [StudentManualController::class, 'index'])->name('student.manual');
+    // routes/web.php
+
+// For students
+Route::get('/student-manual', [StudentManualController::class, 'index'])->name('student.manual');
+
+// For educators
+Route::get('/educator-manual', [EducatorManualController::class, 'index'])->name('educator.manual');
     
 
     

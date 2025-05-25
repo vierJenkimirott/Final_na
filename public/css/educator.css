@@ -17,7 +17,7 @@ body {
     padding-top: 80px;
     min-height: 100vh;
     width: calc(100% - 250px);
-    background-color: #f5f5f5;
+    /* background-color: #f5f5f5; */
 }
 
 button{
@@ -581,4 +581,20 @@ h2 {
 .violation-status-overview-card #behaviorChart {
     max-width: 100%;
     max-height: 320px;
+}
+
+.violator-card {
+    background: #f8f9fa;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    display: flex;
+    align-items: center;
+}
+
+.card {
+    height: auto;
+    
 }

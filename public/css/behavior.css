@@ -214,7 +214,7 @@ body {
 
 .stat-content h2 {
     font-size: 2rem;
-    font-weight: 700;
+    font-weight: bold;
     color: #333;
     margin-bottom: 0;
 }
