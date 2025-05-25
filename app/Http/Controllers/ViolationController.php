@@ -192,26 +192,35 @@ class ViolationController extends Controller
      */
     public function storeViolationType(StoreViolationTypeRequest $request)
     {
-        // Get validated data
-        $validated = $request->validated();
-        
-        // Find or create the offense category
-        $offenseCategory = OffenseCategory::firstOrCreate(['name' => $validated['category']]);
-        
-        // Create the violation type with proper offense_category_id
-        $violationType = ViolationType::create([
-            'offense_category_id' => $offenseCategory->id,
-            'violation_name' => $validated['violation_name'],
-            'description' => $validated['offense'] ?? null,
-            'default_penalty' => $validated['penalty'] ?? null,
-            'severity_id' => Severity::where('severity_name', $validated['severity'])->first()->id ?? null
-        ]);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Violation type created successfully',
-            'data' => $violationType
-        ]);
+        try {
+            // Get validated data
+            $validated = $request->validated();
+            
+            // Find or create the offense category
+            $offenseCategory = OffenseCategory::firstOrCreate(['category_name' => $validated['category']]);
+            
+            // Create the violation type
+            $violationType = ViolationType::create([
+                'offense_category_id' => $offenseCategory->id,
+                'violation_name' => $validated['violation_name'],
+                'description' => $validated['offense'] ?? null,
+                'default_penalty' => $validated['penalty'] ?? null
+            ]);
+            
+            // Return a nicer success message
+            return response()->json([
+                'success' => true,
+                'message' => '✅ New violation added successfully! The student manual has been updated.',
+                'data' => $violationType,
+                'redirect' => route('educator.violation')
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error creating violation type: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create violation type: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -692,3 +701,7 @@ class ViolationController extends Controller
     
     // End of ViolationController methods
 }
+
+
+
+

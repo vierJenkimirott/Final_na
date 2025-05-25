@@ -109,15 +109,50 @@
 
 @push('scripts')
 <script>
-    // =============================================
-    // Navigation Event Handlers
-    // =============================================
-    document.querySelector('.back-btn').addEventListener('click', () => {
-        window.history.back();
+$(document).ready(function() {
+    $('#violationForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Hide the form title as well as the form
+                    $('.form-title').hide();
+                    $('#violationForm').hide();
+                    
+                    // Create a simple success message div
+                    const notification = document.createElement('div');
+                    notification.className = 'simple-success';
+                    notification.textContent = 'Violation added successfully!';
+                    
+                    // Add the success message to the form container
+                    $('.form-container').prepend(notification);
+                    
+                    // Redirect after a short delay
+                    setTimeout(function() {
+                        if (response.redirect) {
+                            window.location.href = response.redirect;
+                        } else {
+                            window.location.href = "{{ route('educator.violation') }}";
+                        }
+                    }, 2000);
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr) {
+                alert('Error: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Failed to create violation type'));
+            }
+        });
     });
-
-    document.querySelector('.cancel-btn').addEventListener('click', () => {
-        window.history.back();
-    });
+});
 </script>
 @endpush
+
+
+
+

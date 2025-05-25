@@ -950,5 +950,91 @@ class EducatorController extends Controller
             ];
         }
     }
+
+    /**
+     * Show the form for editing the student manual
+     */
+    public function editManual()
+    {
+        // Get all offense categories with their violation types
+        $categories = OffenseCategory::with('violationTypes')->get();
+        
+        return view('educator.editManual', compact('categories'));
+    }
+
+    /**
+     * Update the student manual
+     */
+    public function updateManual(Request $request)
+    {
+        // Log the incoming request data
+        Log::info('Manual update request received', ['data' => $request->all()]);
+        
+        try {
+            // Update existing categories
+            if ($request->has('categories')) {
+                foreach ($request->categories as $categoryIndex => $categoryData) {
+                    if (isset($categoryData['id'])) {
+                        $category = OffenseCategory::find($categoryData['id']);
+                        if ($category) {
+                            $category->category_name = $categoryData['category_name'];
+                            $category->save();
+                            
+                            // Update existing violations
+                            if (isset($categoryData['violationTypes'])) {
+                                foreach ($categoryData['violationTypes'] as $violationData) {
+                                    if (isset($violationData['id'])) {
+                                        $violation = ViolationType::find($violationData['id']);
+                                        if ($violation) {
+                                            $violation->violation_name = $violationData['violation_name'];
+                                            $violation->default_penalty = $violationData['default_penalty'] ?? 'W';
+                                            $violation->save();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Keep the code for adding new categories
+            if ($request->has('new_category') && !empty($request->input('new_category.name'))) {
+                $newCategory = new OffenseCategory();
+                $newCategory->category_name = $request->input('new_category.name');
+                $newCategory->save();
+                
+                // Add violations to new category
+                if (isset($request->new_category['violations'])) {
+                    foreach ($request->new_category['violations'] as $violationData) {
+                        if (!empty($violationData['name'])) {
+                            $newViolation = new ViolationType();
+                            $newViolation->offense_category_id = $newCategory->id;
+                            $newViolation->violation_name = $violationData['name'];
+                            $newViolation->default_penalty = $violationData['default_penalty'] ?? 'W';
+                            $newViolation->save();
+                        }
+                    }
+                }
+            }
+            
+            // Clear any cache
+            if (method_exists(\Cache::class, 'forget')) {
+                \Cache::forget('student_manual_categories');
+            }
+            
+            Log::info('Manual updated successfully');
+            return redirect()->route('student.manual')->with('success', 'Manual updated successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error updating manual: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to update manual: ' . $e->getMessage());
+        }
+    }
     
 }
+
+
+
+
+
+

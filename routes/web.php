@@ -84,6 +84,11 @@ Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMidd
     Route::get('/generate-sample-violations', [EducatorController::class, 'generateSampleViolations'])->name('educator.generate-sample-violations');
     
 
+    // Manual edit routes
+    Route::get('/manual/edit', [EducatorController::class, 'editManual'])->name('educator.manual.edit');
+    Route::post('/manual/update', [EducatorController::class, 'updateManual'])->name('educator.manual.update');
+    Route::get('/student-manual', [StudentManualController::class, 'index'])->name('student-manual')->middleware('auth');
+
 });
 
 // API Routes
@@ -112,10 +117,11 @@ Route::get('/student-manual', [StudentManualController::class, 'index'])->name('
 // For educators
 Route::get('/educator-manual', [EducatorManualController::class, 'index'])->name('educator.manual');
     
-
     
 
 });
+
+
 
 Route::fallback(function () {
     return redirect('/login');

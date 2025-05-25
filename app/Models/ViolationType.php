@@ -31,11 +31,11 @@ class ViolationType extends Model
         return $this->hasMany(Violation::class, 'violation_type_id');
     }
     
-    // Define the relationship with the Severity model
-    public function severityRelation()
-    {
-        return $this->belongsTo(Severity::class, 'severity_id');
-    }
+    // // Define the relationship with the Severity model
+    // public function severityRelation()
+    // {
+    //     return $this->belongsTo(Severity::class, 'severity_id');
+    // }
     
     // Get the severity attribute
     public function getSeverityAttribute()
