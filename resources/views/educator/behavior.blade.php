@@ -96,6 +96,27 @@
             display: inline-block;
             margin-right: 0.5rem;
         }
+        .behavior-toast {
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 24px rgba(44,62,80,0.15);
+            font-size: 1rem;
+            padding: 1rem 1.5rem;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        .behavior-toast {
+            transition: opacity 0.3s;
+        }
+        h5{
+            margin: 0;
+            color:#2c3e50;
+        }
     </style>
 @endsection
 
@@ -321,7 +342,8 @@
             this.disabled = true;
             
             // Get current time period
-            const months = parseInt(document.getElementById('time-period').value || 12);
+            const activeBtn = document.querySelector('.period-btn.active');
+            const months = activeBtn ? parseInt(activeBtn.getAttribute('data-months')) : 12;
             
             // Refresh the data
             fetchBehaviorData(months, true);
@@ -349,23 +371,32 @@
             
             // Show notification about the time period change
             const periodText = months === 3 ? '3 Months' : months === 6 ? '6 Months' : '12 Months';
-            const notification = document.createElement('div');
-            notification.className = 'alert alert-info alert-dismissible fade show';
-            notification.innerHTML = `
-                <strong>Time Period Changed!</strong> Showing behavior data for the last ${periodText}.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-            
-            // Add notification to the page
-            const container = document.querySelector('.container-fluid');
-            if (container) {
-                container.insertBefore(notification, container.firstChild);
-                
-                // Auto-dismiss after 3 seconds
-                setTimeout(() => {
-                    notification.classList.remove('show');
-                    setTimeout(() => notification.remove(), 300);
-                }, 3000);
+            let toast = document.createElement('div');
+            toast.className = 'behavior-toast alert alert-info alert-dismissible fade show shadow';
+            toast.style.position = 'fixed';
+            toast.style.top = '1.5rem';
+            toast.style.right = '1.5rem';
+            toast.style.zIndex = '1080';
+            toast.style.minWidth = '320px';
+            toast.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-info-circle fa-lg me-2"></i>
+                    <div>
+                        <strong>Time Period Changed!</strong>
+                        <div>Showing behavior data for the last ${periodText}.</div>
+                    </div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+`;
+// Remove any existing toasts
+            document.querySelectorAll('.behavior-toast').forEach(el => el.remove());
+            document.body.appendChild(toast);
+
+// Auto-dismiss after 3 seconds
+            setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+            }, 3000);
             }
             
             // Reset refresh button after data is loaded

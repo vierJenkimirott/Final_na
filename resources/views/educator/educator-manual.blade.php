@@ -12,10 +12,10 @@
         
         <div class="main-heading">
             <img src="{{ asset('images/PN-logo-removebg-preview.png') }}" alt="">
-            <h1>PN Student Violation Manual</h1>
+            <h1 class="fw-bold">Student Code of Conduct</h1>
         </div>
         <h2>Empowering Responsible Center Life Through Awareness and Discipline.</h2>
-        <p>Welcome, scholars! This manual helps you understand the rules and expectations while living at the center. Staying informed is the first step to success and harmony!</p>
+        <p>Welcome, students! This code of conduct helps you understand the rules and expectations while living at the center. Staying informed is the first step to success and harmony!</p>
 
         <div class="violation-table">
             <!-- Add a class for styling in the external CSS -->

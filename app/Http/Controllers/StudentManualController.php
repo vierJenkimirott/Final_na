@@ -37,12 +37,8 @@ class StudentManualController extends Controller
 
         return view('student.student-manual', compact('categories'));
     }
-<<<<<<< HEAD
 
-    
-}
-=======
-}
+    }
 
 
->>>>>>> c8dc37068e8e5b7878b0fd3ea616fc5cace59d04
+
