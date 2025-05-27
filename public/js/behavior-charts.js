@@ -955,27 +955,41 @@ function showNotification(message) {
     if (!notificationsContainer) {
         notificationsContainer = document.createElement('div');
         notificationsContainer.className = 'behavior-notifications';
+        notificationsContainer.style.position = 'fixed';
+        notificationsContainer.style.top = '20px';
+        notificationsContainer.style.right = '20px';
+        notificationsContainer.style.zIndex = '9999';
         document.body.appendChild(notificationsContainer);
     }
     
-    // Create notification element
+    // Create custom toast notification element
     const notification = document.createElement('div');
-    notification.className = 'behavior-notification alert alert-info alert-dismissible fade show';
+    notification.className = 'behavior-toast';
+    notification.style.background = 'white';
+    notification.style.borderLeft = '4px solid #28a745';
+    notification.style.borderRadius = '8px';
+    notification.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+    notification.style.padding = '1rem';
+    notification.style.marginBottom = '1rem';
+    notification.style.display = 'flex';
+    notification.style.alignItems = 'center';
+    notification.style.gap = '0.75rem';
+    notification.style.animation = 'slideIn 0.3s ease-out';
     notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <i class="fas fa-check-circle" style="color: #28a745; font-size: 1.25rem;"></i>
+        <div style="color: #333; font-size: 0.9rem;">${message}</div>
     `;
     
     // Add to container
     notificationsContainer.appendChild(notification);
     
-    // Auto-remove after 5 seconds
+    // Auto-remove after 3 seconds
     setTimeout(() => {
-        notification.classList.remove('show');
+        notification.style.animation = 'fadeOut 0.3s ease-out forwards';
         setTimeout(() => {
             notification.remove();
         }, 300);
-    }, 5000);
+    }, 3000);
 }
 
 /**

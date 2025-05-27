@@ -67,31 +67,17 @@
 
                 <!-- Offense Selection -->
                 <div class="form-group">
-                    <label for="offense">Offense</label>
-                    <select class="form-field" id="offense" name="offense" required>
-                        <option value="" selected disabled>Select Offense</option>
-                        @foreach(['1st', '2nd', '3rd'] as $offense)
-                            <option value="{{ $offense }}">{{ $offense }} Offense</option>
-                        @endforeach
-                    </select>
-                    @error('offense')
-                        <div class="text-danger">{{ $message }}</div>
-                    @enderror
+                    <label>Offenses & Penalties</label>
+                    <div id="offense-penalty-list"></div>
                 </div>
-
                 <!-- Penalty Selection -->
-                <div class="form-group">
+                <!-- <div class="form-group">
                     <label for="penalty">Penalty</label>
-                    <select class="form-field" id="penalty" name="penalty" required>
-                        <option value="" selected disabled>Select Penalty</option>
-                        @foreach([['value' => 'W', 'label' => 'Warning'], ['value' => 'VW', 'label' => 'Verbal Warning'], ['value' => 'WW', 'label' => 'Written Warning'], ['value' => 'Pro', 'label' => 'Probation'], ['value' => 'Exp', 'label' => 'Expulsion']] as $penalty)
-                            <option value="{{ $penalty['value'] }}">{{ $penalty['label'] }}</option>
-                        @endforeach
-                    </select>
-                    @error('penalty')
-                        <div class="text-danger">{{ $message }}</div>
-                    @enderror
-                </div>
+                    <input type="text" class="form-field" id="penalty" name="penalty" readonly required>
+                        @error('penalty')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
+                </div> -->
 
                 <!-- Form Action Buttons -->
                 <div class="form-actions">
@@ -109,7 +95,42 @@
 
 @push('scripts')
 <script>
+    // ...existing code...
+// Dynamic offense and penalty logic
 $(document).ready(function() {
+    const penaltyMap = {
+        'Low':   ['Warning', 'Verbal Warning', 'Written Warning'],
+        'Medium': ['Verbal Warning', 'Written Warning', 'Probation'],
+        'High':  ['Written Warning', 'Probation', 'Expulsion'],
+        'Very High': ['Expulsion']
+    };
+    const offenseLabels = ['1st Offense', '2nd Offense', '3rd Offense'];
+
+    $('#severity').on('change', function() {
+        const severity = $(this).val();
+        const $list = $('#offense-penalty-list');
+        $list.empty();
+
+        if (penaltyMap[severity]) {
+            let html = '<ul style="list-style:none;padding-left:0;">';
+            penaltyMap[severity].forEach((penalty, idx) => {
+                html += `<li><strong>${offenseLabels[idx] || ((idx+1)+' Offense')}:</strong> ${penalty}</li>`;
+            });
+            html += '</ul>';
+            $list.html(html);
+        }
+    });
+
+    $('#offense').on('change', function() {
+        const severity = $('#severity').val();
+        const offenseIdx = this.selectedIndex - 1; // -1 for placeholder
+        if (penaltyMap[severity] && penaltyMap[severity][offenseIdx]) {
+            $('#penalty').val(penaltyMap[severity][offenseIdx]);
+        } else {
+            $('#penalty').val('');
+        }
+    });
+// ...existing code...
     $('#violationForm').on('submit', function(e) {
         e.preventDefault();
         
@@ -150,6 +171,15 @@ $(document).ready(function() {
         });
     });
 });
+    
+    // Back button functionality
+    $('.back-btn').on('click', function() {
+        window.history.back();
+    });
+    // Cancel button functionality
+    $('.cancel-btn').on('click', function() {
+        window.location.href = "{{ route('educator.violation') }}";
+    });
 </script>
 @endpush
 

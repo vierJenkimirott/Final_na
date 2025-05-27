@@ -35,7 +35,7 @@
                 <!-- Student Selection -->
                 <div class="form-group">
                     <label for="student-select">Student</label>
-                    <select class="form-field" id="student-select" name="student_id" required>
+                    <select class="form-field" id="student-select" name="student_id">
                         <option value="" selected disabled>Select Student</option>
                         @if(isset($students) && count($students) > 0)
                             @foreach($students as $student)
@@ -50,13 +50,13 @@
                 <!-- Violation Date -->
                 <div class="form-group">
                     <label for="violation-date">Violation Date</label>
-                    <input type="date" class="form-field" id="violation-date" name="violation_date" required />
+                    <input type="date" class="form-field" id="violation-date" name="violation_date" />
                 </div>
 
                 <!-- Violation Category -->
                 <div class="form-group">
                     <label for="violation-category">Category</label>
-                    <select class="form-field" id="violation-category" name="category_id" required>
+                    <select class="form-field" id="violation-category" name="category_id">
                         <option value="" selected disabled>Select Category</option>
                         @foreach($offenseCategories as $category)
                             <option value="{{ $category->id }}">{{ $category->category_name }}</option>
@@ -67,7 +67,7 @@
                 <!-- Violation Type -->
                 <div class="form-group">
                     <label for="violation-type">Type of Violation</label>
-                    <select class="form-field" id="violation-type" name="violation_type_id" required>
+                    <select class="form-field" id="violation-type" name="violation_type_id">
                         <option value="" selected disabled>Select Violation Type</option>
                     </select>
                 </div>
@@ -94,20 +94,13 @@
                 <!-- Penalty Selection -->
                 <div class="form-group" id="penalty-group">
                     <label for="penalty">Penalty</label>
-                    <select class="form-field" id="penalty" name="penalty" required>
-                        <option value="" selected disabled>Select Penalty</option>
-                        @if(isset($penalties) && count($penalties) > 0)
-                            @foreach($penalties as $penalty)
-                                <option value="{{ $penalty['value'] }}">{{ $penalty['label'] }}</option>
-                            @endforeach
-                        @endif
-                    </select>
+                    <input type="text" class="form-field" id="penalty" name="penalty" readonly />
                 </div>
 
                 <!-- Consequence Input -->
                 <div class="form-group" id="consequence-group">
                     <label for="consequence">Consequence</label>
-                    <select class="form-field" id="consequence-select" name="consequence_select" required>
+                    <select class="form-field" id="consequence-select" name="consequence_select">
                         <option value="" selected disabled>Select a recommended consequence</option>
                         <option value="No cellphone for 1 week">No cellphone for 1 week</option>
                         <option value="No going out for 1 month">No going out for 1 month</option>
@@ -242,8 +235,36 @@
     document.getElementById('offense').addEventListener('change', function() {
         const severity = document.getElementById('severity').value;
         const offense = this.value;
-        updatePenaltyOptions(severity, offense);
+        setPenalty(severity, offense);
     });
+
+    /**
+ * Set penalty value based on severity and offense
+ * @param {string} severity - The severity level of the violation
+ * @param {string} offense - The offense number (1st, 2nd, 3rd)
+ */
+function setPenalty(severity, offense) {
+    const penaltyInput = document.getElementById('penalty');
+    let penalty = '';
+    const normalizedSeverity = severity.toLowerCase();
+
+    if (normalizedSeverity === 'low') {
+        if (offense === '1st') penalty = 'Warning';
+        else if (offense === '2nd') penalty = 'Verbal Warning';
+        else if (offense === '3rd') penalty = 'Written Warning';
+    } else if (normalizedSeverity === 'medium') {
+        if (offense === '1st') penalty = 'Verbal Warning';
+        else if (offense === '2nd') penalty = 'Written Warning';
+        else if (offense === '3rd') penalty = 'Probation';
+    } else if (normalizedSeverity === 'high') {
+        if (offense === '1st') penalty = 'Written Warning';
+        else if (offense === '2nd') penalty = 'Probation';
+        else if (offense === '3rd') penalty = 'Expulsion';
+    } else if (normalizedSeverity === 'very high') {
+        if (offense === '1st') penalty = 'Expulsion';
+    }
+    penaltyInput.value = penalty;
+}
 
     document.getElementById('consequence-select').addEventListener('change', function() {
         const input = document.getElementById('consequence-input');
@@ -258,6 +279,19 @@
         }
     });
 
+    document.getElementById('violatorForm').addEventListener('submit', function(e) {
+    const studentId = document.getElementById('student-select').value;
+    const violationDate = document.getElementById('violation-date').value;
+    const violationType = document.getElementById('violation-type').value;
+    const severity = document.getElementById('severity').value;
+    const offense = document.getElementById('offense').value;
+    const penalty = document.getElementById('penalty').value;
+
+    if (!studentId || !violationDate || !violationType || !severity || !offense || !penalty) {
+        e.preventDefault();
+        alert('Please fill in all required fields.');
+    }
+});
     // =============================================
     // Helper Functions
     // =============================================
@@ -363,24 +397,6 @@
     statusField.value = 'active';
     document.getElementById('violatorForm').appendChild(statusField);
     
-    // Validate form before submission
-    document.getElementById('violatorForm').addEventListener('submit', function(e) {
-        const studentId = document.getElementById('student-select').value;
-        const violationDate = document.getElementById('violation-date').value;
-        const violationType = document.getElementById('violation-type').value;
-        const severity = document.getElementById('severity').value;
-        const offense = document.getElementById('offense').value;
-        const penalty = document.getElementById('penalty').value;
-        const consequence = document.getElementById('consequence').value;
-        
-        if (!studentId || !violationDate || !violationType || !severity || !offense || !penalty) {
-            e.preventDefault();
-            alert('Please fill in all required fields');
-            return false;
-        }
-        
-        // Form is valid, let it submit normally
-        return true;
-    });
+    
 </script>
 @endpush

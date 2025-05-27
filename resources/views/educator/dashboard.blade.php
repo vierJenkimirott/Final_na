@@ -15,6 +15,7 @@
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         padding: 20px;
         height: 100%;
+        position: relative;
     }
     
     .violation-report-header {
@@ -114,12 +115,114 @@
         color: #adb5bd;
     }
     
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+    }
 
-    
+    .loading-container .spinner-border {
+        width: 3rem;
+        height: 3rem;
+        margin-bottom: 1rem;
+        color: #007bff;
+    }
+
+    .loading-container .loading-text {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        backdrop-filter: blur(2px);
+    }
+
+    .loading-message-container {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        max-width: 300px;
+        width: 90%;
+    }
+
+    /* Toast Notification Styles */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+
+    .toast {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    .toast.success {
+        border-left: 4px solid #28a745;
+    }
+
+    .toast i {
+        color: #28a745;
+        font-size: 1.25rem;
+    }
+
+    .toast-message {
+        color: #333;
+        font-size: 0.9rem;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes fadeOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
 </style>
 @endsection
 
 @section('content')
+<!-- Add toast container at the top of the content -->
+<div class="toast-container" id="toastContainer"></div>
+
 <!-- Educator Profile Header -->
 <div class="educator-header">
     <div class="last-login">
@@ -247,40 +350,88 @@
 <div class="row mt-3">
     <div class="col-12">
         <div class="card top-violators-card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Top Violators</h5>
-                <a href="{{ route('educator.dashboard') }}" class="btn btn-sm btn-outline-primary btn-refresh-violations" title="Refresh Data"><i class="fas fa-sync-alt"></i></a>
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="violatorTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="violators-tab" data-bs-toggle="tab" data-bs-target="#violators" type="button" role="tab" aria-controls="violators" aria-selected="true">
+                            Non-Compliant Students
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="non-violators-tab" data-bs-toggle="tab" data-bs-target="#non-violators" type="button" role="tab" aria-controls="non-violators" aria-selected="false">
+                            Compliant Students
+                        </button>
+                    </li>
+                </ul>
             </div>
             <div class="card-body">
-                @php
-                    // Ensure $topViolators is properly handled whether it's a collection or array
-                    $hasViolators = false;
-                    
-                    if (isset($topViolators)) {
-                        if (is_object($topViolators) && method_exists($topViolators, 'count')) {
-                            $hasViolators = $topViolators->count() > 0;
-                        } elseif (is_array($topViolators)) {
-                            $hasViolators = count($topViolators) > 0;
-                        }
-                    }
-                @endphp
-                
-                @if($hasViolators)
-                    @foreach($topViolators as $violator)
-                        <div class="d-flex align-items-center mb-3">
-                            <img src="{{ asset('images/newprof.png')}}" alt="{{ $violator->name ?? 'Student' }}" class="profile-img" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 15px;">
-                            <div class="violator-info">
-                                <h6 class="mb-0 fw-bold">{{ $violator->name ?? 'Student' }}</h6>
-                                <p class="text-muted small mb-0">{{ $violator->student_id }}</p>
-                                <span class="badge bg-danger">{{ $violator->violations_count }} {{ Str::plural('violation', $violator->violations_count) }}</span>
+                <div class="tab-content" id="violatorTabsContent">
+                    <!-- Violators Tab -->
+                    <div class="tab-pane fade show active" id="violators" role="tabpanel" aria-labelledby="violators-tab">
+                        @php
+                            $hasViolators = false;
+                            if (isset($topViolators)) {
+                                if (is_object($topViolators) && method_exists($topViolators, 'count')) {
+                                    $hasViolators = $topViolators->count() > 0;
+                                } elseif (is_array($topViolators)) {
+                                    $hasViolators = count($topViolators) > 0;
+                                }
+                            }
+                        @endphp
+                        
+                        @if($hasViolators)
+                            @foreach($topViolators as $violator)
+                                <div class="d-flex align-items-center mb-3">
+                                    <img src="{{ asset('images/newprof.png')}}" alt="{{ $violator->name ?? 'Student' }}" class="profile-img" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 15px;">
+                                    <div class="violator-info">
+                                        <h6 class="mb-0 fw-bold">{{ $violator->name ?? 'Student' }}</h6>
+                                        <p class="text-muted small mb-0">{{ $violator->student_id }}</p>
+                                        <span class="badge bg-danger">{{ $violator->violations_count }} {{ Str::plural('violation', $violator->violations_count) }}</span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> No violation records found.
                             </div>
-                        </div>
-                    @endforeach
-                @else
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> No violation records found.
+                        @endif
                     </div>
-                @endif
+
+                    <!-- Non-Violators Tab -->
+                    <div class="tab-pane fade" id="non-violators" role="tabpanel" aria-labelledby="non-violators-tab">
+                        @php
+                            $nonViolators = DB::table('users')
+                                ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
+                                ->join('roles', 'user_roles.role_id', '=', 'roles.id')
+                                ->where('roles.name', 'student')
+                                ->whereNotExists(function($query) {
+                                    $query->select(DB::raw(1))
+                                          ->from('violations')
+                                          ->whereRaw('violations.student_id = users.student_id')
+                                          ->where('violations.status', 'active');
+                                })
+                                ->select('users.name', 'users.student_id')
+                                ->get();
+                        @endphp
+
+                        @if($nonViolators->count() > 0)
+                            @foreach($nonViolators as $student)
+                                <div class="d-flex align-items-center mb-3">
+                                    <img src="{{ asset('images/newprof.png')}}" alt="{{ $student->name }}" class="profile-img" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 15px;">
+                                    <div class="violator-info">
+                                        <h6 class="mb-0 fw-bold">{{ $student->name }}</h6>
+                                        <p class="text-muted small mb-0">{{ $student->student_id }}</p>
+                                        <span class="badge bg-success">No Violations</span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> No compliant students found.
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -363,10 +514,42 @@
             }
         );
         
+        // Function to show toast notification
+        function showToast(message, type = 'success') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-check-circle"></i>
+                <div class="toast-message">${message}</div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Remove toast after 3 seconds
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s ease-out forwards';
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+        
         // Violation report functions
         function updateViolationReport(period) {
             const violationList = document.getElementById('violation-list');
-            violationList.innerHTML = '<div class="loading-container"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            violationList.innerHTML = `
+                <div class="loading-overlay">
+                    <div class="loading-message-container">
+                        <div class="loading-container">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="loading-text">Updating violation statistics...</div>
+                        </div>
+                    </div>
+                </div>
+            `;
             
             fetch(`/api/violation-stats?period=${period}`, {
                 method: 'GET',
@@ -385,23 +568,36 @@
                         const violationItem = document.createElement('div');
                         violationItem.className = 'violation-item';
                         violationItem.innerHTML = `
-                            <span class="violation-name">
-                                <span><i class="fas fa-exclamation-triangle mr-2"></i> ${violation.violation_name}</span>
-                                <span class="violation-count">${violation.count}</span>
-                            </span>
+                            <div class="violation-text">${violation.violation_name}</div>
                             <div class="progress">
                                 <div class="progress-bar" style="width: ${(violation.count / maxCount) * 100}%;"></div>
                             </div>
                         `;
                         violationList.appendChild(violationItem);
                     });
+                    
+                    // Show success message
+                    const periodText = document.getElementById('violation-filter').options[document.getElementById('violation-filter').selectedIndex].text;
+                    showToast(`Behavior data for ${periodText} loaded successfully`);
                 } else {
-                    violationList.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-check"></i><h5>No Violations</h5><p class="text-muted">No violations recorded for this period.</p></div>';
+                    violationList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-check"></i>
+                            <h5>No Violations</h5>
+                            <p class="text-muted">No violations recorded for this period.</p>
+                        </div>
+                    `;
                 }
             })
             .catch(error => {
                 console.error('Error fetching violation stats:', error);
-                violationList.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h5>Error Loading Data</h5><p class="text-muted">There was a problem loading the violation data.</p></div>';
+                violationList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <h5>Error Loading Data</h5>
+                        <p class="text-muted">There was a problem loading the violation data.</p>
+                    </div>
+                `;
             });
         }
         
