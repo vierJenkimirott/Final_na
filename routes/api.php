@@ -20,4 +20,5 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // Violation statistics for the educator dashboard
 Route::get('/violation-stats', 'App\Http\Controllers\ViolationController@getViolationStatsByPeriod');
+Route::get('/violation-stats-by-batch', 'App\Http\Controllers\BehaviorDataController@getViolationStatsByBatch');
 

@@ -216,6 +216,70 @@
             opacity: 0;
         }
     }
+    
+    /* Batch Filter Styling */
+    .batch-filter-wrapper {
+        margin-left: auto;
+    }
+    
+    .batch-filter-wrapper .btn-group {
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    
+    .batch-filter-wrapper .btn {
+        border-radius: 0;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        padding: 0.375rem 0.75rem;
+        border: 1px solid #3490dc;
+    }
+    
+    .batch-filter-wrapper .btn:first-child {
+        border-top-left-radius: 6px;
+        border-bottom-left-radius: 6px;
+    }
+    
+    .batch-filter-wrapper .btn:last-child {
+        border-top-right-radius: 6px;
+        border-bottom-right-radius: 6px;
+    }
+    
+    .batch-filter-wrapper .btn.active {
+        background-color: #3490dc;
+        color: white;
+        box-shadow: 0 2px 5px rgba(52, 144, 220, 0.3);
+    }
+    
+    .batch-filter-wrapper .btn:hover:not(.active) {
+        background-color: rgba(52, 144, 220, 0.1);
+    }
+    
+    /* Violation Status Header Styling */
+    .violation-status-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 1.25rem;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        border-radius: 12px 12px 0 0;
+        background-color: white;
+    }
+    
+    .violation-status-header h2 {
+        font-size: 1.5rem;
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .violation-status-header .badge {
+        margin-left: 1rem;
+        padding: 0.5rem 0.75rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
 </style>
 @endsection
 
@@ -267,7 +331,7 @@
 <div class="row g-3 mt-3">
     <!-- Violation Status Overview Chart -->
     <div class="col-md-6">
-        <div class="card violation-status-overview-card" style="border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); height: 100%;">
+        <div class="card violation-status-overview-card shadow-sm border-0" style="border-radius: 12px; height: 100%;">
             @php
                 // Calculate violation statistics
                 $totalStudents = DB::table('users')
@@ -293,10 +357,51 @@
                 $nonViolatorPercentage = $totalStudents > 0 ? round(($nonViolatorCount / $totalStudents) * 100, 1) : 0;
             @endphp
             
-            <div style="padding: 20px;">
-                <h2 style="text-align: center; color: #2c3e50; font-size: 1.5rem; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">Violation Status Overview</h2>
-                <div style="position: relative; height: 250px; width: 100%;">
-                    <canvas id="violationStatusChart"></canvas>
+            <div class="violation-status-header d-flex align-items-center justify-content-between" style="padding: 1.25rem; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                <h2>Violation Status Overview</h2>
+                <div class="batch-filter-wrapper">
+                    <div class="btn-group" role="group" aria-label="Batch Filter">
+                        <button type="button" class="btn btn-sm btn-outline-primary active" data-batch="all">All Students</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-batch="1">1st Year</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-batch="2">2nd Year</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row">
+                    <div class="col-md-7">
+                        <div style="position: relative; height: 200px; width: 100%;">
+                            <canvas id="violationStatusChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="stats-container mt-3 mt-md-0">
+                            <div class="stat-card mb-3 p-3 rounded-3 d-flex align-items-center" style="background-color: rgba(255, 107, 107, 0.1); border-left: 4px solid #FF6B6B;">
+                                <div class="stat-icon me-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #FF6B6B; color: white;">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Violators</h6>
+                                    <div class="d-flex align-items-baseline">
+                                        <h3 class="mb-0 me-2">{{ $violatorCount }}</h3>
+                                        <span class="text-danger">{{ $violatorPercentage }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="stat-card p-3 rounded-3 d-flex align-items-center" style="background-color: rgba(76, 175, 80, 0.1); border-left: 4px solid #4CAF50;">
+                                <div class="stat-icon me-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #4CAF50; color: white;">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Non-Violators</h6>
+                                    <div class="d-flex align-items-baseline">
+                                        <h3 class="mb-0 me-2">{{ $nonViolatorCount }}</h3>
+                                        <span class="text-success">{{ $nonViolatorPercentage }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -453,50 +558,29 @@
         updateClock();
         setInterval(updateClock, 1000);
         
-        // Initialize pie chart
+        // Initialize doughnut chart for violation status
         const violationStatusChart = new Chart(
             document.getElementById('violationStatusChart').getContext('2d'), 
             {
-                type: 'pie',
+                type: 'doughnut',
                 data: {
                     labels: ['Violators', 'Non-Violators'],
                     datasets: [{
                         data: [{{ $violatorCount }}, {{ $nonViolatorCount }}],
                         backgroundColor: ['#FF6B6B', '#4CAF50'],
                         borderColor: ['#fff', '#fff'],
-                        borderWidth: 2
+                        borderWidth: 2,
+                        hoverOffset: 8,
+                        borderRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '65%',
                     plugins: {
                         legend: {
-                            position: 'right',
-                            labels: {
-                                generateLabels: function(chart) {
-                                    const data = chart.data;
-                                    if (data.labels.length && data.datasets.length) {
-                                        return data.labels.map(function(label, i) {
-                                            const meta = chart.getDatasetMeta(0);
-                                            const style = meta.controller.getStyle(i);
-                                            const count = data.datasets[0].data[i];
-                                            const total = {{ $violatorCount + $nonViolatorCount }};
-                                            const percentage = total > 0 ? Math.round((count / total) * 100 * 10) / 10 : 0;
-                                            
-                                            return {
-                                                text: `${label} (${percentage}%) - ${count} students`,
-                                                fillStyle: style.backgroundColor,
-                                                strokeStyle: style.borderColor,
-                                                lineWidth: style.borderWidth,
-                                                hidden: isNaN(data.datasets[0].data[i]) || meta.data[i].hidden,
-                                                index: i
-                                            };
-                                        });
-                                    }
-                                    return [];
-                                }
-                            }
+                            display: false // We're showing custom legend in the stats cards
                         },
                         tooltip: {
                             callbacks: {
@@ -513,6 +597,84 @@
                 }
             }
         );
+        
+        // Handle batch filter buttons
+        document.querySelectorAll('.batch-filter-wrapper .btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                document.querySelectorAll('.batch-filter-wrapper .btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Get selected batch
+                const batch = this.getAttribute('data-batch');
+                
+                // Update violation status chart with batch-specific data
+                updateViolationStatusByBatch(batch);
+            });
+        });
+        
+        // Function to update violation status chart based on selected batch
+        function updateViolationStatusByBatch(batch) {
+            // Show loading state
+            document.querySelector('.stats-container').innerHTML = `
+                <div class="loading-state d-flex justify-content-center align-items-center" style="height: 200px;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            
+            // Fetch batch-specific violation stats from API
+            fetch(`/api/violation-stats-by-batch?batch=${batch}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update chart data
+                    violationStatusChart.data.datasets[0].data = [data.violatorCount, data.nonViolatorCount];
+                    violationStatusChart.update();
+                    
+                    // Calculate total students count
+                    const totalStudents = data.violatorCount + data.nonViolatorCount;
+                    
+                    // Update stats cards
+                    const violatorPercentage = totalStudents > 0 ? Math.round((data.violatorCount / totalStudents) * 100 * 10) / 10 : 0;
+                    const nonViolatorPercentage = totalStudents > 0 ? Math.round((data.nonViolatorCount / totalStudents) * 100 * 10) / 10 : 0;
+                    
+                    document.querySelector('.stats-container').innerHTML = `
+                        <div class="stat-card mb-3 p-3 rounded-3 d-flex align-items-center" style="background-color: rgba(255, 107, 107, 0.1); border-left: 4px solid #FF6B6B;">
+                            <div class="stat-icon me-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #FF6B6B; color: white;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Violators</h6>
+                                <div class="d-flex align-items-baseline">
+                                    <h3 class="mb-0 me-2">${violatorPercentage}%</h3>
+                                    <span class="text-muted">${data.violatorCount} students</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card p-3 rounded-3 d-flex align-items-center" style="background-color: rgba(76, 175, 80, 0.1); border-left: 4px solid #4CAF50;">
+                            <div class="stat-icon me-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #4CAF50; color: white;">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Non-Violators</h6>
+                                <div class="d-flex align-items-baseline">
+                                    <h3 class="mb-0 me-2">${nonViolatorPercentage}%</h3>
+                                    <span class="text-muted">${data.nonViolatorCount} students</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error fetching batch data:', error);
+                    showToast('Failed to load batch data. Please try again.', 'error');
+                });
+        }
         
         // Function to show toast notification
         function showToast(message, type = 'success') {

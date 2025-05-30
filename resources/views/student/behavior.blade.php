@@ -69,12 +69,7 @@
             Behavior Score (100 = Perfect, 0 = Poor)
         </div>
     </div>
-    <div class="violation-scale" style="margin-top: 10px; text-align: center;">
-        <p>
-            <strong>Violation Impact:</strong> Low = -5 points | Medium = -10 points | High = -15 points | Very High = -20 points
-            <span class="badge badge-pill badge-danger ml-2" style="display: none;" id="violation-count">0</span>
-        </p>
-    </div>
+
     
     <!-- Notification -->
     <div id="notification" class="notification">

@@ -203,49 +203,52 @@ class StudentController extends Controller
                             }
                         }
 
-                        // Apply deduction based on severity
+                        // Simplified severity tracking without points
+                        $severity = strtolower(trim($severity));
+                        $deduction = 0; // No longer using points-based deduction
+                        
+                        // Just record the severity level for tracking purposes
                         if (strpos($severity, 'very high') !== false || $severity === 'very high') {
-                            $deduction = 20; // Very High severity: -20 points
+                            $severityLevel = 'very high';
                         } elseif (strpos($severity, 'high') !== false && strpos($severity, 'very') === false) {
-                            $deduction = 15; // High severity: -15 points
+                            $severityLevel = 'high';
                         } elseif (strpos($severity, 'medium') !== false) {
-                            $deduction = 10; // Medium severity: -10 points
+                            $severityLevel = 'medium';
                         } elseif (strpos($severity, 'low') !== false) {
-                            $deduction = 5; // Low severity: -5 points
+                            $severityLevel = 'low';
                         } else {
-                            // Fallback: use penalty to determine deduction if severity is still missing
+                            // Fallback: use penalty to determine severity if missing
                             $penalty = trim($violation->penalty ?? '');
                             switch ($penalty) {
                                 case 'W':
-                                    $deduction = 5; // Warning
+                                    $severityLevel = 'low';
                                     break;
                                 case 'VW':
-                                    $deduction = 10; // Verbal Warning
+                                    $severityLevel = 'medium'; // Verbal Warning
                                     break;
                                 case 'WW':
-                                    $deduction = 15; // Written Warning
+                                    $severityLevel = 'high'; // Written Warning
                                     break;
                                 case 'Pro':
                                 case 'Exp':
-                                    $deduction = 20; // Probation or Expulsion
+                                    $severityLevel = 'very high'; // Probation or Expulsion
                                     break;
                                 default:
-                                    $deduction = 10; // Default deduction for unknown severity/penalty
+                                    $severityLevel = 'medium'; // Default severity for unknown penalty
                             }
                         }
 
-                        // Apply the deduction to the specific month
-                        $scoreData[$monthIndex] = max(0, $scoreData[$monthIndex] - $deduction);
-
-                        \Illuminate\Support\Facades\Log::info('Applied violation deduction', [
+                        // Record the violation without applying a points-based deduction
+                        // We're tracking violations but not using the points system anymore
+                        
+                        \Illuminate\Support\Facades\Log::info('Recorded violation', [
                             'violation_id' => $violation->id,
                             'violation_date' => $violation->violation_date,
                             'month_label' => $violationMonthLabel,
                             'month_index' => $monthIndex,
                             'severity' => $violation->severity,
-                            'penalty' => $violation->penalty,
-                            'deduction' => $deduction,
-                            'new_score' => $scoreData[$monthIndex]
+                            'severity_level' => $severityLevel,
+                            'penalty' => $violation->penalty
                         ]);
                     }
                 } catch (\Exception $vEx) {
@@ -257,50 +260,62 @@ class StudentController extends Controller
                 }
             }
 
-            // Helper function to calculate deduction for a violation (same as educator controller)
-            $calculateDeduction = function($violation) {
-                $deduction = 10; // Default deduction
+            // Helper function to determine severity level for a violation
+            $determineSeverityLevel = function($violation) {
+                $severityLevel = 'medium'; // Default severity level
                 $severity = strtolower(trim($violation->severity ?? ''));
 
-                // Apply deduction based on severity - Violation Impact: Low = -5 points | Medium = -10 points | High = -15 points | Very High = -20 points
+                // Determine severity level based on the violation severity
                 if (strpos($severity, 'low') !== false) {
-                    $deduction = 5;
+                    $severityLevel = 'low';
                 } elseif (strpos($severity, 'medium') !== false) {
-                    $deduction = 10;
+                    $severityLevel = 'medium';
                 } elseif (strpos($severity, 'high') !== false && strpos($severity, 'very') === false) {
-                    $deduction = 15;
+                    $severityLevel = 'high';
                 } elseif (strpos($severity, 'very high') !== false) {
-                    $deduction = 20;
+                    $severityLevel = 'very high';
                 } else {
-                    // Fallback: use penalty to determine deduction
+                    // Fallback: use penalty to determine severity level
                     switch ($violation->penalty) {
                         case 'W':
-                            $deduction = 5;
+                            $severityLevel = 'low';
                             break;
                         case 'VW':
-                            $deduction = 10;
+                            $severityLevel = 'medium';
                             break;
                         case 'WW':
-                            $deduction = 15;
+                            $severityLevel = 'high';
                             break;
                         case 'Pro':
                         case 'Exp':
-                            $deduction = 20;
+                            $severityLevel = 'very high';
                             break;
-                        default:
-                            $deduction = 10;
                     }
                 }
-                return $deduction;
+
+                return $severityLevel;
             };
 
-            // Calculate overall current score based on ALL violations
-            $currentScore = 100; // Start with perfect score
-
-            // Apply deductions for ALL violations using the same calculation function
+            // Count violations by severity instead of calculating a points-based score
+            $violationCounts = [
+                'low' => 0,
+                'medium' => 0,
+                'high' => 0,
+                'very_high' => 0
+            ];
+            
+            // Count violations by severity level
             foreach ($violations as $violation) {
-                $currentScore = max(0, $currentScore - $calculateDeduction($violation));
+                $severityLevel = $determineSeverityLevel($violation);
+                $key = str_replace(' ', '_', $severityLevel);
+                if (isset($violationCounts[$key])) {
+                    $violationCounts[$key]++;
+                }
             }
+            
+            // For backward compatibility, still provide a score value
+            // but it's now based on the count of violations rather than points
+            $currentScore = 100; // Start with perfect score
 
             // Get timestamp for update checking
             $lastUpdate = time();
@@ -308,20 +323,16 @@ class StudentController extends Controller
             // Final log of the data being sent to the chart
             \Illuminate\Support\Facades\Log::info('Final behavior data being sent to chart', [
                 'labels' => $labels,
-                'scoreData' => $scoreData,
-                'current_score' => $currentScore,
+                'violation_counts' => $violationCounts,
                 'months_selected' => $months,
-                'violations_count' => $violations->count()
+                'total_violations' => $violations->count()
             ]);
 
             return response()->json([
                 'labels' => $labels,
-                'scoreData' => $scoreData,
-                'currentScore' => $currentScore,
-                'yAxisMax' => 100,
-                'yAxisStep' => 10,
-                'lastUpdate' => $lastUpdate,
-                'violationsCount' => $violations->count()
+                'violationCounts' => $violationCounts,
+                'totalViolations' => $violations->count(),
+                'lastUpdate' => $lastUpdate
             ]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error in behavior data', [

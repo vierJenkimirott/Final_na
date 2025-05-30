@@ -1,4 +1,4 @@
-<?php
+<!-- ?php
 
 require __DIR__ . '/vendor/autoload.php';
 
@@ -241,4 +241,4 @@ echo "\nFINAL BEHAVIOR SCORES FOR APRIL:\n";
 echo "Boys score: {$boysScore}\n";
 echo "Girls score: {$girlsScore}\n";
 
-echo "\n===== TEST COMPLETED =====\n";
+echo "\n===== TEST COMPLETED =====\n"; -->

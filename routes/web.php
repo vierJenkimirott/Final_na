@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BehaviorDataController;
 use App\Http\Controllers\EducatorController;
 use App\Http\Controllers\ViolationController;
 use Illuminate\Support\Facades\Route;
@@ -78,7 +79,8 @@ Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMidd
 
     // Behavior routes
     Route::get('/behavior', [EducatorController::class, 'behavior'])->name('educator.behavior');
-    Route::get('/behavior-data', [EducatorController::class, 'getBehaviorData'])->name('educator.behavior-data');
+    Route::get('/behavior-data', [BehaviorDataController::class, 'getBehaviorData'])->name('educator.behavior-data');
+    Route::get('/behavior/data', [BehaviorDataController::class, 'getBehaviorData'])->name('educator.behavior-data-alt');
     Route::get('/student-behavior-data/{student_id}', [EducatorController::class, 'getStudentBehaviorData'])->name('educator.student-behavior-data');
     Route::get('/student-behavior/{student_id}', [EducatorController::class, 'viewStudentBehavior'])->name('educator.view-student-behavior');
     Route::post('/clear-behavior-data', [EducatorController::class, 'clearBehaviorData'])->name('educator.clear-behavior-data');

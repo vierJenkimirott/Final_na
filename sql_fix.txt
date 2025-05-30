@@ -1,0 +1,11 @@
+In behavior.blade.php, replace all instances of:
+
+->distinct('student_id')
+->count('student_id');
+
+with:
+
+->distinct('violations.student_id')
+->count('violations.student_id');
+
+This will fix the "Integrity constraint violation: 1052 Column 'student_id' in field list is ambiguous" error by specifying which table the student_id column belongs to.

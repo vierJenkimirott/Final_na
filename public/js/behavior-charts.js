@@ -3,955 +3,826 @@
  * This file contains all the functionality for behavior charts in the ScholarSync application.
  */
 
-// Global chart reference
-let behaviorChart;
+// Global chart references
+window.behaviorChart = null;
+window.studentBehaviorChart = null;
 
-// Initialize when the document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    // Set up event listeners for period buttons
-    document.querySelectorAll('.period-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
+// Global variables for filtering
+window.currentBatchFilter = 'all'; // Default to showing all students
+window.currentYAxisScale = 'auto'; // Default to auto scale for y-axis
+
+// Function to generate monthly data for the behavior chart showing actual violations
+window.generateSampleData = function(months, year, batchFilter) {
+    console.log('generateSampleData called with months:', months, 'year:', year, 'batch:', batchFilter);
+    if (year === undefined) year = new Date().getFullYear();
+    if (batchFilter === undefined) batchFilter = window.currentBatchFilter;
+    
+    var labels = [];
+    var menData = [];
+    var womenData = [];
+    
+    // Always show January to December (all 12 months)
+    var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var fullMonthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    // Get violation data from global variables if available
+    // These should be set in the blade template from the server
+    var maleViolationCounts = window.maleViolationCounts || {};
+    var femaleViolationCounts = window.femaleViolationCounts || {};
+    
+    console.log('Violation counts from database:', { maleViolationCounts, femaleViolationCounts });
+    
+    // If months is 12, show all months from January to December
+    if (months === 12) {
+        // Use all month names
+        for (var i = 0; i < monthNames.length; i++) {
+            labels.push(monthNames[i]);
             
-            // Get the period from the button's data attribute
-            const months = parseInt(this.getAttribute('data-months') || 12);
+            // Get actual violation counts from the database
+            // Start with 0 for each month and add actual counts if available
+            var monthKey = fullMonthNames[i].toLowerCase();
+            var maleCount = maleViolationCounts[monthKey] || 0;
+            var femaleCount = femaleViolationCounts[monthKey] || 0;
             
-            // Show loading indicator on the refresh button
-            const refreshBtn = document.getElementById('refresh-behavior');
-            if (refreshBtn) {
-                refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Loading...';
-                refreshBtn.disabled = true;
+            // Apply batch filter if needed
+            if (batchFilter === '1') {
+                // Filter for 1st year students if that data is available
+                maleCount = (maleViolationCounts[monthKey + '_year1'] !== undefined) ? 
+                    maleViolationCounts[monthKey + '_year1'] : Math.round(maleCount * 0.6);
+                femaleCount = (femaleViolationCounts[monthKey + '_year1'] !== undefined) ? 
+                    femaleViolationCounts[monthKey + '_year1'] : Math.round(femaleCount * 0.6);
+            } else if (batchFilter === '2') {
+                // Filter for 2nd year students if that data is available
+                maleCount = (maleViolationCounts[monthKey + '_year2'] !== undefined) ? 
+                    maleViolationCounts[monthKey + '_year2'] : Math.round(maleCount * 0.4);
+                femaleCount = (femaleViolationCounts[monthKey + '_year2'] !== undefined) ? 
+                    femaleViolationCounts[monthKey + '_year2'] : Math.round(femaleCount * 0.4);
             }
             
-            // Update the chart with the selected time period
-            fetchBehaviorData(months, true);
-            
-            // Reset refresh button after data is loaded
-            setTimeout(() => {
-                if (refreshBtn) {
-                    refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Refresh Data';
-                    refreshBtn.disabled = false;
-                }
-            }, 1000);
-        });
-    });
-    
-    // Set up print chart functionality
-    const printChartBtn = document.getElementById('print-chart');
-    if (printChartBtn) {
-        printChartBtn.addEventListener('click', function() {
-            const canvas = document.getElementById('behaviorChart');
-            if (canvas) {
-                // Create a printable version
-                const printWindow = window.open('', '_blank');
-                printWindow.document.write(`
-                    <html>
-                    <head>
-                        <title>Behavior Report - ScholarSync</title>
-                        <style>
-                            body { font-family: Arial, sans-serif; padding: 20px; }
-                            .header { text-align: center; margin-bottom: 20px; }
-                            .chart-container { text-align: center; margin: 20px 0; }
-                            .footer { margin-top: 30px; font-size: 12px; text-align: center; color: #666; }
-                            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                            th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
-                            th { background-color: #f2f2f2; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header">
-                            <h1>Student Behavior Report</h1>
-                            <p>Generated on ${new Date().toLocaleString()}</p>
-                        </div>
-                        <div class="chart-container">
-                            <img src="${canvas.toDataURL('image/png')}" width="800">
-                        </div>
-                        <table>
-                            <tr>
-                                <th>Metric</th>
-                                <th>Value</th>
-                            </tr>
-                            <tr>
-                                <td>Men Average</td>
-                                <td>${document.getElementById('men-avg')?.textContent || 'N/A'}</td>
-                            </tr>
-                            <tr>
-                                <td>Women Average</td>
-                                <td>${document.getElementById('women-avg')?.textContent || 'N/A'}</td>
-                            </tr>
-                        </table>
-                        <div class="footer">
-                            <p>ScholarSync Behavior Monitoring System</p>
-                        </div>
-                    </body>
-                    </html>
-                `);
-                printWindow.document.close();
-                setTimeout(() => {
-                    printWindow.print();
-                }, 500);
-            }
-        });
-    }
-    
-    // Set up refresh button
-    const refreshBtn = document.getElementById('refresh-behavior');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            // Show loading indicator
-            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Refreshing...';
-            this.disabled = true;
-            
-            // Get current time period from active period button
-            const activeBtn = document.querySelector('.period-btn.active');
-            const months = activeBtn ? parseInt(activeBtn.getAttribute('data-months')) : 12;
-            
-            // Refresh the data
-            fetchBehaviorData(months, true);
-            
-            // Reset button after a short delay
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Refresh Data';
-                this.disabled = false;
-            }, 1000);
-        });
-    }
-    
-    // Initial data fetch with default 12 months
-    fetchBehaviorData(12);
-    
-    // Set up periodic updates
-    setInterval(checkForUpdates, 60000); // Check every minute
-    
-    // Set up real-time updates for violations
-    setupRealTimeUpdates();
-});
-
-/**
- * Fetch behavior data from the server
- * @param {number} months - Number of months to fetch data for
- * @param {boolean} forceRefresh - Whether to force a refresh of the data
- */
-function fetchBehaviorData(months = 6, forceRefresh = false) {
-    console.log('Fetching behavior data for', months, 'months', forceRefresh ? '(forced refresh)' : '');
-    // Store the current months selection in a data attribute on the body for debugging
-    document.body.dataset.currentMonths = months;
-    
-    // Show loading indicator
-    const canvas = document.getElementById('behaviorChart');
-    if (!canvas) {
-        console.error('Behavior chart canvas not found');
-        return;
-    }
-    
-    const container = canvas.parentElement;
-    
-    // Add loading overlay if it doesn't exist
-    let loadingOverlay = container.querySelector('.chart-loading');
-    if (!loadingOverlay) {
-        loadingOverlay = document.createElement('div');
-        loadingOverlay.className = 'chart-loading';
-        loadingOverlay.innerHTML = '<div class="spinner"></div><p>Loading behavior data...</p>';
-        container.appendChild(loadingOverlay);
+            menData.push(maleCount);
+            womenData.push(femaleCount);
+        }
     } else {
-        loadingOverlay.style.display = 'flex';
+        // For fewer months, show the most recent ones
+        var currentDate = new Date();
+        currentDate.setFullYear(year);
+        var currentMonth = currentDate.getMonth();
+        
+        // Calculate starting month index (go back 'months' number of months)
+        for (var i = months - 1; i >= 0; i--) {
+            var monthIndex = (currentMonth - i + 12) % 12; // Ensure positive index with modulo
+            var monthName = monthNames[monthIndex];
+            var fullMonthName = fullMonthNames[monthIndex];
+            labels.push(monthName);
+            
+            // Get actual violation counts from the database
+            // Start with 0 for each month and add actual counts if available
+            var monthKey = fullMonthName.toLowerCase();
+            var maleCount = maleViolationCounts[monthKey] || 0;
+            var femaleCount = femaleViolationCounts[monthKey] || 0;
+            
+            // Apply batch filter if needed
+            if (batchFilter === '1') {
+                // Filter for 1st year students if that data is available
+                maleCount = (maleViolationCounts[monthKey + '_year1'] !== undefined) ? 
+                    maleViolationCounts[monthKey + '_year1'] : Math.round(maleCount * 0.6);
+                femaleCount = (femaleViolationCounts[monthKey + '_year1'] !== undefined) ? 
+                    femaleViolationCounts[monthKey + '_year1'] : Math.round(femaleCount * 0.6);
+            } else if (batchFilter === '2') {
+                // Filter for 2nd year students if that data is available
+                maleCount = (maleViolationCounts[monthKey + '_year2'] !== undefined) ? 
+                    maleViolationCounts[monthKey + '_year2'] : Math.round(maleCount * 0.4);
+                femaleCount = (femaleViolationCounts[monthKey + '_year2'] !== undefined) ? 
+                    femaleViolationCounts[monthKey + '_year2'] : Math.round(femaleCount * 0.4);
+            }
+            
+            menData.push(maleCount);
+            womenData.push(femaleCount);
+        }
     }
     
-    // Hide any previous error messages
-    const errorElement = container.querySelector('.chart-error');
-    if (errorElement) {
-        errorElement.style.display = 'none';
-    }
-    
-    // Show canvas if it was hidden
-    canvas.style.display = 'block';
-    
-    // Make the API request with a cache-busting parameter to prevent caching
-    fetch(`/educator/behavior-data?months=${months}&_=${Date.now()}`, {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to load behavior data');
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Hide loading indicator
-        loadingOverlay.style.display = 'none';
-        
-        // Log the received data for debugging
-        console.log('Received behavior data:', data);
-        console.log('Months requested:', data.monthsRequested);
-        console.log('Number of labels:', data.labels ? data.labels.length : 0);
-        
-        // Update stat cards with real data
-        updateStatCards(data);
-        
-        // Initialize or update chart
-        initBehaviorChart(data);
-        
-        // Update last updated timestamp
-        const lastUpdatedElement = document.querySelector('.last-updated');
-        if (lastUpdatedElement && data.lastUpdated) {
-            lastUpdatedElement.innerHTML = `<i class="fas fa-clock me-1"></i> Last updated: ${data.lastUpdated}`;
-        }
-        
-        // Show success notification with months info
-        const monthsText = data.monthsRequested || document.body.dataset.currentMonths || 6;
-        showNotification(`Behavior data for ${monthsText} months loaded successfully`);
-    })
-    .catch(error => {
-        // Hide loading indicator
-        loadingOverlay.style.display = 'none';
-        
-        // Show error message
-        console.error('Error fetching behavior data:', error);
-        showChartError(canvas, 'Failed to load behavior data. Please try again later.');
-        
-        // If no data available, use sample data for demonstration
-        const sampleData = generateSampleData(months);
-        initBehaviorChart(sampleData);
-    });
-}
-
-/**
- * Generate sample data for the behavior chart
- * @param {number} months - Number of months to generate data for
- * @returns {Object} - Chart data object
- */
-function generateSampleData(months) {
-    const labels = [];
-    const boysData = [];
-    const girlsData = [];
-    
-    // Get month names for the past X months
-    const currentDate = new Date();
-    for (let i = months - 1; i >= 0; i--) {
-        const date = new Date(currentDate);
-        date.setMonth(currentDate.getMonth() - i);
-        const monthName = date.toLocaleString('default', { month: 'long' });
-        labels.push(monthName);
-        
-        // Generate random data between 70 and 100
-        const boysScore = Math.floor(Math.random() * 30) + 70;
-        const girlsScore = Math.floor(Math.random() * 30) + 70;
-        
-        boysData.push(boysScore);
-        girlsData.push(girlsScore);
-    }
-    
+    // This is monthly data, not weekly
     return {
         labels: labels,
-        boys: boysData,
-        girls: girlsData,
-        totalStudents: 120,
-        studentsNeedingAttention: 15
+        men: menData,
+        women: womenData,
+        title: 'Student Violations by Month',
+        isWeeklyView: false // Flag to indicate this is NOT weekly data
     };
-}
+};
 
-/**
- * Update the stat cards with real data
- * @param {Object} data - The behavior data from the server
- */
-function updateStatCards(data) {
-    // Update total students card
-    const totalStudentsElement = document.querySelector('.total-students');
-    if (totalStudentsElement && data.totalStudents) {
-        totalStudentsElement.textContent = data.totalStudents;
+// Function to generate weekly data for a specific month using actual violation data
+window.generateMonthData = function(monthIndex, year, batchFilter) {
+    if (year === undefined) year = new Date().getFullYear();
+    if (batchFilter === undefined) batchFilter = window.currentBatchFilter;
+    
+    var labels = [];
+    var menData = [];
+    var womenData = [];
+    var maleViolatorsData = [];
+    var femaleViolatorsData = [];
+    
+    // Calculate the number of weeks in the month
+    var firstDay = new Date(year, monthIndex, 1);
+    var lastDay = new Date(year, monthIndex + 1, 0);
+    
+    // Get the month name for display
+    var monthName = firstDay.toLocaleString('en-US', { month: 'long' });
+    var monthKey = monthName.toLowerCase();
+    
+    // Get the day of the week for the first day (0 = Sunday, 1 = Monday, etc.)
+    var firstDayOfWeek = firstDay.getDay();
+    
+    // Calculate the total number of days in the month
+    var totalDays = lastDay.getDate();
+    
+    // Calculate the number of weeks (including partial weeks)
+    // A week that spans from the previous month or into the next month counts as a week
+    var numWeeks = Math.ceil((totalDays + firstDayOfWeek) / 7);
+    
+    console.log('Generating weekly data for ' + monthName + ' ' + year + ' with ' + numWeeks + ' weeks');
+    
+    // Get violation data from global variables if available
+    var maleViolationCounts = window.maleViolationCounts || {};
+    var femaleViolationCounts = window.femaleViolationCounts || {};
+    
+    // Get the total violations for this month
+    var totalMaleViolations = maleViolationCounts[monthKey] || 0;
+    var totalFemaleViolations = femaleViolationCounts[monthKey] || 0;
+    
+    // Apply batch filter if needed
+    if (batchFilter === '1') {
+        // Filter for 1st year students if that data is available
+        totalMaleViolations = (maleViolationCounts[monthKey + '_year1'] !== undefined) ? 
+            maleViolationCounts[monthKey + '_year1'] : Math.round(totalMaleViolations * 0.6);
+        totalFemaleViolations = (femaleViolationCounts[monthKey + '_year1'] !== undefined) ? 
+            femaleViolationCounts[monthKey + '_year1'] : Math.round(totalFemaleViolations * 0.6);
+    } else if (batchFilter === '2') {
+        // Filter for 2nd year students if that data is available
+        totalMaleViolations = (maleViolationCounts[monthKey + '_year2'] !== undefined) ? 
+            maleViolationCounts[monthKey + '_year2'] : Math.round(totalMaleViolations * 0.4);
+        totalFemaleViolations = (femaleViolationCounts[monthKey + '_year2'] !== undefined) ? 
+            femaleViolationCounts[monthKey + '_year2'] : Math.round(totalFemaleViolations * 0.4);
     }
     
-    // Update students needing attention card
-    const attentionStudentsElement = document.querySelector('.attention-students');
-    if (attentionStudentsElement && data.studentsNeedingAttention) {
-        attentionStudentsElement.textContent = data.studentsNeedingAttention;
+    // Get weekly violation data if available
+    var maleWeeklyData = maleViolationCounts[monthKey + '_weekly'] || [];
+    var femaleWeeklyData = femaleViolationCounts[monthKey + '_weekly'] || [];
+    
+    // Check if we have the new data structure with violator information
+    var hasMaleViolatorInfo = maleWeeklyData.counts !== undefined && maleWeeklyData.violators !== undefined;
+    var hasFemaleViolatorInfo = femaleWeeklyData.counts !== undefined && femaleWeeklyData.violators !== undefined;
+    
+    // Generate weekly data for the month
+    for (var week = 1; week <= numWeeks; week++) {
+        // Calculate the date range for this week
+        var weekStartDay = (week - 1) * 7 - firstDayOfWeek + 1;
+        var weekEndDay = Math.min(weekStartDay + 6, totalDays);
+        
+        // Create a descriptive week label
+        var weekLabel = 'Week ' + week;
+        labels.push(weekLabel);
+        
+        // Use actual weekly violation data if available, otherwise distribute the monthly total
+        var maleCount, femaleCount;
+        var maleViolators = [], femaleViolators = [];
+        
+        if (hasMaleViolatorInfo && maleWeeklyData.counts.length >= week) {
+            // Use actual weekly data with violator information
+            maleCount = maleWeeklyData.counts[week-1];
+            maleViolators = maleWeeklyData.violators[week-1] || [];
+        } else if (maleWeeklyData.length >= week && maleWeeklyData[week-1] !== undefined) {
+            // Use actual weekly count data (old format)
+            maleCount = maleWeeklyData[week-1];
+        } else {
+            // Distribute violations across weeks based on week position
+            var weekPosition = week / numWeeks; // 0.0 to 1.0 representing position in month
+            var distributionFactor;
+            
+            // Create a bell curve distribution with more violations in the middle of the month
+            if (weekPosition < 0.5) {
+                distributionFactor = 1.5 * weekPosition + 0.25; // 0.25 to 1.0
+            } else {
+                distributionFactor = 1.5 * (1 - weekPosition) + 0.25; // 1.0 to 0.25
+            }
+            
+            // Calculate this week's portion of the total violations
+            maleCount = Math.round(totalMaleViolations * distributionFactor / numWeeks);
+        }
+        
+        if (hasFemaleViolatorInfo && femaleWeeklyData.counts.length >= week) {
+            // Use actual weekly data with violator information
+            femaleCount = femaleWeeklyData.counts[week-1];
+            femaleViolators = femaleWeeklyData.violators[week-1] || [];
+        } else if (femaleWeeklyData.length >= week && femaleWeeklyData[week-1] !== undefined) {
+            // Use actual weekly count data (old format)
+            femaleCount = femaleWeeklyData[week-1];
+        } else {
+            // Distribute violations across weeks based on week position
+            var weekPosition = week / numWeeks;
+            var distributionFactor;
+            
+            if (weekPosition < 0.5) {
+                distributionFactor = 1.5 * weekPosition + 0.25;
+            } else {
+                distributionFactor = 1.5 * (1 - weekPosition) + 0.25;
+            }
+            
+            femaleCount = Math.round(totalFemaleViolations * distributionFactor / numWeeks);
+        }
+        
+        menData.push(maleCount);
+        womenData.push(femaleCount);
+        maleViolatorsData.push(maleViolators);
+        femaleViolatorsData.push(femaleViolators);
     }
-}
+    
+    // Make sure to return the data in the expected format
+    var result = {
+        labels: labels,
+        men: menData,
+        women: womenData,
+        maleViolators: maleViolatorsData,
+        femaleViolators: femaleViolatorsData,
+        title: monthName + ' ' + year + ' - Weekly View',
+        isWeeklyView: true  // Flag to indicate this is weekly data
+    };
+    
+    console.log('Returning weekly data:', result);
+    return result;
+};
 
-/**
- * Calculate and update analytics data based on behavior scores
- * @param {Object} data - The behavior data from the server
- */
-function updateAnalytics(data) {
-    if (!data.men || !data.women) return;
+// Function to update the chart with new data
+window.updateChart = function(data) {
+    try {
+        console.log('Updating chart with data and scale:', window.currentYAxisScale);
+        
+        // Get the selected year
+        let selectedYear = new Date().getFullYear(); // Default to current year
+        const yearSelect = document.getElementById('yearSelect');
+        if (yearSelect) {
+            selectedYear = parseInt(yearSelect.value);
+        }
+        
+        console.log('updateChart called');
+        var canvas = document.getElementById('behaviorChart');
+        if (!canvas) {
+            console.error('Chart canvas not found!');
+            return;
+        }
+        
+        console.log('Canvas found:', canvas);
+        
+        // Make sure canvas is visible
+        canvas.style.display = 'block';
+        
+        // Hide loading indicator if it exists
+        var loadingElement = document.getElementById('chartLoading');
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+        }
+        
+        // Log the data to help with debugging
+        console.log('Updating chart with data:', data);
     
-    // Calculate average scores
-    const menScores = data.men || [];
-    const womenScores = data.women || [];
-    const allScores = [...menScores, ...womenScores];
+        // Validate that we have the required data properties
+        if (!data || !data.labels || !data.men || !data.women) {
+            console.error('Invalid chart data format:', data);
+            window.showNotification('danger', 'Invalid chart data format', 'Error');
+            window.showChartError(canvas, 'Invalid chart data format');
+            return;
+        }
     
-    // Calculate average score
-    const menAverage = menScores.length > 0 ? Math.round(menScores.reduce((sum, score) => sum + score, 0) / menScores.length) : 0;
-    const womenAverage = womenScores.length > 0 ? Math.round(womenScores.reduce((sum, score) => sum + score, 0) / womenScores.length) : 0;
-    
-    // Update men and women averages in the legend
-    const menAvgElement = document.getElementById('men-avg');
-    const womenAvgElement = document.getElementById('women-avg');
-    
-    if (menAvgElement) {
-        menAvgElement.textContent = menAverage + ' pts';
+        // Check if this is weekly data
+        var isWeeklyView = data.isWeeklyView || false;
+        console.log('Is weekly view:', isWeeklyView);
+        
+        var ctx = canvas.getContext('2d');
+        
+        // We don't need gradients for bar charts as we'll use solid colors
+        // But we'll keep the variable names for compatibility
+        
+        // Destroy existing chart if it exists
+        if (window.behaviorChart) {
+            window.behaviorChart.destroy();
+        }
+        
+        // Create new chart instance
+        window.behaviorChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Male Violations',
+                    data: data.men,
+                    backgroundColor: 'rgba(78, 115, 223, 0.8)',
+                    borderColor: 'rgba(78, 115, 223, 1)',
+                    borderWidth: 1,
+                    hoverBackgroundColor: 'rgba(78, 115, 223, 1)',
+                    hoverBorderColor: '#fff',
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.9
+                },
+                {
+                    label: 'Female Violations',
+                    data: data.women,
+                    backgroundColor: 'rgba(231, 74, 59, 0.8)',
+                    borderColor: 'rgba(231, 74, 59, 1)',
+                    borderWidth: 1,
+                    hoverBackgroundColor: 'rgba(231, 74, 59, 1)',
+                    hoverBorderColor: '#fff',
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.9
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Student Violations by Month (' + selectedYear + ')',
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        padding: {
+                            top: 10,
+                            bottom: 20
+                        }
+                    },
+                    legend: {
+                        display: false // Hide default legend as we're using custom legend below chart
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 14
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        padding: 12,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                // Basic label showing count
+                                var label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + ' violations';
+                                }
+                                return label;
+                            },
+                            afterLabel: function(context) {
+                                // Check if we have violator information
+                                if (!data.isWeeklyView || !context.parsed.y) {
+                                    return null; // No violator info for monthly view or zero violations
+                                }
+                                
+                                // Get the violators for this week
+                                var weekIndex = context.dataIndex;
+                                var violators = [];
+                                
+                                // Determine if this is male or female data
+                                if (context.datasetIndex === 0) { // Male dataset
+                                    violators = data.maleViolators && data.maleViolators[weekIndex] ? data.maleViolators[weekIndex] : [];
+                                } else { // Female dataset
+                                    violators = data.femaleViolators && data.femaleViolators[weekIndex] ? data.femaleViolators[weekIndex] : [];
+                                }
+                                
+                                // If no violator details, return null
+                                if (!violators.length) {
+                                    return null;
+                                }
+                                
+                                // Format violator information with names prominently displayed
+                                var tooltipLines = [];
+                                tooltipLines.push('Violators:');
+                                violators.forEach(function(violator) {
+                                    if (violator.name) {
+                                        // Show name prominently, then date and violation type if available
+                                        var line = '• ' + violator.name;
+                                        if (violator.date) {
+                                            line += ' (' + violator.date + ')';
+                                        }
+                                        if (violator.violation_type) {
+                                            line += ' - ' + violator.violation_type;
+                                        }
+                                        tooltipLines.push(line);
+                                    }
+                                });
+                                
+                                return tooltipLines;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        min: 0,
+                        max: function() {
+                            // Use the selected y-axis scale
+                            if (window.currentYAxisScale === 'auto') {
+                                // Calculate max based on actual data values
+                                try {
+                                    const maxMen = Math.max(...data.men);
+                                    const maxWomen = Math.max(...data.women);
+                                    const maxValue = Math.max(maxMen, maxWomen, 5); // At least 5 for small values
+                                    
+                                    // Round up to the nearest 5
+                                    return Math.ceil(maxValue / 5) * 5;
+                                } catch (e) {
+                                    console.warn('Error calculating auto scale:', e);
+                                    return 10; // Default to 10 if there's an error
+                                }
+                            } else {
+                                // Use the specified scale
+                                return parseInt(window.currentYAxisScale);
+                            }
+                        }(),
+                        grid: {
+                            drawBorder: true,
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            stepSize: function() {
+                                // Adjust step size based on max value or current scale
+                                let max;
+                                
+                                if (window.currentYAxisScale === 'auto') {
+                                    // Calculate based on data
+                                    const maxMen = Math.max(...data.men);
+                                    const maxWomen = Math.max(...data.women);
+                                    max = Math.ceil(Math.max(maxMen, maxWomen, 5) / 5) * 5;
+                                } else {
+                                    // Use the specified scale
+                                    max = parseInt(window.currentYAxisScale);
+                                }
+                                
+                                if (max <= 10) return 1;
+                                if (max <= 20) return 2;
+                                if (max <= 50) return 5;
+                                return 10;
+                            }(),
+                            font: {
+                                size: 12
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Number of Violations',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: true,
+                            drawBorder: true,
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 12
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Time Period',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Update the custom legend
+        window.updateCustomLegend();
+    } catch (error) {
+        console.error('Error updating chart:', error);
+        if (canvas) {
+            window.showChartError(canvas, 'Failed to update chart: ' + error.message);
+        }
+        
+        // Show notification
+        window.showNotification('danger', 'Failed to update chart: ' + error.message, 'Error');
     }
-    
-    if (womenAvgElement) {
-        womenAvgElement.textContent = womenAverage + ' pts';
-    }
-    
-    // We've removed the stat cards, so we don't need to update those elements anymore
-    // This ensures the chart still works even without the stat cards
-}
+};
 
-/**
- * Check for behavior data updates from the server
- */
-function checkForUpdates() {
-    // Get last update timestamp
-    const lastUpdated = document.querySelector('.last-updated');
-    const timestamp = lastUpdated ? new Date(lastUpdated.textContent.replace('Last updated: ', '')).getTime() : null;
+// Function to initialize the behavior chart
+window.initBehaviorChart = function(data) {
+    try {
+        console.log('initBehaviorChart called');
+        var canvas = document.getElementById('behaviorChart');
+        console.log('Canvas element exists:', canvas !== null);
+        
+        if (!canvas) {
+            console.error('Canvas element not found! Cannot initialize chart.');
+            // Try to find the chart container and show an error
+            var container = document.querySelector('.chart-container');
+            if (container) {
+                var errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger';
+                errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i><strong>Error:</strong> Chart canvas not found!';
+                container.appendChild(errorDiv);
+            }
+            return;
+        }
+        
+        // If no data is provided, generate sample data for 12 months (default)
+        if (!data) {
+            console.log('No data provided, generating sample data');
+            data = window.generateSampleData(12);
+        }
+        
+        console.log('Data for chart:', data);
+        
+        // Update the chart immediately instead of using setTimeout
+        try {
+            console.log('Calling updateChart directly');
+            window.updateChart(data);
+        } catch (e) {
+            console.error('Error initializing chart:', e);
+            window.showChartError(canvas, 'Failed to initialize chart: ' + e.message);
+        }
+    } catch (outerError) {
+        console.error('Fatal error initializing behavior chart:', outerError);
+    }
+};
+
+// Function to update chart based on selected year and month
+window.updateChartByPeriod = function() {
+    console.log('updateChartByPeriod called');
     
-    if (!timestamp) return;
+    // Get the select elements
+    var yearSelect = document.getElementById('yearSelect');
+    var monthSelect = document.getElementById('monthSelect');
     
-    // Get CSRF token
+    if (!yearSelect || !monthSelect) {
+        console.error('Year or month select elements not found');
+        return;
+    }
+    
+    // Get the selected values
+    var selectedYear = parseInt(yearSelect.value);
+    var selectedMonth = monthSelect.value;
+    var currentBatch = window.currentBatchFilter;
+    
+    console.log('Selected year: ' + selectedYear + ', Selected month: ' + selectedMonth + ', Batch: ' + currentBatch);
+    
+    // Update the refresh button to show loading state
+    var refreshButton = document.getElementById('refresh-behavior');
+    if (refreshButton) {
+        refreshButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Updating...';
+        refreshButton.disabled = true;
+    }
+    
+    // Show loading indicator
+    var loadingElement = document.getElementById('chartLoading');
+    if (loadingElement) {
+        loadingElement.style.display = 'flex';
+    }
+    
+    // Show loading notification
+    window.showNotification('info', 'Loading behavior data...', 'Please wait');
+    
+    try {
+        if (selectedMonth === 'all') {
+            // Show all months (monthly view)
+            var months = 12; // Show full year
+            
+            // Fetch actual data from the server if available
+            if (typeof window.fetchBehaviorData === 'function') {
+                // This will handle loading indicator
+                window.fetchBehaviorData(months, true, currentBatch, selectedYear);
+            } else {
+                // Fallback to sample data if fetch function not available
+                var monthlyData = window.generateSampleData(months, selectedYear, currentBatch);
+                console.log('Generated monthly data:', monthlyData);
+                window.updateChart(monthlyData);
+                
+                // Hide loading indicator
+                if (loadingElement) {
+                    loadingElement.style.display = 'none';
+                }
+                
+                const batchText = currentBatch === 'all' ? 'all students' : currentBatch + ' year students';
+                window.showNotification('success', `Showing ${batchText} monthly data for ${selectedYear}`, 'Data Updated');
+            }
+        } else {
+            // Show weekly data for the selected month
+            var monthIndex = parseInt(selectedMonth);
+            var date = new Date(selectedYear, monthIndex, 1);
+            var monthName = date.toLocaleString('en-US', { month: 'long' });
+            
+            // Generate weekly data
+            var weeklyData = window.generateMonthData(monthIndex, selectedYear, currentBatch);
+            console.log('Generated weekly data for ' + monthName + ':', weeklyData);
+            
+            // Update the chart with weekly data
+            window.updateChart(weeklyData);
+            
+            // Hide loading indicator
+            if (loadingElement) {
+                loadingElement.style.display = 'none';
+            }
+            
+            window.showNotification('success', 'Showing weekly data for ' + monthName + ' ' + selectedYear, 'Data Updated');
+        }
+    } catch (error) {
+        console.error('Error updating chart:', error);
+        window.showNotification('danger', 'Failed to update chart data: ' + error.message, 'Error');
+        
+        // Hide loading indicator
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+        }
+    } finally {
+        // Reset the refresh button
+        if (refreshButton) {
+            setTimeout(function() {
+                refreshButton.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Refresh Data';
+                refreshButton.disabled = false;
+            }, 500);
+        }
+    }
+};
+
+// Update the custom legend to match the chart data
+window.updateCustomLegend = function() {
+    // The legend is already in the HTML with the correct styling
+    // We just need to make sure it's visible
+    var legendContainer = document.querySelector('.d-flex.justify-content-center.mt-4');
+    if (legendContainer) {
+        legendContainer.style.display = 'flex';
+    }
+};
+
+// Function to filter data by batch year
+window.filterDataByBatch = function(batch) {
+    console.log('Filtering data by batch:', batch);
+    
+    // Update active state of batch filter buttons
+    document.querySelectorAll('.batch-filter').forEach(button => {
+        if (button.getAttribute('data-batch') === batch) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    });
+    
+    // Store the current batch filter
+    window.currentBatchFilter = batch;
+    
+    // Refresh the chart with the new filter
+    window.updateChartByPeriod();
+};
+
+// Function to filter data by y-axis scale
+window.filterDataByYScale = function(scale) {
+    console.log('Filtering data by y-axis scale:', scale);
+    
+    // Update active state of y-scale filter buttons
+    document.querySelectorAll('.y-scale-filter').forEach(button => {
+        if (button.getAttribute('data-scale') === scale) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    });
+    
+    // Store the current y-axis scale
+    window.currentYAxisScale = scale;
+    
+    try {
+        // Refresh the chart with the new scale
+        if (window.behaviorChart && window.behaviorChart.data) {
+            // Get current data from the chart
+            const currentData = {
+                labels: window.behaviorChart.data.labels,
+                men: window.behaviorChart.data.datasets[0].data,
+                women: window.behaviorChart.data.datasets[1].data
+            };
+            
+            // Update the chart with the current data but new scale
+            window.updateChart(currentData);
+        } else {
+            console.log('Chart not initialized yet, refreshing data');
+            // If no chart exists yet, refresh the data
+            window.updateChartByPeriod();
+        }
+    } catch (error) {
+        console.error('Error updating chart scale:', error);
+        window.showNotification('danger', 'Failed to update chart scale: ' + error.message, 'Error');
+    }
+};
+
+// Function to fetch behavior data from server
+window.fetchBehaviorData = function(months = 12, showLoading = true, batchFilter = 'all', year = null) {
+    // If year is not provided, use the currently selected year
+    if (year === null) {
+        const yearSelect = document.getElementById('yearSelect');
+        if (yearSelect) {
+            year = parseInt(yearSelect.value);
+        } else {
+            year = new Date().getFullYear(); // Default to current year
+        }
+    }
+    
+    console.log('Fetching behavior data for year:', year);
+    if (months === undefined) months = 12;
+    if (batchFilter === undefined) batchFilter = window.currentBatchFilter;
+    
+    console.log('Fetching behavior data for', months, 'months with batch filter:', batchFilter);
+    
+    // Show loading indicator
+    const loadingElement = document.getElementById('chartLoading');
+    if (loadingElement) {
+        loadingElement.style.display = 'flex';
+    }
+    
+    // Get CSRF token for secure request
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     
-    // Check for updates with cache-busting parameter
-    fetch(`/educator/check-behavior-updates?_=${Date.now()}`, {
+    // Add cache-busting parameter to prevent caching
+    const url = '/educator/behavior/data?months=' + months + '&batch=' + batchFilter + '&year=' + year + '&_=' + Date.now();
+    
+    // Make AJAX request to get behavior data
+    fetch(url, {
         method: 'GET',
         headers: {
-            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': token,
             'Accept': 'application/json',
-            'X-Last-Update': timestamp,
-            'X-CSRF-TOKEN': token
+            'X-Requested-With': 'XMLHttpRequest'
         }
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            throw new Error('Failed to load behavior data: ' + response.status);
         }
         return response.json();
     })
     .then(data => {
-        if (data.hasUpdates) {
-            // Show notification
-            showNotification('New behavior data is available. Refreshing chart...');
-            
-            // Get current time period
-            const timeSelect = document.getElementById('timeSelect');
-            const months = timeSelect ? parseInt(timeSelect.value) : 6;
-            
-            // Refresh data
-            fetchBehaviorData(months);
+        console.log('Received behavior data:', data);
+        
+        // Hide loading indicator
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
         }
+        
+        // If no data is returned, generate sample data
+        if (!data || !data.labels || !data.men || !data.women) {
+            console.warn('No valid data returned from server, using sample data');
+            data = window.generateSampleData(months);
+        } else {
+            // Store the violation counts in global variables for use in generateSampleData
+            // This allows us to reuse the data when filtering by batch
+            window.maleViolationCounts = data.maleViolationCounts || {};
+            window.femaleViolationCounts = data.femaleViolationCounts || {};
+            console.log('Stored violation counts from server:', { 
+                maleViolationCounts: window.maleViolationCounts, 
+                femaleViolationCounts: window.femaleViolationCounts 
+            });
+        }
+        
+        // Process the data and update the chart
+        window.initBehaviorChart(data);
     })
     .catch(error => {
-        console.error('Error checking for updates:', error);
-    });
-}
-
-/**
- * Initialize all event listeners for the behavior chart and controls
- */
-function initEventListeners() {
-    // Time period selection
-    document.querySelectorAll('.time-period-option').forEach(option => {
-        option.addEventListener('click', function(e) {
-            e.preventDefault();
-            const months = parseInt(this.dataset.months);
-            
-            // Update active state
-            document.querySelectorAll('.time-period-option').forEach(opt => {
-                opt.classList.remove('active');
-            });
-            this.classList.add('active');
-            
-            // Fetch data for the selected time period
-            fetchBehaviorData(months);
-            
-            // Show notification
-            showNotification(`Showing behavior data for the last ${months} months`);
-        });
-    });
-
-    // Download chart as image
-    document.getElementById('downloadChart')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (!behaviorChart) return;
+        console.error('Error fetching behavior data:', error);
         
-        // Create a temporary link
-        const link = document.createElement('a');
-        link.download = 'behavior-chart-' + new Date().toISOString().split('T')[0] + '.png';
-        link.href = behaviorChart.toBase64Image();
-        link.click();
-        
-        // Show notification
-        showNotification('Chart downloaded successfully');
-    });
-    
-    // Toggle data labels
-    document.getElementById('toggleDataLabels')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (!behaviorChart) return;
-        
-        // Toggle data labels plugin
-        const showDataLabels = !behaviorChart.options.plugins.datalabels.display;
-        behaviorChart.options.plugins.datalabels.display = showDataLabels;
-        behaviorChart.update();
-        
-        // Update the button text to reflect the current state
-        this.innerHTML = showDataLabels ? 
-            '<i class="fas fa-tags me-2"></i> Hide Data Labels' : 
-            '<i class="fas fa-tags me-2"></i> Show Data Labels';
-            
-        // Show notification
-        showNotification(`Data labels ${showDataLabels ? 'enabled' : 'disabled'}`);
-    });
-    
-    // Reset zoom
-    document.getElementById('resetZoom')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (!behaviorChart) return;
-        
-        behaviorChart.resetZoom();
-        showNotification('Chart zoom reset');
-    });
-    
-    // Full screen chart
-    document.getElementById('fullScreenChart')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        const chartContainer = document.querySelector('.behavior-report');
-        if (!chartContainer) return;
-        
-        if (!document.fullscreenElement) {
-            // Enter fullscreen
-            if (chartContainer.requestFullscreen) {
-                chartContainer.requestFullscreen();
-            } else if (chartContainer.webkitRequestFullscreen) {
-                chartContainer.webkitRequestFullscreen();
-            } else if (chartContainer.msRequestFullscreen) {
-                chartContainer.msRequestFullscreen();
-            }
-            this.innerHTML = '<i class="fas fa-compress me-2"></i> Exit Full Screen';
-        } else {
-            // Exit fullscreen
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
-            }
-            this.innerHTML = '<i class="fas fa-expand me-2"></i> Full Screen';
+        // Hide loading indicator
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
         }
-    });
-
-    // Refresh data button (in header)
-    document.getElementById('refreshData')?.addEventListener('click', function() {
-        const months = parseInt(document.getElementById('monthSelector')?.value || 6);
-        fetchBehaviorData(months, true);
-        showNotification('Refreshing behavior data...');
-    });
-    
-    // Chart refresh button (below chart)
-    document.getElementById('refreshChart')?.addEventListener('click', function() {
-        const months = parseInt(document.getElementById('monthSelector')?.value || 6);
-        fetchBehaviorData(months);
-        showNotification('Refreshing chart...');
-    });
-    
-    // Sample data generation code removed
-}
-
-/**
- * Initialize the behavior chart with data
- * @param {Object} data - The behavior data from the server
- */
-function initBehaviorChart(data) {
-    const ctx = document.getElementById('behaviorChart').getContext('2d');
-    
-    // Destroy existing chart if it exists
-    if (behaviorChart) {
-        behaviorChart.destroy();
-    }
-    
-    // Register zoom plugin if not already registered
-    if (!Chart.helpers.getRelativePosition) {
-        Chart.register(ChartZoom);
-    }
-    
-    // Create enhanced gradient fills for datasets
-    const menGradient = ctx.createLinearGradient(0, 0, 0, 400);
-    menGradient.addColorStop(0, 'rgba(78, 115, 223, 0.6)');
-    menGradient.addColorStop(0.5, 'rgba(78, 115, 223, 0.2)');
-    menGradient.addColorStop(1, 'rgba(78, 115, 223, 0.05)');
-    
-    const womenGradient = ctx.createLinearGradient(0, 0, 0, 400);
-    womenGradient.addColorStop(0, 'rgba(231, 74, 59, 0.6)');
-    womenGradient.addColorStop(0.5, 'rgba(231, 74, 59, 0.2)');
-    womenGradient.addColorStop(1, 'rgba(231, 74, 59, 0.05)');
-    
-    // Create point colors based on behavior score with increased visibility
-    const menPointColors = data.men?.map(score => {
-        if (score >= 90) return '#1cc88a'; // Excellent - green
-        if (score >= 70) return '#4e73df'; // Good - blue
-        if (score >= 50) return '#f6c23e'; // Needs improvement - yellow
-        return '#e74a3b'; // Critical - red
-    }) || [];
-    
-    const womenPointColors = data.women?.map(score => {
-        if (score >= 90) return '#1cc88a'; // Excellent - green
-        if (score >= 70) return '#4e73df'; // Good - blue
-        if (score >= 50) return '#f6c23e'; // Needs improvement - yellow
-        return '#e74a3b'; // Critical - red
-    }) || [];
-    
-    // Make sure we have data to display
-    if (!data.labels || data.labels.length === 0) {
-        // Generate monthly labels if none provided
-        data.labels = [];
-        const today = new Date();
-        // Use the requested months if available, otherwise default to 12
-        const monthsToShow = data.monthsRequested || 12;
-        console.log('Generating labels for', monthsToShow, 'months');
         
-        // Generate labels for all months in order (January to December)
-        if (monthsToShow === 12) {
-            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-            data.labels = monthNames;
-        } else {
-            // For other time periods, use relative months
-            for (let i = 0; i < monthsToShow; i++) {
-                const d = new Date(today);
-                d.setMonth(today.getMonth() - (monthsToShow - 1) + i);
-                data.labels.push(d.toLocaleString('default', { month: 'long' }));
-            }
-        }
-    }
-    
-    // Ensure we have data points
-    if (!data.men || data.men.length === 0) {
-        data.men = [85, 82, 80, 78, 83, 85];
-    }
-    
-    if (!data.women || data.women.length === 0) {
-        data.women = [88, 86, 84, 87, 90, 92];
-    }
-    
-    // Calculate analytics data
-    updateAnalytics(data);
-    
-    // Initialize chart with enhanced visuals
-    behaviorChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.labels || [],
-            datasets: [
-                {
-                    label: 'Men',
-                    data: data.men || [],
-                    borderColor: '#4e73df',
-                    borderWidth: 3,
-                    backgroundColor: menGradient,
-                    pointBackgroundColor: menPointColors,
-                    pointBorderColor: '#fff',
-                    pointRadius: 5,
-                    pointHoverRadius: 8,
-                    pointHoverBackgroundColor: '#4e73df',
-                    pointHoverBorderColor: '#fff',
-                    pointHoverBorderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'Women',
-                    data: data.women || [],
-                    borderColor: '#e74a3b',
-                    borderWidth: 3,
-                    backgroundColor: womenGradient,
-                    pointBackgroundColor: womenPointColors,
-                    pointBorderColor: '#fff',
-                    pointRadius: 5,
-                    pointHoverRadius: 8,
-                    pointHoverBackgroundColor: '#e74a3b',
-                    pointHoverBorderColor: '#fff',
-                    pointHoverBorderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: {
-                padding: {
-                    left: 10,
-                    right: 25,
-                    top: 25,
-                    bottom: 0
-                }
-            },
-            // Add zoom plugin options
-            plugins: {
-                zoom: {
-                    pan: {
-                        enabled: true,
-                        mode: 'xy'
-                    },
-                    zoom: {
-                        wheel: {
-                            enabled: true,
-                        },
-                        pinch: {
-                            enabled: true
-                        },
-                        mode: 'xy',
-                    }
-                },
-                // Add data labels plugin options
-                datalabels: {
-                    display: false, // Hidden by default, can be toggled
-                    backgroundColor: function(context) {
-                        return context.dataset.backgroundColor;
-                    },
-                    borderRadius: 4,
-                    color: 'white',
-                    font: {
-                        weight: 'bold',
-                        size: 10
-                    },
-                    padding: 6
-                },
-                // Enhanced tooltip
-                tooltip: {
-                    backgroundColor: "rgb(255,255,255)",
-                    bodyColor: "#858796",
-                    titleMarginBottom: 10,
-                    titleColor: '#6e707e',
-                    titleFontSize: 14,
-                    borderColor: '#dddfeb',
-                    borderWidth: 1,
-                    xPadding: 15,
-                    yPadding: 15,
-                    displayColors: false,
-                    intersect: false,
-                    mode: 'index',
-                    caretPadding: 10,
-                    callbacks: {
-                        label: function(context) {
-                            var label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += context.parsed.y + ' points';
-                                
-                                // Add score interpretation
-                                const score = context.parsed.y;
-                                if (score >= 90) {
-                                    label += ' (Excellent)';
-                                } else if (score >= 70) {
-                                    label += ' (Good)';
-                                } else if (score >= 50) {
-                                    label += ' (Needs Improvement)';
-                                } else {
-                                    label += ' (Critical)';
-                                }
-                            }
-                            return label;
-                        },
-                        // Add footer with additional information
-                        footer: function(tooltipItems) {
-                            return 'Click and drag to pan, scroll to zoom';
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    grid: {
-                        display: true,
-                        drawBorder: false,
-                        color: "rgba(0, 0, 0, 0.1)"
-                    },
-                    ticks: {
-                        maxTicksLimit: 24, // Increased to ensure all months show
-                        padding: 10,
-                        color: "#4e73df",
-                        font: {
-                            weight: 'bold',
-                            size: 11
-                        },
-                        autoSkip: false // Prevent skipping labels
-                    }
-                },
-                y: {
-                    min: 0,
-                    max: 100,
-                    ticks: {
-                        maxTicksLimit: 11,
-                        stepSize: 10,
-                        padding: 10,
-                        color: "#4e73df",
-                        font: {
-                            weight: 'bold',
-                            size: 12
-                        },
-                        callback: function(value) {
-                            return value + ' pts';
-                        }
-                    },
-                    grid: {
-                        color: "rgba(0, 0, 0, 0.1)",
-                        borderColor: "#dddfeb",
-                        borderWidth: 1,
-                        drawBorder: true
-                    },
-                    // Reverse the axis to make the chart go down
-                    reverse: false
-                }
-            },
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 20,
-                        font: {
-                            weight: 'bold',
-                            size: 14
-                        }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: "rgb(255,255,255)",
-                    bodyColor: "#858796",
-                    titleMarginBottom: 10,
-                    titleColor: '#6e707e',
-                    titleFontSize: 14,
-                    borderColor: '#dddfeb',
-                    borderWidth: 1,
-                    xPadding: 15,
-                    yPadding: 15,
-                    displayColors: false,
-                    intersect: false,
-                    mode: 'index',
-                    caretPadding: 10,
-                    callbacks: {
-                        title: function(tooltipItems) {
-                            return tooltipItems[0].label + ' Behavior Report';
-                        },
-                        label: function(context) {
-                            var label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += context.parsed.y + ' points';
-                                
-                                // Add score interpretation with color coding
-                                const score = context.parsed.y;
-                                if (score >= 90) {
-                                    label += ' <span style="color:#1cc88a;font-weight:bold;">(Excellent)</span>';
-                                } else if (score >= 70) {
-                                    label += ' <span style="color:#4e73df;font-weight:bold;">(Good)</span>';
-                                } else if (score >= 50) {
-                                    label += ' <span style="color:#f6c23e;font-weight:bold;">(Needs Improvement)</span>';
-                                } else {
-                                    label += ' <span style="color:#e74a3b;font-weight:bold;">(Critical)</span>';
-                                }
-                            }
-                            return label;
-                        },
-                        afterLabel: function(context) {
-                            // Add deduction information
-                            const score = context.parsed.y;
-                            const deduction = 100 - score;
-                            if (deduction > 0) {
-                                return `Total deductions: -${deduction} points`;
-                            }
-                            return '';
-                        },
-                        footer: function(tooltipItems) {
-                            // Add violation severity information
-                            const score = tooltipItems[0].parsed.y;
-                            if (score < 100) {
-                                let severityInfo = [];
-                                if (score < 80) {
-                                    severityInfo.push('Potential violations include:');
-                                    if (score < 50) severityInfo.push('• Very High severity violations (-20 pts each)');
-                                    if (score < 70) severityInfo.push('• High severity violations (-15 pts each)');
-                                    if (score < 90) severityInfo.push('• Medium severity violations (-10 pts each)');
-                                    severityInfo.push('• Low severity violations (-5 pts each)');
-                                }
-                                return severityInfo;
-                            }
-                            return ['Perfect behavior record'];
-                        }
-                    },
-                    useHTML: true
-                }
-            },
-            animation: {
-                duration: 1000,
-                easing: 'easeOutQuart'
-            },
-            elements: {
-                line: {
-                    tension: 0.4
-                }
-            }
-        }
+        // Show error notification
+        window.showNotification('danger', error.message, 'Error');
+        
+        // Use sample data as fallback
+        console.log('Using sample data as fallback');
+        const sampleData = window.generateSampleData(months);
+        window.initBehaviorChart(sampleData);
     });
-}
-
-/**
- * Set up the time period selector functionality
- */
-function setupTimePeriodSelector() {
-    const timePeriodSelector = document.getElementById('time-period');
-    if (!timePeriodSelector) {
-        console.warn('Time period selector not found');
-        return;
-    }
-    
-    // Add event listener to the dropdown
-    timePeriodSelector.addEventListener('change', function() {
-        const months = parseInt(this.value);
-        console.log(`Time period changed to ${months} months`);
-        fetchBehaviorData(months, true);
-        showNotification(`Showing behavior data for the last ${months} month${months > 1 ? 's' : ''}`);
-        
-        // Update any UI elements that depend on the time period
-        document.body.dataset.currentTimePeriod = months;
-    });
-}
-
-/**
- * Set up real-time updates for the behavior chart when new violations are logged
- */
-function setupRealTimeUpdates() {
-    console.log('Setting up real-time updates for behavior chart');
-    
-    // Add event listener for violation form submission
-    document.addEventListener('violation:created', function(e) {
-        console.log('Violation created event detected:', e.detail);
-        
-        // Show notification about the new violation
-        showNotification('New violation logged. Updating behavior chart...');
-        
-        // Get current time period selection
-        const months = parseInt(document.getElementById('time-period')?.value || 12);
-        
-        // Refresh the behavior data
-        fetchBehaviorData(months, true);
-    });
-    
-    // Listen for form submissions on the add violation form
-    const addViolationForm = document.getElementById('addViolationForm');
-    if (addViolationForm) {
-        addViolationForm.addEventListener('submit', function(e) {
-            // We don't prevent default as we want the form to submit normally
-            // Just store in localStorage that we should check for updates when returning to behavior page
-            localStorage.setItem('behavior_update', JSON.stringify({
-                timestamp: Date.now(),
-                sex: document.querySelector('[name="sex"]')?.value || 'Unknown',
-                severity: document.querySelector('[name="severity"]')?.value || 'Unknown'
-            }));
-        });
-    }
-    
-    // Check if we're returning from adding a violation
-    const behaviorUpdate = localStorage.getItem('behavior_update');
-    if (behaviorUpdate) {
-        try {
-            const updateData = JSON.parse(behaviorUpdate);
-            const timeSinceUpdate = Date.now() - updateData.timestamp;
-            
-            // If the update was recent (within last 10 seconds), refresh the chart
-            if (timeSinceUpdate < 10000) {
-                console.log('Detected recent violation addition:', updateData);
-                showNotification(`New ${updateData.severity} violation logged. Updating chart...`);
-                
-                // Get current time period selection
-                const months = parseInt(document.getElementById('time-period')?.value || 12);
-                
-                // Refresh the behavior data
-                fetchBehaviorData(months, true);
-            }
-            
-            // Clear the update data
-            localStorage.removeItem('behavior_update');
-        } catch (err) {
-            console.error('Error parsing behavior update data:', err);
-            localStorage.removeItem('behavior_update');
-        }
-    }
-    
-    // Set up AJAX response interceptor to detect violation creation
-    const originalFetch = window.fetch;
-    window.fetch = function() {
-        return originalFetch.apply(this, arguments)
-            .then(response => {
-                // Clone the response so we can read it multiple times
-                const clone = response.clone();
-                
-                // Check if this is a violation creation response
-                if (arguments[0].toString().includes('/violations') && arguments[1]?.method === 'POST') {
-                    clone.json().then(data => {
-                        if (data.success && data.data?.shouldUpdateBehaviorChart) {
-                            console.log('Violation created via AJAX, triggering update');
-                            document.dispatchEvent(new CustomEvent('violation:created', {
-                                detail: data.data
-                            }));
-                        }
-                    }).catch(err => console.error('Error parsing response:', err));
-                }
-                
-                return response;
-            });
-    };
-    
-    // Check if Echo is available (Laravel Echo for WebSockets)
-    if (typeof window.Echo !== 'undefined') {
-        // Listen for violation created events
-        window.Echo.channel('behavior-updates')
-            .listen('ViolationCreated', (e) => {
-                console.log('New violation detected via Echo:', e);
-                
-                // Dispatch the same event as our AJAX interceptor
-                document.dispatchEvent(new CustomEvent('violation:created', {
-                    detail: e
-                }));
-            });
-    } else {
-        // Fallback to polling if Echo is not available
-        console.log('Echo not available, using AJAX interceptor for updates');
-        
-        // Set up a polling mechanism as an additional fallback
-        setInterval(function() {
-            // Check if we're on the behavior page
-            if (document.getElementById('behaviorChart')) {
-                console.log('Polling for behavior updates');
-                const months = parseInt(document.getElementById('time-period')?.value || 12);
-                fetchBehaviorData(months, false);
-            }
-        }, 30000); // Poll every 30 seconds
-    }
-}
+};
 
 /**
  * Show a notification to the user
+ * @param {string} type - The type of notification (success, info, warning, danger)
  * @param {string} message - The notification message
+ * @param {string} title - The notification title
  */
-function showNotification(message) {
+window.showNotification = function(type, message, title) {
+    if (title === undefined) title = 'Notification';
     // Create notifications container if it doesn't exist
-    let notificationsContainer = document.querySelector('.behavior-notifications');
+    var notificationsContainer = document.querySelector('.behavior-notifications');
     if (!notificationsContainer) {
         notificationsContainer = document.createElement('div');
         notificationsContainer.className = 'behavior-notifications';
@@ -959,64 +830,190 @@ function showNotification(message) {
         notificationsContainer.style.top = '20px';
         notificationsContainer.style.right = '20px';
         notificationsContainer.style.zIndex = '9999';
+        notificationsContainer.style.width = '300px';
         document.body.appendChild(notificationsContainer);
     }
     
-    // Create custom toast notification element
-    const notification = document.createElement('div');
-    notification.className = 'behavior-toast';
-    notification.style.background = 'white';
-    notification.style.borderLeft = '4px solid #28a745';
-    notification.style.borderRadius = '8px';
-    notification.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-    notification.style.padding = '1rem';
+    // Create notification element
+    var notification = document.createElement('div');
+    notification.className = 'behavior-toast toast show';
+    notification.style.opacity = '0';
+    notification.style.backgroundColor = '#fff';
+    notification.style.borderRadius = '0.5rem';
+    notification.style.boxShadow = '0 4px 24px rgba(44,62,80,0.15)';
+    notification.style.overflow = 'hidden';
     notification.style.marginBottom = '1rem';
-    notification.style.display = 'flex';
-    notification.style.alignItems = 'center';
-    notification.style.gap = '0.75rem';
-    notification.style.animation = 'slideIn 0.3s ease-out';
+    notification.style.animation = 'slideIn 0.3s ease forwards';
+    
+    // Set notification color based on type
+    var bgColor, iconClass;
+    switch(type) {
+        case 'success':
+            bgColor = '#10ac84';
+            iconClass = 'fas fa-check-circle';
+            break;
+        case 'info':
+            bgColor = '#2e86de';
+            iconClass = 'fas fa-info-circle';
+            break;
+        case 'warning':
+            bgColor = '#ff9f43';
+            iconClass = 'fas fa-exclamation-triangle';
+            break;
+        case 'danger':
+            bgColor = '#ee5253';
+            iconClass = 'fas fa-exclamation-circle';
+            break;
+        default:
+            bgColor = '#2e86de';
+            iconClass = 'fas fa-info-circle';
+    }
+    
+    // Create notification content
     notification.innerHTML = `
-        <i class="fas fa-check-circle" style="color: #28a745; font-size: 1.25rem;"></i>
-        <div style="color: #333; font-size: 0.9rem;">${message}</div>
+        <div style="display: flex; align-items: center; padding: 1rem; border-left: 4px solid ${bgColor};">
+            <div style="margin-right: 0.75rem; color: ${bgColor};">
+                <i class="${iconClass}" style="font-size: 1.5rem;"></i>
+            </div>
+            <div style="flex: 1;">
+                <h5 style="margin: 0 0 0.25rem; color: #2c3e50; font-weight: 600;">${title}</h5>
+                <p style="margin: 0; color: #7f8c8d; font-size: 0.875rem;">${message}</p>
+            </div>
+            <button type="button" style="background: none; border: none; color: #95a5a6; cursor: pointer; font-size: 1rem; padding: 0.25rem;" onclick="this.parentNode.parentNode.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
     `;
     
-    // Add to container
+    // Add to notifications container
     notificationsContainer.appendChild(notification);
     
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-        notification.style.animation = 'fadeOut 0.3s ease-out forwards';
-        setTimeout(() => {
-            notification.remove();
+    // Make visible with animation
+    setTimeout(function() {
+        notification.style.opacity = '1';
+    }, 10);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(function() {
+        notification.style.animation = 'fadeOut 0.3s ease forwards';
+        setTimeout(function() {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
         }, 300);
     }, 3000);
-}
+};
 
 /**
  * Show an error message when the chart fails to load
  * @param {HTMLElement} canvas - The canvas element
  * @param {string} errorMessage - The error message to display
  */
-function showChartError(canvas, errorMessage) {
-    const container = canvas.parentElement;
-    
-    // Create error message element
-    let errorElement = container.querySelector('.chart-error');
-    if (!errorElement) {
-        errorElement = document.createElement('div');
-        errorElement.className = 'chart-error alert alert-danger';
-        container.appendChild(errorElement);
-    }
-    
-    // Set error message
-    errorElement.innerHTML = `
-        <i class="fas fa-exclamation-triangle"></i> ${errorMessage}
-        <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="fetchBehaviorData()">
-            <i class="fas fa-sync"></i> Try Again
-        </button>
-    `;
+window.showChartError = function(canvas, errorMessage) {
+    // Create error element
+    var errorElement = document.createElement('div');
+    errorElement.className = 'chart-error-message';
+    errorElement.innerHTML = '<div class="alert alert-danger">' +
+        '<i class="fas fa-exclamation-triangle me-2"></i>' +
+        '<strong>Chart Error:</strong> ' + errorMessage +
+        '</div>' +
+        '<button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="window.fetchBehaviorData()">' +
+            '<i class="fas fa-sync"></i> Try Again' +
+        '</button>';
     errorElement.style.display = 'block';
+    
+    // Add to container
+    canvas.parentElement.appendChild(errorElement);
     
     // Hide canvas
     canvas.style.display = 'none';
-}
+};
+
+// Function to set up event listeners for the behavior chart
+window.setupBehaviorChartEventListeners = function() {
+    console.log('Setting up behavior chart event listeners');
+    
+    // Set up event listeners for y-axis scale filter buttons
+    const yScaleFilterButtons = document.querySelectorAll('.y-scale-filter');
+    if (yScaleFilterButtons.length > 0) {
+        console.log('Found y-scale filter buttons:', yScaleFilterButtons.length);
+        yScaleFilterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const scale = this.getAttribute('data-scale');
+                window.filterDataByYScale(scale);
+            });
+        });
+    } else {
+        console.log('No y-scale filter buttons found');
+    }
+};
+
+// Function to update chart based on selected time period
+window.updateChartByPeriod = function() {
+    try {
+        console.log('updateChartByPeriod called');
+        
+        // Get the selected year and month
+        const yearSelect = document.getElementById('yearSelect');
+        const monthSelect = document.getElementById('monthSelect');
+        
+        if (!yearSelect || !monthSelect) {
+            console.error('Year or month select elements not found');
+            return;
+        }
+        
+        const selectedYear = parseInt(yearSelect.value);
+        const selectedMonth = monthSelect.value;
+        
+        console.log('Selected year:', selectedYear, 'Selected month:', selectedMonth);
+        
+        // Validate year input
+        if (isNaN(selectedYear)) {
+            window.showNotification('warning', 'Please enter a valid year', 'Invalid Year');
+            return;
+        }
+        
+        // If a specific month is selected, generate weekly data for that month
+        if (selectedMonth !== 'all') {
+            const monthIndex = parseInt(selectedMonth);
+            const monthData = window.generateMonthData(monthIndex, selectedYear, window.currentBatchFilter);
+            window.updateChart(monthData);
+        } else {
+            // Otherwise, fetch data for the entire year
+            window.fetchBehaviorData(12, true, window.currentBatchFilter, selectedYear);
+        }
+    } catch (error) {
+        console.error('Error in updateChartByPeriod:', error);
+        window.showNotification('danger', 'Failed to update chart: ' + error.message, 'Error');
+    }
+};
+
+// Document ready event listener
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize behavior chart if the canvas exists
+    const behaviorChartCanvas = document.getElementById('behaviorChart');
+    if (behaviorChartCanvas) {
+        window.initBehaviorChart();
+    }
+    
+    // Set up event listeners
+    window.setupBehaviorChartEventListeners();
+    
+    // Initialize batch filter buttons
+    const batchFilterButtons = document.querySelectorAll('.batch-filter');
+    batchFilterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const batch = this.getAttribute('data-batch');
+            window.filterDataByBatch(batch);
+        });
+    });
+    
+    // Initialize y-axis scale filter buttons
+    const yScaleFilterButtons = document.querySelectorAll('.y-scale-filter');
+    yScaleFilterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const scale = this.getAttribute('data-scale');
+            window.filterDataByYScale(scale);
+        });
+    });
+});

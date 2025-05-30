@@ -117,6 +117,7 @@
         h5{
             margin: 0;
             color:#2c3e50;
+        }
 
         /* Student behavior modal styles */
         .student-name-link {
@@ -354,73 +355,108 @@
                 </div>
             </div>
             <div class="card-body">
-                <!-- Time Period and Refresh Controls -->
-                <div class="d-flex align-items-center justify-content-between mb-4">
-                    <div class="d-flex align-items-center">
-                        <span class="text-primary fw-bold me-2"><i class="fas fa-calendar-alt me-1"></i> Time Period:</span>
-                        <div class="btn-group" role="group" aria-label="Time period selection">
-                            <button type="button" class="period-btn" data-months="3">3 Months</button>
-                            <button type="button" class="period-btn" data-months="6">6 Months</button>
-                            <button type="button" class="period-btn active" data-months="12">12 Months</button>
+                <!-- Chart Controls in a Card -->
+                <div class="card mb-4 shadow-sm border-0 rounded-3 bg-light">
+                    <div class="card-body p-3">
+                        <h6 class="text-primary mb-3"><i class="fas fa-sliders-h me-2"></i>Chart Controls</h6>
+                        
+                        <!-- Time Period Controls -->
+                        <div class="row mb-3 align-items-center">
+                            <div class="col-md-3">
+                                <label class="form-label mb-0"><i class="fas fa-calendar-alt me-1 text-primary"></i> Time Period:</label>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2" style="width: 100px;">
+                                        <input type="number" id="yearSelect" class="form-control form-control-sm" value="2025" min="1900" max="2100" onchange="window.updateChartByPeriod()">
+                                        <small class="text-muted d-none">Enter any year</small>
+                                    </div>
+                                    <div style="width: 150px;">
+                                        <select id="monthSelect" class="form-select form-select-sm" onchange="window.updateChartByPeriod()">
+                                            <option value="all" selected>All Months</option>
+                                            <option value="0">January</option>
+                                            <option value="1">February</option>
+                                            <option value="2">March</option>
+                                            <option value="3">April</option>
+                                            <option value="4">May</option>
+                                            <option value="5">June</option>
+                                            <option value="6">July</option>
+                                            <option value="7">August</option>
+                                            <option value="8">September</option>
+                                            <option value="9">October</option>
+                                            <option value="10">November</option>
+                                            <option value="11">December</option>
+                                        </select>
+                                    </div>
+                                    <div class="ms-auto">
+                                        <button id="refresh-behavior" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-sync-alt me-1"></i> Refresh Data
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <button id="refresh-behavior" class="btn btn-primary">
-                            <i class="fas fa-sync-alt me-1"></i> Refresh Data
-                        </button>
+                        
+                        <!-- Batch Filter Controls -->
+                        <div class="row mb-3 align-items-center">
+                            <div class="col-md-3">
+                                <label class="form-label mb-0"><i class="fas fa-users me-1 text-primary"></i> Student Filter:</label>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="d-flex">
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Batch filter buttons">
+                                        <button type="button" class="btn btn-outline-primary batch-filter active" data-batch="all">All Students</button>
+                                        <button type="button" class="btn btn-outline-primary batch-filter" data-batch="1">1st Year</button>
+                                        <button type="button" class="btn btn-outline-primary batch-filter" data-batch="2">2nd Year</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Y-Axis Scale Filter -->
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <label class="form-label mb-0"><i class="fas fa-chart-line me-1 text-primary"></i> Y-Axis Scale:</label>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="d-flex">
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Y-axis scale buttons">
+                                        <button type="button" class="btn btn-outline-primary y-scale-filter active" data-scale="auto">Auto</button>
+                                        <button type="button" class="btn btn-outline-primary y-scale-filter" data-scale="10">0-10</button>
+                                        <button type="button" class="btn btn-outline-primary y-scale-filter" data-scale="20">0-20</button>
+                                        <button type="button" class="btn btn-outline-primary y-scale-filter" data-scale="50">0-50</button>
+                                        <button type="button" class="btn btn-outline-primary y-scale-filter" data-scale="100">0-100</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Main chart section starts directly here -->
+                <!-- Main chart section starts here -->
 
                 <!-- Main Chart -->
                 <div class="chart-container position-relative" style="height: 400px;">
                     <canvas id="behaviorChart"></canvas>
+                    <div id="chartLoading" class="loading-indicator">
+                        <div class="spinner"></div>
+                        <div>Loading chart data...</div>
+                    </div>
                 </div>
 
                 <!-- Chart Legend with Enhanced Information -->
                 <div class="d-flex justify-content-center mt-4">
                     <div class="d-flex align-items-center me-4">
                         <div class="legend-dot" style="background-color: rgba(78, 115, 223, 0.8);"></div>
-                        <span class="ms-1 fw-bold">Men Behavior</span>
-                        <span class="badge bg-primary ms-2" id="men-avg">85 pts</span>
+                        <span class="ms-1 fw-bold">Men</span>
                     </div>
                     <div class="d-flex align-items-center">
                         <div class="legend-dot" style="background-color: rgba(231, 74, 59, 0.8);"></div>
-                        <span class="ms-1 fw-bold">Women Behavior</span>
-                        <span class="badge bg-danger ms-2" id="women-avg">88 pts</span>
+                        <span class="ms-1 fw-bold">Women</span>
                     </div>
                 </div>
 
-                <!-- Scoring System Explanation -->
-                <div class="alert alert-info mt-4">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-info-circle fa-2x me-3"></i>
-                        <div>
-                            <h6 class="alert-heading mb-1">Behavior Scoring System</h6>
-                            <p class="mb-0">Students start with a perfect score of 100 points. Violations reduce this score based on severity. Higher scores indicate better behavior.</p>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Violation Impact Legend with Enhanced Design -->
-                <div class="mt-4 mb-3">
-                    <h6 class="text-center text-primary mb-3">Violation Impact on Behavior Score</h6>
-                    <div class="d-flex justify-content-center flex-wrap gap-2">
-                        <div class="px-3 py-2 rounded-pill shadow-sm" style="background-color: rgba(78, 115, 223, 0.8); color: white;">
-                            <i class="fas fa-arrow-down me-1"></i> Low: -5 points
-                        </div>
-                        <div class="px-3 py-2 rounded-pill shadow-sm" style="background-color: rgba(246, 194, 62, 0.8); color: white;">
-                            <i class="fas fa-arrow-down me-1"></i> Medium: -10 points
-                        </div>
-                        <div class="px-3 py-2 rounded-pill shadow-sm" style="background-color: rgba(231, 74, 59, 0.8); color: white;">
-                            <i class="fas fa-arrow-down me-1"></i> High: -15 points
-                        </div>
-                        <div class="px-3 py-2 rounded-pill shadow-sm" style="background-color: rgba(111, 66, 193, 0.8); color: white;">
-                            <i class="fas fa-arrow-down me-1"></i> Very High: -20 points
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -428,168 +464,181 @@
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <!-- Pass student counts and violation data to JavaScript -->
+    <script>
+        // Set global variables for student counts that will be used by behavior-charts.js
+        window.totalStudents = {{ App\Models\User::whereHas('roles', function($q) { $q->where('name', 'student'); })->count() }};
+        window.maleStudents = {{ App\Models\User::whereHas('roles', function($q) { $q->where('name', 'student'); })->where('gender', 'male')->count() }};
+        window.femaleStudents = {{ App\Models\User::whereHas('roles', function($q) { $q->where('name', 'student'); })->where('gender', 'female')->count() }};
+        
+        // Get violation counts by month for male and female students
+        window.maleViolationsByMonth = {
+            @php
+                // Get current year
+                $currentYear = date('Y');
+                
+                // Get all months
+                $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                
+                // Count violations by month for male students
+                $maleViolationsByMonth = [];
+                foreach ($months as $index => $month) {
+                    $monthNum = $index + 1;
+                    $startDate = "$currentYear-$monthNum-01";
+                    $endDate = date('Y-m-t', strtotime($startDate));
+                    
+                    $count = App\Models\Violation::join('users', 'violations.student_id', '=', 'users.id')
+                        ->where('users.gender', 'male')
+                        ->whereDate('violations.created_at', '>=', $startDate)
+                        ->whereDate('violations.created_at', '<=', $endDate)
+                        ->distinct('violations.student_id')
+                        ->count('violations.student_id');
+                    
+                    $maleViolationsByMonth[$month] = $count;
+                }
+            @endphp
+            
+            @foreach($maleViolationsByMonth as $month => $count)
+                '{{ $month }}': {{ $count }},
+            @endforeach
+        };
+        
+        // Get violation counts by month for female students
+        window.femaleViolationsByMonth = {
+            @php
+                // Count violations by month for female students
+                $femaleViolationsByMonth = [];
+                foreach ($months as $index => $month) {
+                    $monthNum = $index + 1;
+                    $startDate = "$currentYear-$monthNum-01";
+                    $endDate = date('Y-m-t', strtotime($startDate));
+                    
+                    $count = App\Models\Violation::join('users', 'violations.student_id', '=', 'users.id')
+                        ->where('users.gender', 'female')
+                        ->whereDate('violations.created_at', '>=', $startDate)
+                        ->whereDate('violations.created_at', '<=', $endDate)
+                        ->distinct('violations.student_id')
+                        ->count('violations.student_id');
+                    
+                    $femaleViolationsByMonth[$month] = $count;
+                }
+            @endphp
+            
+            @foreach($femaleViolationsByMonth as $month => $count)
+                '{{ $month }}': {{ $count }},
+            @endforeach
+        };
+        
+        // Get violation counts by week for male and female students
+        window.maleViolationsByWeek = {
+            @php
+                // Get current month
+                $currentMonth = date('n') - 1; // 0-indexed for JavaScript
+                $monthName = date('F');
+                
+                // Calculate the number of weeks in the month
+                $firstDay = new DateTime("$currentYear-" . ($currentMonth + 1) . "-01");
+                $lastDay = new DateTime("$currentYear-" . ($currentMonth + 1) . "-" . date('t', strtotime("$currentYear-" . ($currentMonth + 1) . "-01")));
+                $numWeeks = ceil($lastDay->format('j') / 7);
+                
+                // Count violations by week for male students
+                $maleViolationsByWeek = [];
+                for ($week = 1; $week <= $numWeeks; $week++) {
+                    $weekStart = ($week - 1) * 7 + 1;
+                    $weekEnd = min($week * 7, $lastDay->format('j'));
+                    
+                    $startDate = "$currentYear-" . ($currentMonth + 1) . "-$weekStart";
+                    $endDate = "$currentYear-" . ($currentMonth + 1) . "-$weekEnd";
+                    
+                    $count = App\Models\Violation::join('users', 'violations.student_id', '=', 'users.id')
+                        ->where('users.gender', 'male')
+                        ->whereDate('violations.created_at', '>=', $startDate)
+                        ->whereDate('violations.created_at', '<=', $endDate)
+                        ->distinct('violations.student_id')
+                        ->count('violations.student_id');
+                    
+                    $maleViolationsByWeek["$monthName-Week $week"] = $count;
+                }
+            @endphp
+            
+            @foreach($maleViolationsByWeek as $week => $count)
+                '{{ $week }}': {{ $count }},
+            @endforeach
+        };
+        
+        // Get violation counts by week for female students
+        window.femaleViolationsByWeek = {
+            @php
+                // Count violations by week for female students
+                $femaleViolationsByWeek = [];
+                for ($week = 1; $week <= $numWeeks; $week++) {
+                    $weekStart = ($week - 1) * 7 + 1;
+                    $weekEnd = min($week * 7, $lastDay->format('j'));
+                    
+                    $startDate = "$currentYear-" . ($currentMonth + 1) . "-$weekStart";
+                    $endDate = "$currentYear-" . ($currentMonth + 1) . "-$weekEnd";
+                    
+                    $count = App\Models\Violation::join('users', 'violations.student_id', '=', 'users.id')
+                        ->where('users.gender', 'female')
+                        ->whereDate('violations.created_at', '>=', $startDate)
+                        ->whereDate('violations.created_at', '<=', $endDate)
+                        ->distinct('violations.student_id')
+                        ->count('violations.student_id');
+                    
+                    $femaleViolationsByWeek["$monthName-Week $week"] = $count;
+                }
+            @endphp
+            
+            @foreach($femaleViolationsByWeek as $week => $count)
+                '{{ $week }}': {{ $count }},
+            @endforeach
+        };
+    </script>
+    
     <script src="{{ asset('js/behavior-charts.js') }}"></script>
+    
+    <!-- Add our data fix script to ensure violations display correctly -->
+    <script src="{{ asset('js/behavior-data-fix.js') }}"></script>
 
     <!-- Add Bootstrap JS if not already included -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Initialize period buttons
-        document.querySelectorAll('.period-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-
-                // Get the period from the button text
-                const period = this.textContent.includes('3') ? 3 : 6;
-                // Update the chart
-                if (typeof fetchBehaviorData === 'function') {
-                    fetchBehaviorData(period);
-                }
-            });
-        });
-
-        // Initialize export button
-        document.querySelector('.btn-export').addEventListener('click', function() {
-            const canvas = document.getElementById('behaviorChart');
-            if (canvas) {
-                // Create a temporary link for download
-                const link = document.createElement('a');
-                link.download = 'behavior-chart.png';
-                link.href = canvas.toDataURL('image/png');
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+        // Initialize the behavior chart directly when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the chart using the function from behavior-charts.js
+            if (typeof window.initBehaviorChart === 'function') {
+                window.initBehaviorChart();
+            } else {
+                console.error('initBehaviorChart function not found. Make sure behavior-charts.js is loaded correctly.');
             }
+        });
+        
+        // Initialize year and month dropdowns
+        const yearSelect = document.getElementById('yearSelect');
+        const monthSelect = document.getElementById('monthSelect');
+        
+        // Add event listeners to dropdowns
+        yearSelect.addEventListener('change', function() {
+            window.updateChartByPeriod();
+        });
+        
+        monthSelect.addEventListener('change', function() {
+            window.updateChartByPeriod();
         });
 
         // Initialize refresh button
         document.getElementById('refresh-behavior').addEventListener('click', function() {
-            // Show loading indicator
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
-            this.disabled = true;
-
-            // Get current time period
-            const activeBtn = document.querySelector('.period-btn.active');
-            const months = activeBtn ? parseInt(activeBtn.getAttribute('data-months')) : 12;
-            
-            const months = parseInt(document.getElementById('time-period').value || 12);
-
-            // Refresh the data
-            fetchBehaviorData(months, true);
-
-            // Reset button after a short delay
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
-                this.disabled = false;
-            }, 1000);
+            // Just call the updateChartByPeriod function directly
+            window.updateChartByPeriod();
         });
+        
+        // These functions have been moved to behavior-charts.js
 
-        // Initialize time period selector
-        document.getElementById('time-period').addEventListener('change', function() {
-            const months = parseInt(this.value || 12);
-
-            // Show loading indicator on the refresh button
-            const refreshBtn = document.getElementById('refresh-behavior');
-            if (refreshBtn) {
-                refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-                refreshBtn.disabled = true;
-            }
-
-            // Update the chart with the selected time period
-            fetchBehaviorData(months, true);
-
-            // Show notification about the time period change
-            const periodText = months === 3 ? '3 Months' : months === 6 ? '6 Months' : '12 Months';
-
-            let toast = document.createElement('div');
-            toast.className = 'behavior-toast alert alert-info alert-dismissible fade show shadow';
-            toast.style.position = 'fixed';
-            toast.style.top = '1.5rem';
-            toast.style.right = '1.5rem';
-            toast.style.zIndex = '1080';
-            toast.style.minWidth = '320px';
-            toast.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-info-circle fa-lg me-2"></i>
-                    <div>
-                        <strong>Time Period Changed!</strong>
-                        <div>Showing behavior data for the last ${periodText}.</div>
-                    </div>
-                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-`;
-// Remove any existing toasts
-            document.querySelectorAll('.behavior-toast').forEach(el => el.remove());
-            document.body.appendChild(toast);
-
-// Auto-dismiss after 3 seconds
-            setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-            }, 3000);
-
-            const notification = document.createElement('div');
-            notification.className = 'alert alert-info alert-dismissible fade show';
-            notification.innerHTML = `
-                <strong>Time Period Changed!</strong> Showing behavior data for the last ${periodText}.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-
-            // Add notification to the page
-            const container = document.querySelector('.container-fluid');
-            if (container) {
-                container.insertBefore(notification, container.firstChild);
-
-                // Auto-dismiss after 3 seconds
-                setTimeout(() => {
-                    notification.classList.remove('show');
-                    setTimeout(() => notification.remove(), 300);
-                }, 3000);
-
-            }
-
-            // Reset refresh button after data is loaded
-            setTimeout(() => {
-                if (refreshBtn) {
-                    refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
-                    refreshBtn.disabled = false;
-                }
-            }, 1000);
-        });
-        // Add a global test function
-        window.testStudentBehavior = function(studentId) {
-            console.log('Testing student behavior with ID:', studentId);
-
-            // Create a simple chart with hardcoded data
-            const chartCanvas = document.getElementById('studentBehaviorChart');
-            const ctx = chartCanvas.getContext('2d');
-
-            // Create a simple chart
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                    datasets: [{
-                        label: 'Behavior Score',
-                        data: [100, 95, 90, 85, 80, 75],
-                        borderColor: '#4bc0c0',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-
-            // Show the modal
-            const modal = document.getElementById('studentBehaviorModal');
-            const bsModal = new bootstrap.Modal(modal);
-            bsModal.show();
-        };
+        // This function has been moved to behavior-charts.js
+        
+        // This function has been moved to behavior-charts.js
 
         // Student search functionality
         document.addEventListener('DOMContentLoaded', function() {
@@ -648,7 +697,7 @@
                     document.getElementById('student-chart-loading').style.display = 'flex';
 
                     // Create a simple chart with default data
-                    createStudentChart(studentId, 6);
+                    window.createStudentChart(studentId, 6);
                 });
             });
 
@@ -658,7 +707,7 @@
                 document.getElementById('studentBtn3Months').classList.add('active');
                 document.getElementById('studentBtn6Months').classList.remove('active');
                 document.getElementById('studentBtn12Months').classList.remove('active');
-                createStudentChart(studentId, 3);
+                window.createStudentChart(studentId, 3);
             });
 
             document.getElementById('studentBtn6Months').addEventListener('click', function() {
@@ -666,7 +715,7 @@
                 document.getElementById('studentBtn3Months').classList.remove('active');
                 document.getElementById('studentBtn6Months').classList.add('active');
                 document.getElementById('studentBtn12Months').classList.remove('active');
-                createStudentChart(studentId, 6);
+                window.createStudentChart(studentId, 6);
             });
 
             document.getElementById('studentBtn12Months').addEventListener('click', function() {
@@ -674,7 +723,7 @@
                 document.getElementById('studentBtn3Months').classList.remove('active');
                 document.getElementById('studentBtn6Months').classList.remove('active');
                 document.getElementById('studentBtn12Months').classList.add('active');
-                createStudentChart(studentId, 12);
+                window.createStudentChart(studentId, 12);
             });
 
             // Add event listener to retry button
@@ -683,113 +732,99 @@
                 let months = 6;
                 if (document.getElementById('studentBtn3Months').classList.contains('active')) months = 3;
                 if (document.getElementById('studentBtn12Months').classList.contains('active')) months = 12;
-                createStudentChart(studentId, months);
+                window.createStudentChart(studentId, months);
             });
         });
 
-        // Function to create student chart
-        function createStudentChart(studentId, months) {
+        // This function has been moved to behavior-charts.js
+        
+        // Set up event listeners for the refresh button
+        document.getElementById('refreshButton').addEventListener('click', function() {
             // Show loading indicator
-            document.getElementById('student-chart-loading').style.display = 'flex';
-            document.getElementById('student-error-message').style.display = 'none';
-
-            // Get chart element
-            const chartCanvas = document.getElementById('studentBehaviorChart');
-
-            // Destroy existing chart if it exists
-            if (window.studentBehaviorChart) {
-                window.studentBehaviorChart.destroy();
-                window.studentBehaviorChart = null;
-            }
-
-            // Fetch data from server
-            fetch(`/educator/student-behavior-data/${studentId}?months=${months}&_=${Date.now()}`)
-                .then(response => response.json())
-                .then(data => {
+            this.classList.add('btn-loading');
+            
+            // Update chart based on selected year and month
+            window.updateChartByPeriod();
+            
+            // Hide loading indicator after a short delay
+            setTimeout(() => {
+                this.classList.remove('btn-loading');
+            }, 500);
+        });
+        
+        // Set up event listeners for the period buttons
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active class from all period buttons
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Get the period from the button's data attribute
+                const months = parseInt(this.getAttribute('data-months') || 12);
+                
+                // Show loading indicator on the refresh button
+                const refreshButton = document.getElementById('refreshButton');
+                refreshButton.classList.add('btn-loading');
+                
+                // Generate data for the selected period
+                const data = window.generateSampleData(months);
+                
+                // Update the chart after a short delay to show the loading indicator
+                setTimeout(() => {
+                    window.updateChart(data);
+                    
                     // Hide loading indicator
-                    document.getElementById('student-chart-loading').style.display = 'none';
+                    refreshButton.classList.remove('btn-loading');
+                    
+                    // Show notification
+                    window.showNotification('info', `Showing behavior data for the last ${months} months`, 'Time Period Changed!');
+                }, 500);
+            });
+        });
+        
+        // Set up event listeners for student behavior test buttons
+        document.querySelectorAll('.test-behavior-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const studentId = this.getAttribute('data-student-id');
+                window.testStudentBehavior(studentId);
+            });
+        });
+        
+        // Set up event listeners for the student behavior modal period buttons
+        document.getElementById('studentBtn3Months').addEventListener('click', function() {
+            const studentId = document.getElementById('studentBehaviorId').textContent.replace('Student ID: ', '');
+            document.getElementById('studentBtn3Months').classList.add('active');
+            document.getElementById('studentBtn6Months').classList.remove('active');
+            document.getElementById('studentBtn12Months').classList.remove('active');
+            window.createStudentChart(studentId, 3);
+        });
 
-                    // Update violation count
-                    const violationCount = document.getElementById('student-violation-count');
-                    if (data.violationsCount > 0) {
-                        violationCount.textContent = data.violationsCount;
-                        violationCount.style.display = 'inline-block';
-                    } else {
-                        violationCount.style.display = 'none';
-                    }
+        document.getElementById('studentBtn6Months').addEventListener('click', function() {
+            const studentId = document.getElementById('studentBehaviorId').textContent.replace('Student ID: ', '');
+            document.getElementById('studentBtn3Months').classList.remove('active');
+            document.getElementById('studentBtn6Months').classList.add('active');
+            document.getElementById('studentBtn12Months').classList.remove('active');
+            window.createStudentChart(studentId, 6);
+        });
 
-                    // Create chart
-                    const ctx = chartCanvas.getContext('2d');
+        document.getElementById('studentBtn12Months').addEventListener('click', function() {
+            const studentId = document.getElementById('studentBehaviorId').textContent.replace('Student ID: ', '');
+            document.getElementById('studentBtn3Months').classList.remove('active');
+            document.getElementById('studentBtn6Months').classList.remove('active');
+            document.getElementById('studentBtn12Months').classList.add('active');
+            window.createStudentChart(studentId, 12);
+        });
 
-                    // Create gradient
-                    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient.addColorStop(0, 'rgba(75, 192, 192, 0.6)');
-                    gradient.addColorStop(1, 'rgba(75, 192, 192, 0.1)');
-
-                    // Create chart
-                    window.studentBehaviorChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: data.labels,
-                            datasets: [{
-                                label: 'Behavior Score',
-                                data: data.scoreData,
-                                borderColor: '#4bc0c0',
-                                borderWidth: 3,
-                                backgroundColor: gradient,
-                                pointBackgroundColor: '#4bc0c0',
-                                pointBorderColor: '#fff',
-                                pointRadius: 5,
-                                pointHoverRadius: 8,
-                                tension: 0.4,
-                                fill: true
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            return `Score: ${context.raw}/100`;
-                                        }
-                                    }
-                                }
-                            },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    max: 100,
-                                    ticks: {
-                                        stepSize: 10,
-                                        callback: function(value) {
-                                            return value + '%';
-                                        }
-                                    },
-                                    title: {
-                                        display: true,
-                                        text: 'Behavior Score'
-                                    }
-                                },
-                                x: {
-                                    title: {
-                                        display: true,
-                                        text: 'Month'
-                                    }
-                                }
-                            },
-                            animation: {
-                                duration: 1000
-                            }
-                        }
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading student behavior data:', error);
-                    document.getElementById('student-chart-loading').style.display = 'none';
-                    document.getElementById('student-error-message').style.display = 'flex';
-                });
-        }
+        // Add event listener to retry button
+        document.getElementById('student-retry-button').addEventListener('click', function() {
+            const studentId = document.getElementById('studentBehaviorId').textContent.replace('Student ID: ', '');
+            let months = 6;
+            if (document.getElementById('studentBtn3Months').classList.contains('active')) months = 3;
+            if (document.getElementById('studentBtn12Months').classList.contains('active')) months = 12;
+            window.createStudentChart(studentId, months);
+        });
+    });
     </script>
 @endpush
