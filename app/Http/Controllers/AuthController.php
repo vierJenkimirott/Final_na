@@ -20,32 +20,61 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        Log::info('Login attempt', ['email' => $request->input('email')]);
+        $username = $request->input('username');
+        Log::info('Login attempt', ['username' => $username]);
 
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
+        // Validate the login data
+        $request->validate([
+            'username' => ['required', 'string'],
             'password' => ['required'],
         ]);
-
-        if (Auth::attempt($credentials)) {
-            Log::info('Login successful', ['user_id' => Auth::id()]);
-            $request->session()->regenerate();
-            $user = Auth::user();
-            
-            if ($role = $user->roles->first()) {
-                return $this->redirectBasedOnRole($user);
-            }
-
-            Auth::logout();
-            Log::warning('User has no role', ['user_id' => Auth::id()]);
-            return back()->withErrors([
-                'email' => 'No role assigned to this account.',
-            ]);
+        
+        // Check if username is an email (for admin) or ID (for educators/students)
+        $isEmail = filter_var($username, FILTER_VALIDATE_EMAIL);
+        
+        // First attempt: try with student_id for students
+        if (!$isEmail && Auth::attempt(['student_id' => $username, 'password' => $request->input('password')])) {
+            Log::info('Login successful with student_id', ['user_id' => Auth::id()]);
+            return $this->processSuccessfulLogin($request);
+        }
+        
+        // Second attempt: try with educator_id for educators
+        if (!$isEmail && Auth::attempt(['educator_id' => $username, 'password' => $request->input('password')])) {
+            Log::info('Login successful with educator_id', ['user_id' => Auth::id()]);
+            return $this->processSuccessfulLogin($request);
+        }
+        
+        // Third attempt: try with email for admin
+        if ($isEmail && Auth::attempt(['email' => $username, 'password' => $request->input('password')])) {
+            Log::info('Login successful with email', ['user_id' => Auth::id()]);
+            return $this->processSuccessfulLogin($request);
         }
 
-        Log::warning('Login failed', ['email' => $request->input('email')]);
+        // If we reach here, both attempts failed
+        Log::warning('Login failed', ['username' => $username, 'is_email' => $isEmail]);
         return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
+            'username' => 'The provided credentials do not match our records.',
+        ]);
+    }
+    
+    /**
+     * Process a successful login
+     */
+    private function processSuccessfulLogin(Request $request)
+    {
+        $request->session()->regenerate();
+        $user = Auth::user();
+        
+        if ($role = $user->roles->first()) {
+            // Update last login timestamp
+            $user->update(['last_login' => now()]);
+            return $this->redirectBasedOnRole($user);
+        }
+
+        Auth::logout();
+        Log::warning('User has no role', ['user_id' => Auth::id()]);
+        return back()->withErrors([
+            'username' => 'No role assigned to this account.',
         ]);
     }
 

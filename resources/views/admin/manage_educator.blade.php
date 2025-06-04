@@ -31,7 +31,7 @@
                     <tbody>
                         @forelse($educators as $educator)
                             <tr>
-                                <td>{{ $educator->educator_id }}</td>
+                                <td>{{ $educator->educator_id ?? $educator->id }}</td>
                                 <td>{{ $educator->name }}</td>
                                 <td>{{ $educator->email }}</td>
                                 <td>{{ $educator->department }}</td>

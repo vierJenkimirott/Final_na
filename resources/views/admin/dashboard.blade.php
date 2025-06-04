@@ -27,7 +27,7 @@
         </div>
     </div>
 
-    <div class="row">
+    <div class="row mb-4">
         <!-- Quick Actions -->
         <div class="col-md-6">
             <div class="card">
@@ -40,6 +40,83 @@
                         <a href="{{ route('admin.manage_educator') }}" class="btn btn-success">
                             Manage Educators
                         </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Batches -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <h2>Students by Batch</h2>
+        </div>
+        
+        <!-- Batch 2025 -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Batch 2025 ({{ count($batch2025Students) }} students)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($batch2025Students as $student)
+                                    <tr>
+                                        <td>{{ $student->student_id }}</td>
+                                        <td>{{ $student->name }}</td>
+                                        <td>{{ $student->email }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="text-center">No students found</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Batch 2026 -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Batch 2026 ({{ count($batch2026Students) }} students)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($batch2026Students as $student)
+                                    <tr>
+                                        <td>{{ $student->student_id }}</td>
+                                        <td>{{ $student->name }}</td>
+                                        <td>{{ $student->email }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="text-center">No students found</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

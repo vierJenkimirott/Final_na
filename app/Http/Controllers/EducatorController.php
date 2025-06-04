@@ -23,6 +23,144 @@ class EducatorController extends Controller
     // =============================================
     // DASHBOARD METHODS
     // =============================================
+    
+    /**
+     * Get students count by batch
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getStudentsByBatch(Request $request)
+    {
+        $batch = $request->query('batch', 'all');
+        
+        try {
+            if ($batch === 'all') {
+                $count = User::role('student')->count();
+            } else {
+                $count = User::role('student')
+                    ->join('student_details', 'users.id', '=', 'student_details.user_id')
+                    ->where('student_details.batch', $batch)
+                    ->count();
+            }
+            
+            return response()->json([
+                'success' => true,
+                'count' => $count,
+                'batch' => $batch
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching students by batch: ' . $e->getMessage(),
+                'count' => 0
+            ]);
+        }
+    }
+    
+    /**
+     * Get violations count by batch
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getViolationsCount(Request $request)
+    {
+        $batch = $request->query('batch', 'all');
+        
+        try {
+            if ($batch === 'all') {
+                $count = Violation::where('status', 'active')->count();
+            } else {
+                $count = Violation::where('status', 'active')
+                    ->whereExists(function($query) use ($batch) {
+                        $query->select(DB::raw(1))
+                              ->from('users')
+                              ->join('student_details', 'users.id', '=', 'student_details.user_id')
+                              ->whereRaw('violations.student_id = users.student_id')
+                              ->where('student_details.batch', $batch);
+                    })
+                    ->count();
+            }
+            
+            return response()->json([
+                'success' => true,
+                'count' => $count,
+                'batch' => $batch
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching violations count by batch: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching violations count: ' . $e->getMessage(),
+                'count' => 0
+            ]);
+        }
+    }
+    
+    /**
+     * Get students compliance status (violators and non-violators) by batch
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getStudentComplianceByBatch(Request $request)
+    {
+        try {
+            $batch = $request->query('batch', 'all');
+            
+            // Get all students
+            $studentsQuery = User::role('student');
+            
+            // Apply batch filter
+            if ($batch !== 'all') {
+                $studentsQuery->join('student_details', 'users.id', '=', 'student_details.user_id')
+                    ->where('student_details.batch', $batch);
+            }
+            
+            // Get non-compliant students (with violations)
+            $nonCompliantQuery = clone $studentsQuery;
+            $nonCompliant = $nonCompliantQuery
+                ->whereExists(function($query) {
+                    $query->select(DB::raw(1))
+                          ->from('violations')
+                          ->whereRaw('violations.student_id = users.student_id')
+                          ->where('violations.status', 'active');
+                })
+                ->select('users.name', 'users.student_id', DB::raw('(SELECT COUNT(*) FROM violations WHERE violations.student_id = users.student_id AND violations.status = "active") as violations_count'))
+                ->orderBy('violations_count', 'desc')
+                ->limit(10)
+                ->get();
+            
+            // Get compliant students (without violations)
+            $compliantQuery = clone $studentsQuery;
+            $compliant = $compliantQuery
+                ->whereNotExists(function($query) {
+                    $query->select(DB::raw(1))
+                          ->from('violations')
+                          ->whereRaw('violations.student_id = users.student_id')
+                          ->where('violations.status', 'active');
+                })
+                ->select('users.name', 'users.student_id')
+                ->limit(10)
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'nonCompliant' => $nonCompliant,
+                'compliant' => $compliant,
+                'batch' => $batch
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching student compliance data: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching student compliance data: ' . $e->getMessage(),
+                'nonCompliant' => [],
+                'compliant' => []
+            ], 500);
+        }
+    }
 
     /**
      * Display the educator dashboard
@@ -597,17 +735,8 @@ class EducatorController extends Controller
         $violationsBySeverity = DB::table('violations')
             ->join('violation_types', 'violations.violation_type_id', '=', 'violation_types.id')
             ->select('violation_types.severity', DB::raw('COUNT(*) as count'))
-            ->where(function($q) use ($query) {
-                // Apply the same date filters as the main query
-                if ($query->getQuery()->wheres) {
-                    foreach ($query->getQuery()->wheres as $where) {
-                        if (isset($where['column']) &&
-                            (strpos($where['column'], 'created_at') !== false)) {
-                            $q->where($where['column'], $where['operator'], $where['value']);
-                        }
-                    }
-                }
-            })
+            ->where('violations.status', 'active')
+            ->whereBetween('violations.violation_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->groupBy('violation_types.severity')
             ->orderBy('count', 'desc')
             ->get();
@@ -696,52 +825,7 @@ class EducatorController extends Controller
             $startDate = now()->subMonths($months)->startOfMonth();
             $currentDate = clone $startDate;
 
-            // Calculate current score FIRST to use as baseline
-            $violations = \App\Models\Violation::where('student_id', $lookupId)
-                ->where('status', 'active')
-                ->orderBy('violation_date')
-                ->get();
 
-            // Calculate overall current score based on ALL violations
-            $currentScore = 100; // Start with perfect score
-
-            // Apply deductions for ALL violations
-            foreach ($violations as $violation) {
-                $deduction = 10; // Default deduction
-                $severity = strtolower(trim($violation->severity ?? ''));
-
-                // Apply deduction based on severity
-                if (strpos($severity, 'low') !== false) {
-                    $deduction = 5;
-                } elseif (strpos($severity, 'medium') !== false) {
-                    $deduction = 10;
-                } elseif (strpos($severity, 'high') !== false && strpos($severity, 'very') === false) {
-                    $deduction = 15;
-                } elseif (strpos($severity, 'very high') !== false) {
-                    $deduction = 20;
-                } else {
-                    // Fallback: use penalty to determine deduction
-                    switch ($violation->penalty) {
-                        case 'W':
-                            $deduction = 5;
-                            break;
-                        case 'VW':
-                            $deduction = 10;
-                            break;
-                        case 'WW':
-                            $deduction = 15;
-                            break;
-                        case 'Pro':
-                        case 'Exp':
-                            $deduction = 20;
-                            break;
-                        default:
-                            $deduction = 10;
-                    }
-                }
-
-                $currentScore = max(0, $currentScore - $deduction);
-            }
 
             // Generate labels and default scores (all start at 100% level)
             while ($currentDate <= now()) {
@@ -758,59 +842,6 @@ class EducatorController extends Controller
                 'months' => $months,
                 'current_score' => $currentScore
             ]);
-
-            // Process each violation and apply deductions to the appropriate month
-            foreach ($violations as $violation) {
-                try {
-                    // Parse the violation date
-                    $violationDate = \Carbon\Carbon::parse($violation->violation_date);
-                    $violationMonthLabel = $violationDate->format('M Y');
-
-                    // Find the index of this month in our labels array
-                    $monthIndex = array_search($violationMonthLabel, $labels);
-
-                    if ($monthIndex !== false) {
-                        // Determine the point deduction based on severity
-                        $deduction = 10; // Default deduction
-                        $severity = strtolower(trim($violation->severity ?? ''));
-
-                        // Apply deduction based on severity
-                        if (strpos($severity, 'low') !== false) {
-                            $deduction = 5;
-                        } elseif (strpos($severity, 'medium') !== false) {
-                            $deduction = 10;
-                        } elseif (strpos($severity, 'high') !== false && strpos($severity, 'very') === false) {
-                            $deduction = 15;
-                        } elseif (strpos($severity, 'very high') !== false) {
-                            $deduction = 20;
-                        } else {
-                            // Fallback: use penalty to determine deduction
-                            switch ($violation->penalty) {
-                                case 'W':
-                                    $deduction = 5;
-                                    break;
-                                case 'VW':
-                                    $deduction = 10;
-                                    break;
-                                case 'WW':
-                                    $deduction = 15;
-                                    break;
-                                case 'Pro':
-                                case 'Exp':
-                                    $deduction = 20;
-                                    break;
-                                default:
-                                    $deduction = 10;
-                            }
-                        }
-
-                        // Apply the deduction to the specific month (deduct from 100% baseline)
-                        $scoreData[$monthIndex] = max(0, $scoreData[$monthIndex] - $deduction);
-                    }
-                } catch (\Exception $vEx) {
-                    continue;
-                }
-            }
 
 
 
@@ -899,14 +930,15 @@ class EducatorController extends Controller
      */
     protected function getBehaviorDataBySex($monthsToShow = 6)
     {
+        // Initialize arrays and variables
+        $labels = [];
+        $menData = [];
+        $womenData = [];
+        $currentDate = now();
+        $allMonths = [];
+        $totalViolations = 0;
+        
         try {
-            $labels = [];
-            $menData = [];
-            $womenData = [];
-            $currentDate = now();
-            $allMonths = [];
-            $totalViolations = 0;
-
             // Generate months array based on requested period
             if ($monthsToShow == 12) {
                 // Use all calendar months of the current year
@@ -1052,137 +1084,42 @@ class EducatorController extends Controller
                     return false;
                 });
 
-                // Calculate scores
-                $menScore = 100;
-                $womenScore = 100;
-
-                // Special handling for problematic months
-                if (in_array($monthData->name, ['February', 'June']) && $menViolations->count() > 0) {
-                    \Log::info("Found {$menViolations->count()} men violations for {$monthData->name}");
-                    \Log::info("Applying special handling for {$monthData->name}");
-
-                    // For these months, ensure we apply at least some deduction if violations exist
-                    $hasDeduction = false;
-
-                    // We'll check if any deductions will be applied in the normal processing
-                    foreach ($menViolations as $violation) {
-                        $severity = strtolower($violation->severity ?? '');
-                        if (!empty($severity) || !empty($violation->penalty)) {
-                            $hasDeduction = true;
-                            break;
-                        }
-                    }
-
-                    // If no deductions would be applied, force a minimum deduction
-                    if (!$hasDeduction) {
-                        \Log::info("Forcing minimum deduction for {$monthData->name}");
-                        $menScore -= 15; // Apply a default medium deduction
-                    }
-                }
-
-                // Process men violations normally
-                foreach ($menViolations as $violation) {
-                    // Log each violation for debugging
-                    \Log::info("Processing violation ID: {$violation->id}, Date: {$violation->violation_date}, Severity: {$violation->severity}");
-
-                    $severity = strtolower($violation->severity ?? '');
-
-                    if (strpos($severity, 'low') !== false) {
-                        $menScore -= 5; // Low severity
-                        \Log::info("Applied -5 deduction for Low severity");
-                    } elseif (strpos($severity, 'medium') !== false) {
-                        $menScore -= 10; // Medium severity
-                        \Log::info("Applied -10 deduction for Medium severity");
-                    } elseif (strpos($severity, 'high') !== false && strpos($severity, 'very') === false) {
-                        $menScore -= 15; // High severity
-                        \Log::info("Applied -15 deduction for High severity");
-                    } elseif (strpos($severity, 'very high') !== false) {
-                        $menScore -= 20; // Very High severity
-                        \Log::info("Applied -20 deduction for Very High severity");
-                    } else {
-                        // Default deductions based on penalty
-                        if ($violation->penalty == 'VW') {
-                            $menScore -= 10; // Verbal Warning
-                            \Log::info("Applied -10 deduction for Verbal Warning");
-                        } elseif ($violation->penalty == 'WW') {
-                            $menScore -= 15; // Written Warning
-                            \Log::info("Applied -15 deduction for Written Warning");
-                        } elseif ($violation->penalty == 'Pro' || $violation->penalty == 'Exp') {
-                            $menScore -= 20; // Probation or Expulsion
-                            \Log::info("Applied -20 deduction for {$violation->penalty}");
-                        } else {
-                            $menScore -= 10; // Default
-                            \Log::info("Applied -10 default deduction");
-                        }
-                    }
-                }
-
-                // Apply similar logic for women violations
-                if (in_array($monthData->name, ['February', 'June']) && $womenViolations->count() > 0) {
-                    \Log::info("Found {$womenViolations->count()} women violations for {$monthData->name}");
-
-                    $hasDeduction = false;
-                    foreach ($womenViolations as $violation) {
-                        $severity = strtolower($violation->severity ?? '');
-                        if (!empty($severity) || !empty($violation->penalty)) {
-                            $hasDeduction = true;
-                            break;
-                        }
-                    }
-
-                    if (!$hasDeduction) {
-                        $womenScore -= 15;
-                    }
-                }
-
-                // Process women violations normally
-                foreach ($womenViolations as $violation) {
-                    $severity = strtolower($violation->severity ?? '');
-
-                    if (strpos($severity, 'low') !== false) {
-                        $womenScore -= 5;
-                    } elseif (strpos($severity, 'medium') !== false) {
-                        $womenScore -= 10;
-                    } elseif (strpos($severity, 'high') !== false && strpos($severity, 'very') === false) {
-                        $womenScore -= 15;
-                    } elseif (strpos($severity, 'very high') !== false) {
-                        $womenScore -= 20;
-                    } else {
-                        // Default deductions based on penalty
-                        if ($violation->penalty == 'VW') {
-                            $womenScore -= 10;
-                        } elseif ($violation->penalty == 'WW') {
-                            $womenScore -= 15;
-                        } elseif ($violation->penalty == 'Pro' || $violation->penalty == 'Exp') {
-                            $womenScore -= 20;
-                        } else {
-                            $womenScore -= 10;
-                        }
-                    }
-                }
-
-                // Ensure scores are within 0-100 range
-                $menScore = max(0, min(100, $menScore));
-                $womenScore = max(0, min(100, $womenScore));
-
-                // Add scores to data arrays
-                $menData[] = $menScore;
-                $womenData[] = $womenScore;
+                // Count the violations for this month
+                $menCount = $menViolations->count();
+                $womenCount = $womenViolations->count();
+                
+                // Log the counts for debugging
+                \Log::info("Month {$monthData->name}: Men violations: {$menCount}, Women violations: {$womenCount}");
+                
+                // Add the counts to our data arrays
+                $menData[] = $menCount;
+                $womenData[] = $womenCount;
+                
+                // Add to total violations count
+                $totalViolations += $menCount + $womenCount;
             }
+            
+            \Log::info("Total violations processed: {$totalViolations}");
+            \Log::info("Men data: " . json_encode($menData));
+            \Log::info("Women data: " . json_encode($womenData));
 
+           
+           
             return [
                 'labels' => $labels,
                 'men' => $menData,
                 'women' => $womenData,
                 'lastUpdated' => now()->format('Y-m-d H:i:s')
             ];
-        } catch (\Exception $e) {
+        } 
+        catch (\Exception $e) {
+            \Log::error('Error in getBehaviorDataBySex: ' . $e->getMessage());
             return [
                 'error' => true,
                 'message' => 'Failed to load behavior data: ' . $e->getMessage(),
                 'labels' => [],
-                'boys' => [],
-                'girls' => []
+                'men' => [],
+                'women' => []
             ];
         }
     }

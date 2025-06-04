@@ -20,12 +20,21 @@ class AdminController extends Controller
             $q->where('name', 'student');
         })->count();
         
+        // Get students by batch
+        $batch2025Students = User::whereHas('roles', function($q) {
+            $q->where('name', 'student');
+        })->where('student_id', 'like', '202501%')->get();
+        
+        $batch2026Students = User::whereHas('roles', function($q) {
+            $q->where('name', 'student');
+        })->where('student_id', 'like', '202601%')->get();
+        
         // Get total educators count
         $totalEducators = User::whereHas('roles', function($q) {
             $q->where('name', 'educator');
         })->count();
         
-        return view('admin.dashboard', compact('totalStudents', 'totalEducators'));
+        return view('admin.dashboard', compact('totalStudents', 'totalEducators', 'batch2025Students', 'batch2026Students'));
     }
     
     /**
@@ -75,11 +84,21 @@ class AdminController extends Controller
      */
     public function manageStudent()
     {
+        // Get all students for pagination
         $students = User::whereHas('roles', function($q) {
             $q->where('name', 'student');
         })->paginate(10);
         
-        return view('admin.manage_student', compact('students'));
+        // Get students by batch
+        $batch2025Students = User::whereHas('roles', function($q) {
+            $q->where('name', 'student');
+        })->where('student_id', 'like', '202501%')->get();
+        
+        $batch2026Students = User::whereHas('roles', function($q) {
+            $q->where('name', 'student');
+        })->where('student_id', 'like', '202601%')->get();
+        
+        return view('admin.manage_student', compact('students', 'batch2025Students', 'batch2026Students'));
     }
     
     /**
@@ -122,32 +141,105 @@ class AdminController extends Controller
             'sex' => 'required|in:Male,Female',
         ]);
         
-        $user->update([
-            'fname' => $request->fname,
-            'lname' => $request->lname,
-            'name' => $request->fname . ' ' . $request->lname,
-            'email' => $request->email,
-            'student_id' => $request->student_id,
-            'sex' => $request->sex,
-            'gender' => $request->sex, // For backward compatibility
-        ]);
+        // Get the old and new student IDs
+        $oldStudentId = $user->student_id;
+        $newStudentId = $request->student_id;
         
-        // Update password if provided
-        if ($request->filled('password')) {
-            $request->validate([
-                'password' => 'string|min:8',
-            ]);
+        try {
+            // Start a transaction
+            DB::beginTransaction();
             
-            $user->update([
-                'password' => Hash::make($request->password),
-            ]);
+            // If student_id is changing and there are violations
+            if ($oldStudentId !== $newStudentId && $oldStudentId !== null) {
+                // Temporarily disable foreign key constraints
+                DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+                
+                // Update violations first
+                DB::table('violations')
+                    ->where('student_id', $oldStudentId)
+                    ->update(['student_id' => $newStudentId]);
+                
+                // Update user basic info without student_id first
+                $user->update([
+                    'fname' => $request->fname,
+                    'lname' => $request->lname,
+                    'name' => $request->fname . ' ' . $request->lname,
+                    'email' => $request->email,
+                    'sex' => $request->sex,
+                    'gender' => $request->sex, // For backward compatibility
+                ]);
+                
+                // Now update the student_id directly in the database
+                DB::table('users')
+                    ->where('id', $user->id)
+                    ->update(['student_id' => $newStudentId]);
+                
+                // Re-enable foreign key constraints
+                DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            } else {
+                // No student_id change or no violations, just update normally
+                $user->update([
+                    'fname' => $request->fname,
+                    'lname' => $request->lname,
+                    'name' => $request->fname . ' ' . $request->lname,
+                    'email' => $request->email,
+                    'student_id' => $newStudentId,
+                    'sex' => $request->sex,
+                    'gender' => $request->sex, // For backward compatibility
+                ]);
+            }
+            
+            // Update password if provided
+            if ($request->filled('password')) {
+                $request->validate([
+                    'password' => 'string|min:8',
+                ]);
+                
+                $user->update([
+                    'password' => Hash::make($request->password),
+                ]);
+            }
+            
+            // Update role
+            $user->roles()->sync([$request->role]);
+            
+            // Refresh the user model to get the updated data
+            $user->refresh();
+            
+            // Commit the transaction
+            DB::commit();
+            
+            // Get user role for appropriate redirection
+            $role = $user->roles->first();
+            
+            if ($role) {
+                switch ($role->name) {
+                    case 'student':
+                        return redirect()->route('admin.manage_student')
+                            ->with('success', 'Student updated successfully');
+                    case 'educator':
+                        return redirect()->route('admin.manage_educator')
+                            ->with('success', 'Educator updated successfully');
+                    default:
+                        return redirect()->back()
+                            ->with('success', 'User updated successfully');
+                }
+            } else {
+                return redirect()->back()
+                    ->with('success', 'User updated successfully');
+            }
+                
+        } catch (\Exception $e) {
+            // Roll back the transaction if something goes wrong
+            DB::rollBack();
+            
+            // Log the error
+            \Log::error('Error updating user: ' . $e->getMessage());
+            
+            return redirect()->back()
+                ->with('error', 'Failed to update user. Error: ' . $e->getMessage())
+                ->withInput();
         }
-        
-        // Update role
-        $user->roles()->sync([$request->role]);
-        
-        return redirect()->back()
-            ->with('success', 'User updated successfully');
     }
     
     /**

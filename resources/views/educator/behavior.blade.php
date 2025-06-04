@@ -400,14 +400,25 @@
                         <!-- Batch Filter Controls -->
                         <div class="row mb-3 align-items-center">
                             <div class="col-md-3">
-                                <label class="form-label mb-0"><i class="fas fa-users me-1 text-primary"></i> Student Filter:</label>
+                                <label class="form-label mb-0"><i class="fas fa-users me-1 text-primary"></i> Batch Filter:</label>
                             </div>
                             <div class="col-md-9">
-                                <div class="d-flex">
-                                    <div class="btn-group btn-group-sm" role="group" aria-label="Batch filter buttons">
-                                        <button type="button" class="btn btn-outline-primary batch-filter active" data-batch="all">All Students</button>
-                                        <button type="button" class="btn btn-outline-primary batch-filter" data-batch="1">1st Year</button>
-                                        <button type="button" class="btn btn-outline-primary batch-filter" data-batch="2">2nd Year</button>
+                                <div class="d-flex align-items-center">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-primary text-white">
+                                            <i class="fas fa-filter"></i>
+                                        </span>
+                                        <select id="batchFilterType" class="form-select" onchange="window.toggleBatchFilterInput()">
+                                            <option value="all" selected>All Batches</option>
+                                            <option value="specific">Specific Batch</option>
+                                            <option value="range">Batch Range</option>
+                                        </select>
+                                        <!-- Single batch year input (hidden by default) -->
+                                        <input type="number" id="batchFilterYear" class="form-control" min="1900" max="2100" value="2025" style="display: none;" placeholder="Enter batch year">
+                                        <!-- Batch range inputs (hidden by default) -->
+                                        <input type="number" id="batchFilterStartYear" class="form-control" min="1900" max="2100" value="2023" style="display: none;" placeholder="Start year">
+                                        <input type="number" id="batchFilterEndYear" class="form-control" min="1900" max="2100" value="2025" style="display: none;" placeholder="End year">
+                                        <button class="btn btn-primary" id="applyBatchFilter" onclick="window.applyBatchFilter()" style="display: none;">Apply</button>
                                     </div>
                                 </div>
                             </div>

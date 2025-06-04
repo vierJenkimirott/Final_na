@@ -40,6 +40,22 @@ class ViolationType extends Model
     // Get the severity attribute
     public function getSeverityAttribute()
     {
-        return $this->severityRelation ? $this->severityRelation->severity_name : null;
+        // Eager load the relation if it's not already loaded
+        if (!$this->relationLoaded('severityRelation')) {
+            $this->load('severityRelation');
+        }
+        
+        // Get the severity name from the relation
+        $severityName = $this->severityRelation ? $this->severityRelation->severity_name : null;
+        
+        // Log for debugging
+        \Log::info('Getting severity for violation type', [
+            'violation_type_id' => $this->id,
+            'violation_name' => $this->violation_name,
+            'severity_id' => $this->severity_id,
+            'severity_name' => $severityName
+        ]);
+        
+        return $severityName;
     }
 }

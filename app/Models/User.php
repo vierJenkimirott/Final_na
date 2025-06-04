@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use App\Traits\HasRoles;
+use App\Models\StudentDetails;
 
 class User extends Authenticatable
 {
@@ -23,6 +24,7 @@ class User extends Authenticatable
         'fname',
         'lname',
         'student_id',
+        'educator_id',
         'email',
         'password',
         'gender', // Keeping for backward compatibility
@@ -84,5 +86,15 @@ class User extends Authenticatable
     public function violations()
     {
         return $this->hasMany(Violation::class, 'student_id', 'student_id');
+    }
+    
+    /**
+     * Get the student details for the user.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function studentDetails()
+    {
+        return $this->hasOne(StudentDetails::class, 'user_id');
     }
 }

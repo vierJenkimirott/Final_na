@@ -77,8 +77,23 @@
                     <label for="violation_type_id" class="form-label">Violation Type <span class="text-danger">*</span></label>
                     <select name="violation_type_id" id="violation_type_id" class="form-select @error('violation_type_id') is-invalid @enderror" required>
                         <option value="">Select Violation Type</option>
-                        @foreach($violation->offenseCategory->violationTypes as $type)
-                            <option value="{{ $type->id }}" {{ $violation->violation_type_id == $type->id ? 'selected' : '' }}>
+                        {{-- Get violation types with severity directly from the database --}}
+                        @php
+                            $violationTypesWithSeverity = DB::table('violation_types')
+                                ->select('violation_types.id', 'violation_types.violation_name', 'severities.severity_name')
+                                ->join('severities', 'violation_types.severity_id', '=', 'severities.id')
+                                ->where('violation_types.offense_category_id', $violation->offenseCategory->id)
+                                ->get();
+                        @endphp
+                        
+                        @foreach($violationTypesWithSeverity as $type)
+                            {{-- Debug output for severity values --}}
+                            @php
+                                echo "<!-- Debug: Type ID: {$type->id}, Name: {$type->violation_name}, Severity: {$type->severity_name} -->";
+                            @endphp
+                            <option value="{{ $type->id }}" 
+                                data-severity="{{ $type->severity_name }}"
+                                {{ $violation->violation_type_id == $type->id ? 'selected' : '' }}>
                                 {{ $type->violation_name }}
                             </option>
                         @endforeach
@@ -106,12 +121,24 @@
                     <small class="form-text text-muted">Severity level affects behavior score deductions</small>
                 </div>
                 
+                <!-- Offense Count Selection -->
+                <div class="col-md-6 mb-3">
+                    <label for="offense_count" class="form-label">Offense Count <span class="text-danger">*</span></label>
+                    <select name="offense_count" id="offense_count" class="form-select" required>
+                        <option value="">Select Offense Count</option>
+                        <option value="1st">1st Offense</option>
+                        <option value="2nd">2nd Offense</option>
+                        <option value="3rd">3rd Offense</option>
+                        <option value="4th">4th Offense</option>
+                    </select>
+                    <small class="form-text text-muted">Number of times this violation has occurred</small>
+                </div>
+                
                 <!-- Penalty Selection -->
                 <div class="col-md-6 mb-3">
                     <label for="penalty" class="form-label">Penalty <span class="text-danger">*</span></label>
                     <select name="penalty" id="penalty" class="form-select @error('penalty') is-invalid @enderror" required>
                         <option value="">Select Penalty</option>
-                        <option value="W" {{ $violation->penalty == 'W' ? 'selected' : '' }}>Warning</option>
                         <option value="VW" {{ $violation->penalty == 'VW' ? 'selected' : '' }}>Verbal Warning</option>
                         <option value="WW" {{ $violation->penalty == 'WW' ? 'selected' : '' }}>Written Warning</option>
                         <option value="Pro" {{ $violation->penalty == 'Pro' ? 'selected' : '' }}>Probation</option>
@@ -120,19 +147,11 @@
                     @error('penalty')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
+                    <small class="form-text text-muted">Penalty is automatically determined by severity and offense count</small>
                 </div>
             </div>
             
-            <!-- Offense Description -->
-            <div class="mb-3">
-                <label for="offense" class="form-label">Offense Description <span class="text-danger">*</span></label>
-                <textarea name="offense" id="offense" class="form-control @error('offense') is-invalid @enderror" rows="3" required>{{ $violation->offense }}</textarea>
-                @error('offense')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-                <small class="form-text text-muted">Provide a detailed description of the violation</small>
-            </div>
-            
+
             <!-- Consequence Description -->
             <div class="mb-3">
                 <label for="consequence" class="form-label">Consequence <span class="text-danger">*</span></label>
@@ -237,6 +256,82 @@
         }
     </style>
 
+@endsection
+
+@section('scripts')
+<script>
+    // Debug output to check violation types and their severities
+    console.log('Debug: All violation types', @json($violationTypes));
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get form elements
+        const severitySelect = document.getElementById('severity');
+        const offenseCountSelect = document.getElementById('offense_count');
+        const penaltySelect = document.getElementById('penalty');
+        
+        // Set default offense count
+        offenseCountSelect.value = '1st';
+        
+        // Function to update penalty based on severity and offense count
+        function updatePenalty() {
+            const severity = severitySelect.value;
+            const offenseCount = offenseCountSelect.value;
+            
+            if (!severity || !offenseCount) return;
+            
+            // Determine the appropriate penalty based on severity and offense count
+            let penaltyValue = '';
+            
+            if (severity === 'Low') {
+                if (offenseCount === '1st') penaltyValue = 'VW'; // Verbal Warning
+                else if (offenseCount === '2nd') penaltyValue = 'WW'; // Written Warning
+                else if (offenseCount === '3rd') penaltyValue = 'Pro'; // Probation
+                else penaltyValue = 'Exp'; // Expulsion for 4th offense
+            } else if (severity === 'Medium') {
+                if (offenseCount === '1st') penaltyValue = 'WW'; // Written Warning
+                else if (offenseCount === '2nd') penaltyValue = 'Pro'; // Probation
+                else penaltyValue = 'Exp'; // Expulsion for 3rd or more offense
+            } else if (severity === 'High') {
+                if (offenseCount === '1st') penaltyValue = 'Pro'; // Probation
+                else penaltyValue = 'Exp'; // Expulsion for 2nd or more offense
+            } else if (severity === 'Very High') {
+                penaltyValue = 'Exp'; // Always expulsion for very high severity
+            }
+            
+            // Set the penalty value
+            penaltySelect.value = penaltyValue;
+        }
+        
+        // Add event listeners
+        severitySelect.addEventListener('change', updatePenalty);
+        offenseCountSelect.addEventListener('change', updatePenalty);
+        
+        // Update penalty on page load
+        updatePenalty();
+        
+        // Update available offense counts based on severity
+        severitySelect.addEventListener('change', function() {
+            const severity = this.value;
+            const offenseCountOptions = offenseCountSelect.options;
+            
+            // Show/hide 4th offense option based on severity
+            for (let i = 0; i < offenseCountOptions.length; i++) {
+                if (offenseCountOptions[i].value === '4th') {
+                    offenseCountOptions[i].style.display = (severity === 'Low') ? '' : 'none';
+                }
+            }
+            
+            // If a non-Low severity is selected and 4th offense was selected, reset to 3rd
+            if (severity !== 'Low' && offenseCountSelect.value === '4th') {
+                offenseCountSelect.value = '3rd';
+            }
+        });
+        
+        // Trigger the severity change event to initialize the offense count options
+        severitySelect.dispatchEvent(new Event('change'));
+    });
+</script>
+
     <!-- JavaScript -->
     <script>
         // =============================================
@@ -256,6 +351,53 @@
             }
 
             console.log('Initial category value:', categorySelect.value);
+            
+            // Initialize severity based on the selected violation type
+            function initializeSeverity() {
+                const selectedViolationType = violationTypeSelect.options[violationTypeSelect.selectedIndex];
+                if (selectedViolationType && selectedViolationType.dataset.severity) {
+                    const severity = selectedViolationType.dataset.severity;
+                    console.log('Initial severity from violation type:', severity);
+                    
+                    const severitySelect = document.getElementById('severity');
+                    if (severitySelect) {
+                        severitySelect.value = severity;
+                        console.log('Setting initial severity to:', severity);
+                        
+                        // Trigger the change event to update dependent fields
+                        severitySelect.dispatchEvent(new Event('change'));
+                    }
+                }
+            }
+            
+            // Call the initialization function after the DOM is fully loaded
+            setTimeout(initializeSeverity, 100);
+            
+            // =============================================
+            // Violation Type Change Handler
+            // =============================================
+            violationTypeSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                console.log('Selected violation type:', selectedOption.textContent);
+                
+                // Get severity from data attribute
+                const severity = selectedOption.dataset.severity;
+                console.log('Severity from data attribute:', severity);
+                
+                if (severity) {
+                    // Set the severity in the select field
+                    const severitySelect = document.getElementById('severity');
+                    if (severitySelect) {
+                        severitySelect.value = severity;
+                        console.log('Setting severity to:', severity);
+                        
+                        // Trigger the change event to update dependent fields
+                        severitySelect.dispatchEvent(new Event('change'));
+                    } else {
+                        console.error('Severity select element not found');
+                    }
+                }
+            });
             
             // =============================================
             // Category Change Handler
@@ -279,22 +421,36 @@
                         const data = await response.json();
                         console.log('Received data:', data);
                         
-                        if (Array.isArray(data)) {
-                            if (data.length === 0) {
-                                console.log('No violation types found for this category');
-                                return;
-                            }
-                            
+                        // Clear existing options
+                        violationTypeSelect.innerHTML = '<option value="">Select Violation Type</option>';
+                        
+                        if (Array.isArray(data) && data.length > 0) {
+                            console.log('Processing violation types:', data.length);
                             data.forEach(type => {
                                 console.log('Adding option:', type);
                                 const option = document.createElement('option');
                                 option.value = type.id;
                                 option.textContent = type.name;
+                                
+                                // Make sure severity is set correctly
+                                const severity = type.severity || 'Medium';
+                                option.dataset.severity = severity;
+                                
+                                console.log('Adding violation type with severity:', type.name, severity);
                                 violationTypeSelect.appendChild(option);
                             });
+                            
+                            // If we have options, trigger change on the first one to update severity
+                            if (violationTypeSelect.options.length > 1) {
+                                console.log('Auto-selecting first violation type');
+                                violationTypeSelect.selectedIndex = 0; // Select the first option (which is the placeholder)
+                                violationTypeSelect.selectedIndex = 1; // Select the first real option
+                                violationTypeSelect.dispatchEvent(new Event('change'));
+                            }
                         } else {
-                            console.error('Data is not an array:', data);
+                            console.log('No violation types found for this category');
                         }
+                    }
                     } catch (error) {
                         console.error('Error fetching violation types:', error);
                         violationTypeSelect.innerHTML = '<option value="">Error loading violation types</option>';

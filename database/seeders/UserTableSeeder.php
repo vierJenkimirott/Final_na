@@ -33,15 +33,21 @@ class UserTableSeeder extends Seeder
         // Create educator users
         $educators = [
             [
-                'name' => 'Charwel Glera',
-                'email' => 'educator1@example.com',
+                'name' => 'Jean Tumulak',
+                'fname' => 'Jean',
+                'lname' => 'Tumulak',
+                'educator_id' => '23456789',
+                'email' => 'educator2@example.com',
                 'password' => 'password123',
-                'sex' => 'male',
-                'gender' => 'male' // For backward compatibility
+                'sex' => 'female',
+                'gender' => 'female' // For backward compatibility
             ],
             [
-                'name' => 'Jane Tumulak',
-                'email' => 'educator2@example.com',
+                'name' => 'Charwel Glera',
+                'fname' => 'Charwel',
+                'lname' => 'Glera',
+                'educator_id' => '12345678',
+                'email' => 'educator1@example.com',
                 'password' => 'password123',
                 'sex' => 'female',
                 'gender' => 'female' // For backward compatibility
@@ -53,6 +59,9 @@ class UserTableSeeder extends Seeder
                 ['email' => $educator['email']],
                 [
                     'name' => $educator['name'],
+                    'fname' => $educator['fname'],
+                    'lname' => $educator['lname'],
+                    'educator_id' => $educator['educator_id'],
                     'sex' => $educator['sex'],
                     'gender' => $educator['gender'], // For backward compatibility
                     'password' => Hash::make($educator['password'])
@@ -69,8 +78,8 @@ class UserTableSeeder extends Seeder
                 'name' => 'Jenvier Montano',
                 'fname' => 'Jenvier',
                 'lname' => 'Montano',
-                'student_id' => 'S2025001',
-                'email' => 'student1@example.com',
+                'student_id' => '2025010001C1',
+                'email' => 'jenvier@example.com',
                 'password' => 'password123',
                 'sex' => 'female',
                 'gender' => 'female' // For backward compatibility
@@ -79,8 +88,8 @@ class UserTableSeeder extends Seeder
                 'name' => 'Angelo Parrocho',
                 'fname' => 'Angelo',
                 'lname' => 'Parrocho',
-                'student_id' => 'S2025002',
-                'email' => 'student2@example.com',
+                'student_id' => '2025010002C1',
+                'email' => 'angelo@example.com',
                 'password' => 'password123',
                 'sex' => 'male',
                 'gender' => 'male' // For backward compatibility
@@ -89,8 +98,8 @@ class UserTableSeeder extends Seeder
                 'name' => 'Jasper Drake',
                 'fname' => 'Jasper',
                 'lname' => 'Drake',
-                'student_id' => 'S2025003',
-                'email' => 'student3@example.com',
+                'student_id' => '2025010003C1',
+                'email' => 'jasper@example.com',
                 'password' => 'password123',
                 'sex' => 'male',
                 'gender' => 'male' // For backward compatibility
@@ -99,8 +108,8 @@ class UserTableSeeder extends Seeder
                 'name' => 'Sarah Jumuad',
                 'fname' => 'Sarah',
                 'lname' => 'Jumuad',
-                'student_id' => 'S2025004',
-                'email' => 'student4@example.com',
+                'student_id' => '2025010004C1',
+                'email' => 'sarah@example.com',
                 'password' => 'password123',
                 'sex' => 'female',
                 'gender' => 'female' // For backward compatibility
@@ -109,8 +118,8 @@ class UserTableSeeder extends Seeder
                 'name' => 'Dion Paner',
                 'fname' => 'Dion',
                 'lname' => 'Paner',
-                'student_id' => 'S2025005',
-                'email' => 'student5@example.com',
+                'student_id' => '2025010005C1',
+                'email' => 'dion@example.com',
                 'password' => 'password123',
                 'sex' => 'male',
                 'gender' => 'male' // For backward compatibility
@@ -119,8 +128,8 @@ class UserTableSeeder extends Seeder
                 'name' => 'Micheal Jovita',
                 'fname' => 'Micheal',
                 'lname' => 'Jovita',
-                'student_id' => 'S2025006',
-                'email' => 'student6@example.com',
+                'student_id' => '2025010006C1',
+                'email' => 'micheal@example.com',
                 'password' => 'password123',
                 'sex' => 'male',
                 'gender' => 'male' // For backward compatibility
@@ -129,8 +138,8 @@ class UserTableSeeder extends Seeder
                 'name' => 'Junrel Ejurango',
                 'fname' => 'Junrel',
                 'lname' => 'Ejurango',
-                'student_id' => 'S2025007',
-                'email' => 'student7@example.com',
+                'student_id' => '2025010007C1',
+                'email' => 'junrel@example.com',
                 'password' => 'password123',
                 'sex' => 'male',
                 'gender' => 'male' // For backward compatibility
@@ -139,8 +148,8 @@ class UserTableSeeder extends Seeder
                 'name' => 'Nicole Oco',
                 'fname' => 'Nicole',
                 'lname' => 'Oco',
-                'student_id' => 'S2025008',
-                'email' => 'student8@example.com',
+                'student_id' => '2025010008C1',
+                'email' => 'nicole@example.com',
                 'password' => 'password123',
                 'sex' => 'female',
                 'gender' => 'female' // For backward compatibility
@@ -149,8 +158,8 @@ class UserTableSeeder extends Seeder
                 'name' => 'Lotchene Balcorza',
                 'fname' => 'Lotchene',
                 'lname' => 'Balcorza',
-                'student_id' => 'S2025009',
-                'email' => 'student9@example.com',
+                'student_id' => '2025010009C1',
+                'email' => 'lotchene@example.com',
                 'password' => 'password123',
                 'sex' => 'female',
                 'gender' => 'female' // For backward compatibility
@@ -159,12 +168,113 @@ class UserTableSeeder extends Seeder
                 'name' => 'Marie Dasian',
                 'fname' => 'Marie',
                 'lname' => 'Dasian',
-                'student_id' => 'S2025010',
-                'email' => 'student10@example.com',
+                'student_id' => '2025010010C1',
+                'email' => 'marie@example.com',
+                'password' => 'password123',
+                'sex' => 'female',
+                'gender' => 'female' // For backward compatibility
+            ],
+            [
+                'name' => 'Jincent Caritan',
+                'fname' => 'Jincent',
+                'lname' => 'Caritan',
+                'student_id' => '2026010001C1',
+                'email' => 'jincent@example.com',
+                'password' => 'password123',
+                'sex' => 'male',
+                'gender' => 'male' // For backward compatibility
+            ],
+            [
+                'name' => 'Alfe Pagunsan',
+                'fname' => 'Alfe',
+                'lname' => 'Pagunsan',
+                'student_id' => '2026010002C1',
+                'email' => 'alfe2@example.com',
+                'password' => 'password123',
+                'sex' => 'male',
+                'gender' => 'male' // For backward compatibility
+            ],
+            [
+                'name' => 'Josh Calub',
+                'fname' => 'Josh',
+                'lname' => 'Calub',
+                'student_id' => '2026010003C1',
+                'email' => 'josh@example.com',
+                'password' => 'password123',
+                'sex' => 'male',
+                'gender' => 'male' // For backward compatibility
+            ],
+            [
+                'name' => 'Radel Agsalud',
+                'fname' => 'Radel',
+                'lname' => 'Agsalud',
+                'student_id' => '2026010004C1',
+                'email' => 'radel@example.com',
+                'password' => 'password123',
+                'sex' => 'male',
+                'gender' => 'male' // For backward compatibility
+            ],
+            [
+                'name' => 'Arnel Condez',
+                'fname' => 'Arnel',
+                'lname' => 'Condez',
+                'student_id' => '2026010005C1',
+                'email' => 'arnel@example.com',
+                'password' => 'password123',
+                'sex' => 'male',
+                'gender' => 'male' // For backward compatibility
+            ],
+            [
+                'name' => 'Cherry Tenepre',
+                'fname' => 'Cherry',
+                'lname' => 'Tenepre',
+                'student_id' => '2026010006C1',
+                'email' => 'cherry@example.com',
+                'password' => 'password123',
+                'sex' => 'female',
+                'gender' => 'female' // For backward compatibility
+            ],
+            [
+                'name' => 'Jane Ruben',
+                'fname' => 'Jane',
+                'lname' => 'Ruben',
+                'student_id' => '2026010007C1',
+                'email' => 'jane@example.com',
+                'password' => 'password123',
+                'sex' => 'female',
+                'gender' => 'female' // For backward compatibility
+            ],
+            [
+                'name' => 'Grace Bautista',
+                'fname' => 'Grace',
+                'lname' => 'Baustista',
+                'student_id' => '2026010008C1',
+                'email' => 'grace@example.com',
+                'password' => 'password123',
+                'sex' => 'female',
+                'gender' => 'female' // For backward compatibility
+            ],
+            [
+                'name' => 'Wendolyn Dante',
+                'fname' => 'Wendolyn',
+                'lname' => 'Dante',
+                'student_id' => '2026010009C1',
+                'email' => 'wendolyn@example.com',
+                'password' => 'password123',
+                'sex' => 'female',
+                'gender' => 'female' // For backward compatibility
+            ],
+            [
+                'name' => 'Glaiza Bejec',
+                'fname' => 'Glaiza',
+                'lname' => 'Bejec',
+                'student_id' => '2026010010C1',
+                'email' => 'glaiza@example.com',
                 'password' => 'password123',
                 'sex' => 'female',
                 'gender' => 'female' // For backward compatibility
             ]
+
         ];
 
         foreach ($students as $student) {

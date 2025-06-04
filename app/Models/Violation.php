@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\StudentDetails;
 
 class Violation extends Model
 {
@@ -25,6 +26,19 @@ class Violation extends Model
     public function student()
     {
         return $this->belongsTo(User::class, 'student_id', 'student_id');
+    }
+    
+    // Define the relationship with StudentDetails through User
+    public function studentDetails()
+    {
+        return $this->hasOneThrough(
+            StudentDetails::class,
+            User::class,
+            'student_id', // Foreign key on users table
+            'user_id',    // Foreign key on student_details table
+            'student_id', // Local key on violations table
+            'id'          // Local key on users table
+        );
     }
 
     // Define the relationship with the ViolationType model

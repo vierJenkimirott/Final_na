@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
             SeveritySeeder::class,
             ViolationsSeeder::class,
             // Comment out the line below if you don't want to generate random violations
-            // RandomViolationsSeeder::class,
+            // RandomViolationsSeeder::class
         ]);
     }
 }

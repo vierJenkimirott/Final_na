@@ -41,6 +41,8 @@ Route::prefix('admin')->middleware(['auth', \App\Http\Middleware\AdminMiddleware
 Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMiddleware::class])->group(function () {
     // Dashboard
     Route::get('/dashboard', [EducatorController::class, 'dashboard'])->name('educator.dashboard');
+    Route::get('/students-by-batch', [EducatorController::class, 'getStudentsByBatch'])->name('educator.students-by-batch');
+    Route::get('/violations/count', [ViolationController::class, 'countViolationsByBatchFilter'])->name('educator.violations-count');
 
     // Violations Listing
     Route::get('/violation', [ViolationController::class, 'index'])->name('educator.violation');
@@ -67,6 +69,7 @@ Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMidd
     // API Routes for Form Data
     Route::get('/violation-form-data', [ViolationController::class, 'getFormData'])->name('educator.violation-form-data');
     Route::get('/violation-types/{categoryId}', [ViolationController::class, 'getViolationTypesByCategory']);
+    Route::get('/check-existing-violations', [ViolationController::class, 'checkExistingViolations'])->name('educator.check-existing-violations');
 
     // Violation Statistics Route
     Route::get('/violation-stats', [ViolationController::class, 'getViolationStatsByPeriod'])->name('educator.violation-stats');
@@ -98,6 +101,9 @@ Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMidd
 // API Routes
 Route::prefix('api')->middleware(['auth'])->group(function () {
     Route::get('/violation-stats', [ViolationController::class, 'getViolationStatsByPeriod'])->name('api.violation-stats');
+    Route::get('/violation-stats-by-batch', [BehaviorDataController::class, 'getViolationStatsByBatch'])->name('api.violation-stats-by-batch');
+    Route::get('/violations/count', [ViolationController::class, 'countViolationsByBatchFilter'])->name('api.violations-count');
+    Route::get('/students/compliance', [EducatorController::class, 'getStudentComplianceByBatch'])->name('api.students-compliance');
 });
 
 // Student routes

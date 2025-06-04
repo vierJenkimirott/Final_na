@@ -150,113 +150,76 @@
             </div>
 
             <!-- Warning Statistics Section -->
-            <section class="warning-section">
+            @php
+                // Get unique students with Verbal Warning penalty
+                $verbalWarningStudents = DB::table('violations')
+                    ->join('users', 'violations.student_id', '=', 'users.student_id')
+                    ->select('users.fname', 'users.lname', 'users.student_id')
+                    ->where('violations.penalty', 'VW')
+                    ->where('violations.status', 'active')
+                    ->groupBy('users.student_id', 'users.fname', 'users.lname')
+                    ->get();
+                $verbalWarningCount = count($verbalWarningStudents);
+                
+                // Get unique students with Written Warning penalty
+                $writtenWarningStudents = DB::table('violations')
+                    ->join('users', 'violations.student_id', '=', 'users.student_id')
+                    ->select('users.fname', 'users.lname', 'users.student_id')
+                    ->where('violations.penalty', 'WW')
+                    ->where('violations.status', 'active')
+                    ->groupBy('users.student_id', 'users.fname', 'users.lname')
+                    ->get();
+                $writtenWarningCount = count($writtenWarningStudents);
+                
+                // Get unique students with Probation penalty
+                $probationStudents = DB::table('violations')
+                    ->join('users', 'violations.student_id', '=', 'users.student_id')
+                    ->select('users.fname', 'users.lname', 'users.student_id')
+                    ->where('violations.penalty', 'Pro')
+                    ->where('violations.status', 'active')
+                    ->groupBy('users.student_id', 'users.fname', 'users.lname')
+                    ->get();
+                $probationCount = count($probationStudents);
+                
+                // Get unique students with Expulsion penalty
+                $expulsionStudents = DB::table('violations')
+                    ->join('users', 'violations.student_id', '=', 'users.student_id')
+                    ->select('users.fname', 'users.lname', 'users.student_id')
+                    ->where('violations.penalty', 'Exp')
+                    ->where('violations.status', 'active')
+                    ->groupBy('users.student_id', 'users.fname', 'users.lname')
+                    ->get();
+                $expulsionCount = count($expulsionStudents);
+            @endphp
+            <section class="warning-section" style="padding: 20px; display: flex; justify-content: space-between; flex-wrap: nowrap;">
                 <!-- Penalty Statistics Boxes -->
-                <div class="column">
-                    @php
-                        // Get unique students with Warning penalty
-                        $warningStudents = DB::table('violations')
-                            ->join('users', 'violations.student_id', '=', 'users.student_id')
-                            ->select('users.fname', 'users.lname', 'users.student_id')
-                            ->where('violations.penalty', 'W')
-                            ->where('violations.status', 'active')
-                            ->groupBy('users.student_id', 'users.fname', 'users.lname')
-                            ->get();
-                        $warningCount = count($warningStudents);
-                    @endphp
-                    <a href="{{ route('educator.students-by-penalty', ['penalty' => 'W']) }}" class="warning-box tall">
-                        <i class="fas fa-exclamation-circle" style="font-size: 1.5rem; color: #ffc107;"></i>
-                        <div class="penalty-header">
-                            <span>Warning Students</span>
-                            <span class="count-badge">{{ $warningCount }}</span>
-                        </div>
-
-                    </a>
-                    
-                    @php
-                        // Get unique students with Written Warning penalty
-                        $writtenWarningStudents = DB::table('violations')
-                            ->join('users', 'violations.student_id', '=', 'users.student_id')
-                            ->select('users.fname', 'users.lname', 'users.student_id')
-                            ->where('violations.penalty', 'WW')
-                            ->where('violations.status', 'active')
-                            ->groupBy('users.student_id', 'users.fname', 'users.lname')
-                            ->get();
-                        $writtenWarningCount = count($writtenWarningStudents);
-                    @endphp
-                    <a href="{{ route('educator.students-by-penalty', ['penalty' => 'WW']) }}" class="warning-box tall">
-                        <i class="fas fa-file-alt" style="font-size: 1.5rem; color: #4e73df;"></i>
-                        <div class="penalty-header">
-                            <span>Written Warning</span>
-                            <span class="count-badge">{{ $writtenWarningCount }}</span>
-                        </div>
-
-                    </a>
-                </div>
+                <a href="{{ route('educator.students-by-penalty', ['penalty' => 'VW']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
+                    <div class="penalty-header" style="display: flex; flex-direction: column; align-items: center;">
+                        <span>Verbal Warning<br>Student</span>
+                        <span class="count-badge" style="background: none; width: auto; height: auto; margin-top: 10px; font-size: 36px; color: #333;">{{ $verbalWarningCount }}</span>
+                    </div>
+                </a>
                 
-                <div class="column center">
-                    @php
-                        // Get unique students with Verbal Warning penalty
-                        $verbalWarningStudents = DB::table('violations')
-                            ->join('users', 'violations.student_id', '=', 'users.student_id')
-                            ->select('users.fname', 'users.lname', 'users.student_id')
-                            ->where('violations.penalty', 'VW')
-                            ->where('violations.status', 'active')
-                            ->groupBy('users.student_id', 'users.fname', 'users.lname')
-                            ->get();
-                        $verbalWarningCount = count($verbalWarningStudents);
-                    @endphp
-                    <a href="{{ route('educator.students-by-penalty', ['penalty' => 'VW']) }}" class="warning-box wide">
-                        <i class="fas fa-comments" style="font-size: 1.5rem; color: #36b9cc;"></i>
-                        <div class="penalty-header">
-                            <span>Verbal Warning</span>
-                            <span class="count-badge">{{ $verbalWarningCount }}</span>
-                        </div>
-
-                    </a>
-                </div>
+                <a href="{{ route('educator.students-by-penalty', ['penalty' => 'WW']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
+                    <div class="penalty-header" style="display: flex; flex-direction: column; align-items: center;">
+                        <span>Written Warning<br>Student</span>
+                        <span class="count-badge" style="background: none; width: auto; height: auto; margin-top: 10px; font-size: 36px; color: #333;">{{ $writtenWarningCount }}</span>
+                    </div>
+                </a>
                 
-                <div class="column">
-                    @php
-                        // Get unique students with Probation penalty
-                        $probationStudents = DB::table('violations')
-                            ->join('users', 'violations.student_id', '=', 'users.student_id')
-                            ->select('users.fname', 'users.lname', 'users.student_id')
-                            ->where('violations.penalty', 'Pro')
-                            ->where('violations.status', 'active')
-                            ->groupBy('users.student_id', 'users.fname', 'users.lname')
-                            ->get();
-                        $probationCount = count($probationStudents);
-                    @endphp
-                    <a href="{{ route('educator.students-by-penalty', ['penalty' => 'Pro']) }}" class="warning-box tall">
-                        <i class="fas fa-user-clock" style="font-size: 1.5rem; color: #f6c23e;"></i>
-                        <div class="penalty-header">
-                            <span>Probation</span>
-                            <span class="count-badge">{{ $probationCount }}</span>
-                        </div>
-
-                    </a>
-                    
-                    @php
-                        // Get unique students with Expulsion penalty
-                        $expulsionStudents = DB::table('violations')
-                            ->join('users', 'violations.student_id', '=', 'users.student_id')
-                            ->select('users.fname', 'users.lname', 'users.student_id')
-                            ->where('violations.penalty', 'Exp')
-                            ->where('violations.status', 'active')
-                            ->groupBy('users.student_id', 'users.fname', 'users.lname')
-                            ->get();
-                        $expulsionCount = count($expulsionStudents);
-                    @endphp
-                    <a href="{{ route('educator.students-by-penalty', ['penalty' => 'Exp']) }}" class="warning-box tall">
-                        <i class="fas fa-user-slash" style="font-size: 1.5rem; color: #e74a3b;"></i>
-                        <div class="penalty-header">
-                            <span>Expulsion</span>
-                            <span class="count-badge">{{ $expulsionCount }}</span>
-                        </div>
-
-                    </a>
-                </div>
+                <a href="{{ route('educator.students-by-penalty', ['penalty' => 'Pro']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
+                    <div class="penalty-header" style="display: flex; flex-direction: column; align-items: center;">
+                        <span>Probation Student</span>
+                        <span class="count-badge" style="background: none; width: auto; height: auto; margin-top: 10px; font-size: 36px; color: #333;">{{ $probationCount }}</span>
+                    </div>
+                </a>
+                
+                <a href="{{ route('educator.students-by-penalty', ['penalty' => 'Exp']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
+                    <div class="penalty-header" style="display: flex; flex-direction: column; align-items: center;">
+                        <span>Expulsion Student</span>
+                        <span class="count-badge" style="background: none; width: auto; height: auto; margin-top: 10px; font-size: 36px; color: #333;">{{ $expulsionCount }}</span>
+                    </div>
+                </a>
             </section>
 
             <!-- Violations Table Section -->
@@ -300,7 +263,6 @@
                                     <td>
                                         @php
                                             $penaltyLabels = [
-                                                'W' => ['label' => 'Warning', 'class' => 'bg-warning text-dark'],
                                                 'VW' => ['label' => 'Verbal Warning', 'class' => 'bg-info text-dark'],
                                                 'WW' => ['label' => 'Written Warning', 'class' => 'bg-primary'],
                                                 'Pro' => ['label' => 'Probation', 'class' => 'bg-warning text-dark'],

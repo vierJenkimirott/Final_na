@@ -81,14 +81,8 @@
                 <!-- Offense Selection -->
                 <div class="form-group" id="offense-group">
                     <label for="offense">Offense</label>
-                    <select class="form-field" id="offense" name="offense" required>
-                        <option value="" selected disabled>Select Offense</option>
-                        @if(isset($offenses) && count($offenses) > 0)
-                            @foreach($offenses as $offense)
-                                <option value="{{ $offense }}">{{ $offense }} Offense</option>
-                            @endforeach
-                        @endif
-                    </select>
+                    <input type="text" class="form-field" id="offense" name="offense" readonly value="1st offense" />
+                    <input type="hidden" id="offense-count" name="offense_count" value="1" />
                 </div>
 
                 <!-- Penalty Selection -->
@@ -184,6 +178,15 @@
                             console.log('Adding violation type:', violation.name, 'with severity:', violation.severity);
                             violationTypeSelect.appendChild(option);
                         });
+                        
+                        // If we have options, select the first one to initialize severity
+                        if (violationTypeSelect.options.length > 1) {
+                            // Select the first real option (index 1, after the placeholder)
+                            violationTypeSelect.selectedIndex = 1;
+                            // Trigger the change event to update severity and dependent fields
+                            violationTypeSelect.dispatchEvent(new Event('change'));
+                            console.log('Auto-selected first violation type to initialize severity');
+                        }
                     } else {
                         // If no data is returned, show a message
                         const option = document.createElement('option');
@@ -219,12 +222,38 @@
             // Set the severity in the input field
             document.getElementById('severity').value = severity;
             
-            // Update offense options based on severity
-            updateOffenseOptions(severity);
+            // Reset offense to 1st by default
+            document.getElementById('offense').value = '1st offense';
+            document.getElementById('offense-count').value = '1';
             
-            // Reset offense and penalty selections
-            document.getElementById('offense').selectedIndex = 0;
-            document.getElementById('penalty').selectedIndex = 0;
+            // Check if student is selected and if so, check for existing violations
+            const studentId = document.getElementById('student-select').value;
+            if (studentId) {
+                checkExistingViolations(studentId, this.value);
+            }
+            
+            // Update penalty based on severity and offense
+            setPenalty(severity, '1st');
+        }
+    });
+
+    /**
+     * Handle student select change event
+     * Reset offense count when student changes or check for existing violations
+     */
+    document.getElementById('student-select').addEventListener('change', function() {
+        // Reset offense to 1st offense by default
+        document.getElementById('offense-count').value = '1';
+        document.getElementById('offense').value = '1st offense';
+        
+        // Check if violation type is selected and if so, check for existing violations
+        const violationTypeId = document.getElementById('violation-type').value;
+        if (violationTypeId) {
+            checkExistingViolations(this.value, violationTypeId);
+        } else {
+            // Just update penalty based on current severity and 1st offense
+            const severity = document.getElementById('severity').value;
+            setPenalty(severity, '1st');
         }
     });
 
@@ -237,6 +266,34 @@
         const offense = this.value;
         setPenalty(severity, offense);
     });
+    
+    // Add a 4th offense option for low severity
+    document.getElementById('violation-type').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const severity = selectedOption.dataset.severity;
+        const offenseSelect = document.getElementById('offense');
+        
+        // Clear existing options
+        while (offenseSelect.options.length > 1) {
+            offenseSelect.remove(1);
+        }
+        
+        // Add standard options
+        const offenses = ['1st', '2nd', '3rd'];
+        
+        // Add 4th offense for low severity
+        if (severity && severity.toLowerCase() === 'low') {
+            offenses.push('4th');
+        }
+        
+        // Populate the offense dropdown
+        offenses.forEach(offense => {
+            const option = document.createElement('option');
+            option.value = offense;
+            option.textContent = `${offense} Offense`;
+            offenseSelect.appendChild(option);
+        });
+    });
 
     /**
  * Set penalty value based on severity and offense
@@ -247,23 +304,34 @@ function setPenalty(severity, offense) {
     const penaltyInput = document.getElementById('penalty');
     let penalty = '';
     const normalizedSeverity = severity.toLowerCase();
+    
+    // Map penalties to their code values
+    const penaltyMap = {
+        'Verbal Warning': 'VW',
+        'Written Warning': 'WW',
+        'Probation': 'Pro',
+        'Expulsion': 'Exp'
+    };
 
+    // Determine the appropriate penalty based on severity and offense count
     if (normalizedSeverity === 'low') {
-        if (offense === '1st') penalty = 'Warning';
-        else if (offense === '2nd') penalty = 'Verbal Warning';
-        else if (offense === '3rd') penalty = 'Written Warning';
-    } else if (normalizedSeverity === 'medium') {
         if (offense === '1st') penalty = 'Verbal Warning';
         else if (offense === '2nd') penalty = 'Written Warning';
         else if (offense === '3rd') penalty = 'Probation';
-    } else if (normalizedSeverity === 'high') {
+        else penalty = 'Expulsion'; // 4th or more offense
+    } else if (normalizedSeverity === 'medium') {
         if (offense === '1st') penalty = 'Written Warning';
         else if (offense === '2nd') penalty = 'Probation';
-        else if (offense === '3rd') penalty = 'Expulsion';
+        else penalty = 'Expulsion'; // 3rd or more offense
+    } else if (normalizedSeverity === 'high') {
+        if (offense === '1st') penalty = 'Probation';
+        else penalty = 'Expulsion'; // 2nd or more offense
     } else if (normalizedSeverity === 'very high') {
-        if (offense === '1st') penalty = 'Expulsion';
+        penalty = 'Expulsion'; // Always expulsion for very high severity
     }
-    penaltyInput.value = penalty;
+    
+    // Set the penalty value to the code, not the label
+    penaltyInput.value = penaltyMap[penalty] || '';
 }
 
     document.getElementById('consequence-select').addEventListener('change', function() {
@@ -298,6 +366,8 @@ function setPenalty(severity, offense) {
     /**
      * Update offense options based on severity level
      * @param {string} severity - The severity level of the violation
+     * 
+     * Note: This function is now handled by the violation-type change event handler
      */
     function updateOffenseOptions(severity) {
         const offenseSelect = document.getElementById('offense');
@@ -390,6 +460,96 @@ function setPenalty(severity, offense) {
         }
     }
 
+    /**
+     * Check for existing violations for a student with the same severity
+     * @param {string} studentId - The student ID
+     * @param {string} violationTypeId - The violation type ID
+     */
+    function checkExistingViolations(studentId, violationTypeId) {
+        if (!studentId || !violationTypeId) {
+            console.log('Missing student ID or violation type ID');
+            return;
+        }
+        
+        console.log('Checking existing violations for student:', studentId, 'and violation type:', violationTypeId);
+        
+        // Fetch existing violations count for this student and severity
+        fetch(`/educator/check-existing-violations?student_id=${studentId}&violation_type_id=${violationTypeId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Received offense data:', data);
+                if (data && data.offenseCount) {
+                    // Use the offense string directly from the API if available
+                    const offenseString = data.offenseString || '1st offense';
+                    const offenseNum = data.offenseCount;
+                    
+                    // Map numeric values to strings if offenseString is not provided
+                    const offenseMap = {
+                        1: '1st',
+                        2: '2nd',
+                        3: '3rd',
+                        4: '4th'
+                    };
+                    const offenseText = offenseMap[offenseNum] || '1st';
+                    
+                    // Update the offense field
+                    document.getElementById('offense-count').value = offenseNum;
+                    document.getElementById('offense').value = data.offenseString || `${offenseText} offense`;
+                    
+                    // Use the final penalty from the API if available
+                    if (data.finalPenalty) {
+                        // Map penalty codes to dropdown values
+                        const penaltyMap = {
+                            'VW': 'Verbal Warning',
+                            'WW': 'Written Warning',
+                            'Pro': 'Probation',
+                            'Exp': 'Expulsion'
+                        };
+                        
+                        const penaltyText = penaltyMap[data.finalPenalty] || '';
+                        const penaltySelect = document.getElementById('penalty');
+                        
+                        // Find and select the option with the matching text
+                        for (let i = 0; i < penaltySelect.options.length; i++) {
+                            if (penaltySelect.options[i].text === penaltyText) {
+                                penaltySelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                        
+                        console.log(`Set penalty to ${penaltyText} based on highest existing penalty`);
+                    } else {
+                        // Fallback to the old method if finalPenalty is not provided
+                        const severity = document.getElementById('severity').value;
+                        setPenalty(severity, offenseText);
+                    }
+                    
+                    console.log(`Set offense to ${offenseString || `${offenseText} offense`} based on existing violations`);
+                } else {
+                    // Default to 1st offense if no existing violations
+                    document.getElementById('offense-count').value = '1';
+                    document.getElementById('offense').value = '1st offense';
+                    
+                    // Update penalty based on severity and 1st offense
+                    const severity = document.getElementById('severity').value;
+                    setPenalty(severity, '1st');
+                    
+                    console.log('No existing violations found, set to 1st offense');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking existing violations:', error);
+                // Default to 1st offense on error
+                document.getElementById('offense-count').value = '1';
+                document.getElementById('offense').value = '1st offense';
+            });
+    }
+    
     // Add a hidden status field to the form
     const statusField = document.createElement('input');
     statusField.type = 'hidden';

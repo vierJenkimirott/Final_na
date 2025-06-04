@@ -669,6 +669,9 @@ window.updateCustomLegend = function() {
 window.filterDataByBatch = function(batch) {
     console.log('Filtering data by batch:', batch);
     
+    // Store the current batch filter
+    window.currentBatchFilter = batch;
+    
     // Update active state of batch filter buttons
     document.querySelectorAll('.batch-filter').forEach(button => {
         if (button.getAttribute('data-batch') === batch) {
@@ -678,11 +681,760 @@ window.filterDataByBatch = function(batch) {
         }
     });
     
-    // Store the current batch filter
-    window.currentBatchFilter = batch;
+    // Show loading indicator
+    const loadingElement = document.getElementById('chartLoading');
+    if (loadingElement) {
+        loadingElement.style.display = 'flex';
+    }
     
-    // Refresh the chart with the new filter
-    window.updateChartByPeriod();
+    // Get CSRF token for secure request
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
+    // Refresh the behavior chart with the new filter - only if we're on the behavior page
+    // Check if necessary elements exist before calling updateChartByPeriod
+    const yearSelect = document.getElementById('yearSelect');
+    const monthSelect = document.getElementById('monthSelect');
+    
+    if (yearSelect && monthSelect) {
+        // We're on the behavior page, update chart
+        window.updateChartByPeriod();
+    } else {
+        // We're on the dashboard page, call dashboard-specific functions
+        console.log('On dashboard page, updating batch filtering');
+        
+        // Call dashboard-specific functions
+        window.dashboardFilterByBatch(batch);
+    }
+};
+
+// Function to handle dashboard-specific batch filtering
+window.dashboardFilterByBatch = function(batch) {
+    console.log('Dashboard-specific batch filtering for:', batch);
+    
+    // Get the total students count element
+    let studentCountElement = document.getElementById('total-students-count');
+    // Get the total violations count element
+    let violationsCountElement = document.getElementById('total-violations-count');
+    
+    if (studentCountElement) {
+        // Show loading spinner
+        studentCountElement.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        
+        // Make an AJAX request to get students by batch
+        fetch(`/educator/students-by-batch?batch=${batch}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            console.log('Students response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Students data received:', data);
+            // Update the student count - check if data.count exists and is not undefined
+            if (data && data.success && data.count !== undefined) {
+                studentCountElement.textContent = data.count.toString();
+                console.log('Updated student count to:', data.count);
+            } else if (data && data.count !== undefined) {
+                studentCountElement.textContent = data.count.toString();
+                console.log('Updated student count to:', data.count);
+            } else {
+                console.error('Invalid response format for student count:', data);
+                studentCountElement.textContent = '0';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching students by batch:', error);
+            studentCountElement.textContent = '0'; // Fallback
+        });
+    }
+        
+    if (violationsCountElement) {
+        // Show loading spinner
+        violationsCountElement.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        
+        // Make an AJAX request to get violations count by batch
+        fetch(`/educator/violations/count?batch=${batch}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            console.log('Violations response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Violations data received:', data);
+            // Update the violations count - check if data.count exists and is not undefined
+            if (data && data.success && data.count !== undefined) {
+                violationsCountElement.textContent = data.count.toString();
+                console.log('Updated violations count to:', data.count);
+            } else if (data && data.count !== undefined) {
+                violationsCountElement.textContent = data.count.toString();
+                console.log('Updated violations count to:', data.count);
+            } else {
+                console.error('Invalid response format for violations count:', data);
+                violationsCountElement.textContent = '0';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching violations count by batch:', error);
+            violationsCountElement.textContent = '0'; // Fallback
+        });
+    }
+        
+    // Update batch-specific sections visibility
+    window.updateBatchSpecificSections(batch);
+        
+    // Find all student section cards
+    const allBatchSections = document.querySelectorAll('.col-md-6');
+    let batch2025Section, batch2026Section;
+        
+    // Iterate through each section to find the batch-specific ones
+    allBatchSections.forEach(section => {
+        const headerElement = section.querySelector('.card-header h5');
+        if (headerElement) {
+            const headerText = headerElement.textContent;
+            if (headerText.includes('Batch 2025')) {
+                batch2025Section = section;
+            } else if (headerText.includes('Batch 2026')) {
+                batch2026Section = section;
+            }
+        }
+    });
+        
+    // Update visibility based on selected batch
+    if (batch2025Section && batch2026Section) {
+        if (batch === 'all') {
+            // Show both sections
+            batch2025Section.style.display = '';
+            batch2026Section.style.display = '';
+        } else if (batch === '2025') {
+            // Show only 2025 section
+            batch2025Section.style.display = '';
+            batch2026Section.style.display = 'none';
+        } else if (batch === '2026') {
+            // Show only 2026 section
+            batch2025Section.style.display = 'none';
+            batch2026Section.style.display = '';
+        }
+    } else {
+        console.warn('Could not find batch-specific student sections');
+    }
+    
+    // Show toast notification
+    const toastElement = document.getElementById('toastContainer');
+    if (toastElement) {
+        showToast(`Filtered to ${batch === 'all' ? 'all batches' : 'batch ' + batch}`, 'info');
+    }
+};
+
+// Function to filter data by batch range in the behavior monitoring page
+window.filterDataByBatchRange = function(startYear, endYear) {
+    console.log(`Filtering behavior data by batch range: ${startYear} to ${endYear}`);
+    
+    // Show loading indicator
+    const chartLoading = document.getElementById('chartLoading');
+    if (chartLoading) {
+        chartLoading.style.display = 'flex';
+    }
+    
+    // Update the chart based on the selected batch range
+    // This will make an AJAX request to get the filtered data
+    fetch(`/educator/behavior/data?startBatch=${startYear}&endBatch=${endYear}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Filtered behavior data received for batch range:', data);
+        
+        // Update the chart with the new data
+        if (window.behaviorChart) {
+            // Update male and female data points
+            window.behaviorChart.data.datasets[0].data = data.maleData || [];
+            window.behaviorChart.data.datasets[1].data = data.femaleData || [];
+            
+            // Update chart title to reflect the selected batch range
+            window.behaviorChart.options.plugins.title.text = `Student Violations by Month (Batches ${startYear}-${endYear})`;
+            
+            window.behaviorChart.update();
+        }
+        
+        // Hide loading indicator
+        if (chartLoading) {
+            chartLoading.style.display = 'none';
+        }
+        
+        // Update chart title in the DOM if it exists
+        const chartTitle = document.querySelector('.chart-title');
+        if (chartTitle) {
+            chartTitle.textContent = `Student Violations by Month (Batches ${startYear}-${endYear})`;
+        }
+        
+        // Show notification
+        window.showNotification('info', `Showing behavior data for batches ${startYear} to ${endYear}`, 'Batch Range Filter Updated');
+    })
+    .catch(error => {
+        console.error('Error fetching filtered behavior data for batch range:', error);
+        
+        // Hide loading indicator
+        if (chartLoading) {
+            chartLoading.style.display = 'none';
+        }
+        
+        // Show error notification
+        window.showNotification('error', 'Failed to load filtered behavior data for batch range. Please try again.', 'Error');
+    });
+};
+
+// Function to toggle the batch filter input field visibility
+window.toggleBatchFilterInput = function() {
+    const filterType = document.getElementById('batchFilterType').value;
+    const yearInput = document.getElementById('batchFilterYear');
+    const startYearInput = document.getElementById('batchFilterStartYear');
+    const endYearInput = document.getElementById('batchFilterEndYear');
+    const applyButton = document.getElementById('applyBatchFilter');
+    
+    // Hide all inputs first
+    yearInput.style.display = 'none';
+    startYearInput.style.display = 'none';
+    endYearInput.style.display = 'none';
+    applyButton.style.display = 'none';
+    
+    if (filterType === 'specific') {
+        // Show single year input
+        yearInput.style.display = 'block';
+        applyButton.style.display = 'block';
+        yearInput.focus();
+    } else if (filterType === 'range') {
+        // Show range inputs
+        startYearInput.style.display = 'block';
+        endYearInput.style.display = 'block';
+        applyButton.style.display = 'block';
+        startYearInput.focus();
+    } else {
+        // If 'All Batches' is selected, apply the filter immediately
+        window.filterDataByBatch('all');
+    }
+};
+
+// Function to apply the batch filter
+window.applyBatchFilter = function() {
+    const filterType = document.getElementById('batchFilterType').value;
+    
+    if (filterType === 'all') {
+        window.filterDataByBatch('all');
+    } else if (filterType === 'specific') {
+        const yearInput = document.getElementById('batchFilterYear');
+        const year = yearInput.value.trim();
+        
+        if (year && !isNaN(year)) {
+            window.filterDataByBatch(year);
+        } else {
+            window.showNotification('error', 'Please enter a valid year', 'Invalid Input');
+        }
+    } else if (filterType === 'range') {
+        const startYearInput = document.getElementById('batchFilterStartYear');
+        const endYearInput = document.getElementById('batchFilterEndYear');
+        const startYear = startYearInput.value.trim();
+        const endYear = endYearInput.value.trim();
+        
+        if (startYear && endYear && !isNaN(startYear) && !isNaN(endYear)) {
+            // Validate that start year is less than or equal to end year
+            if (parseInt(startYear) <= parseInt(endYear)) {
+                window.filterDataByBatchRange(startYear, endYear);
+            } else {
+                window.showNotification('error', 'Start year must be less than or equal to end year', 'Invalid Range');
+            }
+        } else {
+            window.showNotification('error', 'Please enter valid years for the range', 'Invalid Input');
+        }
+    }
+};
+
+// Function to filter data by batch in the behavior monitoring page
+window.filterDataByBatch = function(batch) {
+    console.log('Filtering behavior data by batch:', batch);
+    
+    // Show loading indicator
+    const chartLoading = document.getElementById('chartLoading');
+    if (chartLoading) {
+        chartLoading.style.display = 'flex';
+    }
+    
+    // Update the chart based on the selected batch
+    // This will make an AJAX request to get the filtered data
+    fetch(`/educator/behavior/data?batch=${batch}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Filtered behavior data received:', data);
+        
+        // Update the chart with the new data
+        if (window.behaviorChart) {
+            // Update male and female data points
+            window.behaviorChart.data.datasets[0].data = data.maleData || [];
+            window.behaviorChart.data.datasets[1].data = data.femaleData || [];
+            
+            // Update chart title to reflect the selected batch
+            window.behaviorChart.options.plugins.title.text = `Student Violations by Month ${batch === 'all' ? '' : '(' + batch + ')'}`;
+            
+            window.behaviorChart.update();
+        }
+        
+        // Hide loading indicator
+        if (chartLoading) {
+            chartLoading.style.display = 'none';
+        }
+        
+        // Update chart title in the DOM if it exists
+        const chartTitle = document.querySelector('.chart-title');
+        if (chartTitle) {
+            chartTitle.textContent = `Student Violations by Month ${batch === 'all' ? '' : '(' + batch + ')'}`;
+        }
+        
+        // Show notification
+        window.showNotification('info', `Showing behavior data for ${batch === 'all' ? 'all batches' : 'batch ' + batch}`, 'Batch Filter Updated');
+    })
+    .catch(error => {
+        console.error('Error fetching filtered behavior data:', error);
+        
+        // Hide loading indicator
+        if (chartLoading) {
+            chartLoading.style.display = 'none';
+        }
+        
+        // Show error notification
+        window.showNotification('error', 'Failed to load filtered behavior data. Please try again.', 'Error');
+    });
+};
+
+// Function to show toast notifications on the dashboard
+window.showToast = function(message, type = 'info') {
+    const toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) return;
+    
+    const toast = document.createElement('div');
+    toast.className = `toast show align-items-center text-white bg-${type === 'info' ? 'primary' : type}`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // Auto-remove the toast after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            toastContainer.removeChild(toast);
+        }, 300);
+    }, 3000);
+};
+
+// Function to update dashboard data based on batch filter
+window.updateDashboardData = function(batch) {
+    // Get CSRF token for secure request
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
+    // Update total students violation count using the proper endpoint
+    const countElement = document.getElementById('total-violations-count');
+
+    if (countElement) {
+        // Apply a loading state
+        const originalText = countElement.textContent;
+        countElement.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        
+        // Use the violations/count endpoint which is now available
+        fetch(`/educator/violations/count?batch=${batch}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': token,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                countElement.textContent = data.count;
+            } else {
+                throw new Error(data.message || 'Failed to get violation count');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating violation count:', error);
+            countElement.textContent = originalText; // Restore original on error
+        });
+    }
+    
+    // Update violation status overview chart using the API endpoint that exists
+    fetch(`/api/violation-stats-by-batch?batch=${batch}`, {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update violation status chart if it exists
+        const violationStatusChart = window.violationStatusChart;
+        if (violationStatusChart) {
+            violationStatusChart.data.datasets[0].data = [data.violatorCount, data.nonViolatorCount];
+            violationStatusChart.update();
+        }
+        
+        // Update the stats display
+        document.querySelectorAll('.stat-card').forEach(card => {
+            const h3Element = card.querySelector('h3');
+            if (!h3Element) return;
+            
+            if (card.textContent.includes('Violators') && !card.textContent.includes('Non-Violators')) {
+                h3Element.textContent = data.violatorCount;
+            } else if (card.textContent.includes('Non-Violators')) {
+                h3Element.textContent = data.nonViolatorCount;
+            }
+        });
+    })
+    .catch(error => {
+        console.error('Error updating violation status chart:', error);
+    });
+    
+    // Update violation report for the selected period
+    const period = document.getElementById('violation-filter')?.value || 'all';
+    
+    fetch(`/api/violation-stats?period=${period}&batch=${batch}`, {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const violationList = document.getElementById('violation-list');
+        if (violationList) {
+            // Apply a loading state
+            violationList.innerHTML = `
+                <div class="d-flex justify-content-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            
+            // Simulate a delay for the loading effect
+            setTimeout(() => {
+                violationList.innerHTML = '';
+                
+                if (data.length > 0) {
+                    const maxCount = Math.max(...data.map(item => item.count));
+                    data.forEach(violation => {
+                        const violationItem = document.createElement('div');
+                        violationItem.className = 'violation-item';
+                        violationItem.innerHTML = `
+                            <div class="violation-text">${violation.violation_name}</div>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: ${(violation.count / maxCount) * 100}%;"></div>
+                            </div>
+                        `;
+                        violationList.appendChild(violationItem);
+                    });
+                } else {
+                    violationList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-check"></i>
+                            <h5>No Violations</h5>
+                            <p class="text-muted">No violations recorded for this period.</p>
+                        </div>
+                    `;
+                }
+            }, 500);
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching violation report data:', error);
+        if (violationList) {
+            violationList.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Error loading violation data
+                </div>
+            `;
+        }
+    });
+    
+    // Update student tabs based on batch filter
+    fetch(`/educator/students-by-batch?batch=${batch}`, {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Apply batch filter to the existing tabs
+        const violatorsTab = document.getElementById('violators');
+        const nonViolatorsTab = document.getElementById('non-violators');
+        
+        if (violatorsTab) {
+            // Apply a loading state
+            violatorsTab.innerHTML = `
+                <div class="d-flex justify-content-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            
+            // Filter the existing DOM elements instead of fetching new data
+            setTimeout(() => {
+                // Implementation for updating violators tab
+                // This would typically involve DOM manipulation based on the batch filter
+            }, 500);
+        }
+    })
+    .catch(error => {
+        console.error('Error filtering student data:', error);
+    });
+    
+    // Show notification about the filter change
+    window.showNotification('info', `Filtered to ${batch === 'all' ? 'all batches' : 'batch ' + batch}`, 'Filter Applied');
+};
+
+// Function to update violation report based on period and batch
+window.updateViolationReport = function(batch) {
+    // Get CSRF token for secure request
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
+    // Get the selected period from the filter
+    const violationFilter = document.getElementById('violation-filter');
+    const period = violationFilter ? violationFilter.value : 'month';
+    
+    fetch(`/api/violation-stats?period=${period}&batch=${batch}`, {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const violationList = document.getElementById('violation-list');
+        if (violationList) {
+            // Apply a loading state
+            violationList.innerHTML = `
+                <div class="d-flex justify-content-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            
+            // Simulate a delay for the loading effect
+            setTimeout(() => {
+                violationList.innerHTML = '';
+                
+                if (data.length > 0) {
+                    const maxCount = Math.max(...data.map(item => item.count));
+                    data.forEach(violation => {
+                        const violationItem = document.createElement('div');
+                        violationItem.className = 'violation-item';
+                        violationItem.innerHTML = `
+                            <div class="violation-text">${violation.violation_name}</div>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: ${(violation.count / maxCount) * 100}%;"></div>
+                            </div>
+                        `;
+                        violationList.appendChild(violationItem);
+                    });
+                } else {
+                    violationList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-check"></i>
+                            <h5>No Violations</h5>
+                            <p class="text-muted">No violations recorded for this period.</p>
+                        </div>
+                    `;
+                }
+            }, 500);
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching violation report data:', error);
+        if (violationList) {
+            violationList.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i> Error loading violation data.
+                </div>
+            `;
+        }
+    });
+};
+
+// Function to update student tabs based on batch filter
+window.updateStudentTabs = function(batch) {
+    // Get CSRF token for secure request
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
+    // Update non-compliant and compliant students tabs
+    // Since we don't have a specific endpoint, use the students-by-batch endpoint
+    fetch(`/educator/students-by-batch?batch=${batch}`, {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Apply batch filter to the existing tabs
+        const violatorsTab = document.getElementById('violators');
+        const nonViolatorsTab = document.getElementById('non-violators');
+        
+        if (violatorsTab) {
+            // Apply a loading state
+            violatorsTab.innerHTML = `
+                <div class="d-flex justify-content-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            
+            // Filter the existing DOM elements instead of fetching new data
+            setTimeout(() => {
+                // For demonstration purposes, we'll show a filtered view
+                // In a real implementation, you would create proper endpoints
+                const studentElements = document.querySelectorAll('#violators .d-flex.align-items-center');
+                let visibleCount = 0;
+                
+                if (studentElements.length > 0) {
+                    violatorsTab.innerHTML = '';
+                    
+                    studentElements.forEach(element => {
+                        const studentId = element.querySelector('.text-muted.small')?.textContent;
+                        // If batch is 'all' or the student ID starts with the batch number, show it
+                        if (batch === 'all' || (studentId && studentId.startsWith(batch))) {
+                            violatorsTab.appendChild(element.cloneNode(true));
+                            visibleCount++;
+                        }
+                    });
+                    
+                    if (visibleCount === 0) {
+                        violatorsTab.innerHTML = `
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> No violation records found for ${batch === 'all' ? 'any batch' : 'batch ' + batch}.
+                            </div>
+                        `;
+                    }
+                } else {
+                    violatorsTab.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No violation records found.
+                        </div>
+                    `;
+                }
+            }, 500);
+        }
+        
+        if (nonViolatorsTab) {
+            // Apply a loading state
+            nonViolatorsTab.innerHTML = `
+                <div class="d-flex justify-content-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            
+            // Filter the existing DOM elements
+            setTimeout(() => {
+                const studentElements = document.querySelectorAll('#non-violators .d-flex.align-items-center');
+                let visibleCount = 0;
+                
+                if (studentElements.length > 0) {
+                    nonViolatorsTab.innerHTML = '';
+                    
+                    studentElements.forEach(element => {
+                        const studentId = element.querySelector('.text-muted.small')?.textContent;
+                        // If batch is 'all' or the student ID starts with the batch number, show it
+                        if (batch === 'all' || (studentId && studentId.startsWith(batch))) {
+                            nonViolatorsTab.appendChild(element.cloneNode(true));
+                            visibleCount++;
+                        }
+                    });
+                    
+                    if (visibleCount === 0) {
+                        nonViolatorsTab.innerHTML = `
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> No compliant students found for ${batch === 'all' ? 'any batch' : 'batch ' + batch}.
+                            </div>
+                        `;
+                    }
+                } else {
+                    nonViolatorsTab.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No compliant students found.
+                        </div>
+                    `;
+                }
+            }, 500);
+        }
+    })
+    .catch(error => {
+        console.error('Error filtering student data:', error);
+    });
+    
+    // Show notification about the filter change
+    window.showNotification('info', `Filtered to ${batch === 'all' ? 'all batches' : 'batch ' + batch}`, 'Filter Applied');
 };
 
 // Function to filter data by y-axis scale
@@ -948,6 +1700,75 @@ window.setupBehaviorChartEventListeners = function() {
     }
 };
 
+// Function to update chart based on selected time period
+window.updateChartByPeriod = function() {
+    try {
+        console.log('updateChartByPeriod called');
+        
+        // Get the selected year and month
+        const yearSelect = document.getElementById('yearSelect');
+        const monthSelect = document.getElementById('monthSelect');
+        
+        if (!yearSelect || !monthSelect) {
+            console.error('Year or month select elements not found');
+            return;
+        }
+        
+        const selectedYear = parseInt(yearSelect.value);
+        const selectedMonth = monthSelect.value;
+        
+        console.log('Selected year:', selectedYear, 'Selected month:', selectedMonth);
+        
+        // Validate year input
+        if (isNaN(selectedYear)) {
+            window.showNotification('warning', 'Please enter a valid year', 'Invalid Year');
+            return;
+        }
+        
+        // If a specific month is selected, generate weekly data for that month
+        if (selectedMonth !== 'all') {
+            const monthIndex = parseInt(selectedMonth);
+            const monthData = window.generateMonthData(monthIndex, selectedYear, window.currentBatchFilter);
+            window.updateChart(monthData);
+        } else {
+            // Otherwise, fetch data for the entire year
+            window.fetchBehaviorData(12, true, window.currentBatchFilter, selectedYear);
+        }
+    } catch (error) {
+        console.error('Error in updateChartByPeriod:', error);
+        window.showNotification('danger', 'Failed to update chart: ' + error.message, 'Error');
+    }
+};
+
+// Document ready event listener
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize behavior chart if the canvas exists
+    const behaviorChartCanvas = document.getElementById('behaviorChart');
+    if (behaviorChartCanvas) {
+        window.initBehaviorChart();
+    }
+    
+    // Set up event listeners
+    window.setupBehaviorChartEventListeners();
+    
+    // Initialize batch filter buttons
+    const batchFilterButtons = document.querySelectorAll('.batch-filter');
+    batchFilterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const batch = this.getAttribute('data-batch');
+            window.filterDataByBatch(batch);
+        });
+    });
+    
+    // Initialize y-axis scale filter buttons
+    const yScaleFilterButtons = document.querySelectorAll('.y-scale-filter');
+    yScaleFilterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const scale = this.getAttribute('data-scale');
+            window.filterDataByYScale(scale);
+        });
+    });
+});
 // Function to update chart based on selected time period
 window.updateChartByPeriod = function() {
     try {

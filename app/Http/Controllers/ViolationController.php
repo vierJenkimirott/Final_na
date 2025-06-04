@@ -19,6 +19,57 @@ use Exception;
 
 class ViolationController extends Controller
 {
+    
+    /**
+     * Get violation statistics by batch
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getViolationStatsByBatch(Request $request)
+    {
+        $batch = $request->query('batch', 'all');
+        $period = $request->query('period', 'month');
+        
+        // Get date range for the period
+        $dateRange = $this->getDateRangeForPeriod($period);
+        $startDate = $dateRange['start'];
+        $endDate = $dateRange['end'];
+        
+        // Base query for violations within the date range
+        $query = Violation::whereBetween('created_at', [$startDate, $endDate]);
+        
+        // Filter by batch if not 'all'
+        if ($batch !== 'all') {
+            $query->whereHas('studentDetails', function ($q) use ($batch) {
+                $q->where('batch', $batch);
+            });
+        }
+        
+        // Get counts by violation type
+        $violationStats = $query->with('violationType')
+            ->get()
+            ->groupBy('violation_type_id')
+            ->map(function ($violations, $typeId) {
+                $type = $violations->first()->violationType;
+                return [
+                    'type' => $type->name,
+                    'count' => $violations->count(),
+                    'color' => $type->color ?? '#' . substr(md5($type->name), 0, 6)
+                ];
+            })
+            ->values();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $violationStats,
+            'period' => $period,
+            'dateRange' => $dateRange
+        ]);
+    }
+    
+
+
     /**
      * Display a listing of violations
      *
@@ -51,6 +102,7 @@ class ViolationController extends Controller
         return view('educator.addViolator', compact('students', 'violationTypes', 'offenseCategories'));
     }
 
+    
     /**
      * Store a newly created violation in storage
      */
@@ -115,8 +167,9 @@ class ViolationController extends Controller
     {
         $violation = Violation::findOrFail($id);
         $students = User::role('student')->get();
-        $violationTypes = ViolationType::all();
-        return view('educator.editViolation', compact('violation', 'students', 'violationTypes'));
+        $violationTypes = ViolationType::with('severityRelation')->get();
+        $offenseCategories = OffenseCategory::all();
+        return view('educator.editViolation', compact('violation', 'students', 'violationTypes', 'offenseCategories'));
     }
 
     /**
@@ -131,8 +184,46 @@ class ViolationController extends Controller
             'offense' => 'required|string',
             'penalty' => 'required|string',
             'consequence' => 'nullable|string',
+            'severity' => 'required|string',
             'status' => 'required|in:active,resolved',
         ]);
+        
+        // Get student sex for the record if it's changed
+        $student = User::where('student_id', $request->student_id)->first();
+        if ($student) {
+            $validated['sex'] = $student->sex;
+        } else {
+            // Default to a placeholder value if student not found
+            $validated['sex'] = 'unknown';
+            \Log::warning('Student not found when updating violation', ['student_id' => $request->student_id]);
+        }
+        
+        // Get severity from the violation type if it's not provided or has changed
+        if ($request->has('violation_type_id') && (!$request->has('severity') || $request->severity === '')) {
+            $violationType = ViolationType::find($request->violation_type_id);
+            
+            // Handle case where violation type might not have a valid severity
+            if ($violationType && $violationType->severity_id) {
+                $severity = Severity::find($violationType->severity_id);
+                
+                if ($severity) {
+                    $validated['severity'] = $severity->severity_name;
+                } else {
+                    // Default to a placeholder value if severity not found
+                    $validated['severity'] = 'Medium';
+                    \Log::warning('Severity not found when updating violation', [
+                        'violation_type_id' => $request->violation_type_id,
+                        'severity_id' => $violationType->severity_id
+                    ]);
+                }
+            } else {
+                // Default to a placeholder value if violation type or severity_id not found
+                $validated['severity'] = 'Medium';
+                \Log::warning('Violation type not found or missing severity_id when updating violation', [
+                    'violation_type_id' => $request->violation_type_id
+                ]);
+            }
+        }
         
         $violation = Violation::findOrFail($id);
         $violation->update($validated);
@@ -145,20 +236,43 @@ class ViolationController extends Controller
      */
     public function getViolationTypesByCategory($categoryId)
     {
-        $violationTypes = ViolationType::with('severityRelation')
-            ->where('offense_category_id', $categoryId)
-            ->get()
-            ->map(function($type) {
-                return [
-                    'id' => $type->id,
-                    'name' => $type->violation_name,
-                    'severity' => $type->severityRelation ? $type->severityRelation->severity_name : null,
-                    'description' => $type->description,
-                    'default_penalty' => $type->default_penalty
-                ];
-            });
+        // Directly query the database to get violation types with their severity names
+        $violationTypes = DB::table('violation_types')
+            ->select('violation_types.id', 'violation_types.violation_name', 'severities.severity_name')
+            ->join('severities', 'violation_types.severity_id', '=', 'severities.id')
+            ->where('violation_types.offense_category_id', $categoryId)
+            ->get();
         
-        return response()->json($violationTypes);
+        // Log for debugging
+        \Log::info('Fetching violation types for category: ' . $categoryId, [
+            'count' => $violationTypes->count(),
+            'first_type' => $violationTypes->first()
+        ]);
+        
+        $formattedViolationTypes = $violationTypes->map(function ($violationType) {
+            // Get severity directly from the joined query
+            $severityName = $violationType->severity_name ?? 'Medium';
+            
+            // Log for debugging
+            \Log::info('Mapping violation type: ' . $violationType->id, [
+                'name' => $violationType->violation_name,
+                'severity_name' => $severityName
+            ]);
+            
+            return [
+                'id' => $violationType->id,
+                'name' => $violationType->violation_name,
+                'severity' => $severityName
+            ];
+        });
+        
+        // Log the final formatted data
+        \Log::info('Returning formatted violation types', [
+            'count' => $formattedViolationTypes->count(),
+            'data' => $formattedViolationTypes->toArray()
+        ]);
+        
+        return response()->json($formattedViolationTypes);
     }
 
     /**
@@ -233,7 +347,6 @@ class ViolationController extends Controller
         $severities = ['Low', 'Medium', 'High', 'Very High'];
         $offenses = ['1st', '2nd', '3rd'];
         $penalties = [
-            ['value' => 'W', 'label' => 'Warning'],
             ['value' => 'VW', 'label' => 'Verbal Warning'],
             ['value' => 'WW', 'label' => 'Written Warning'],
             ['value' => 'Pro', 'label' => 'Probation'],
@@ -274,19 +387,136 @@ class ViolationController extends Controller
             $violationType = ViolationType::with('severityRelation')->findOrFail($request->violation_type_id);
             $validated['severity'] = $violationType->severityRelation->severity_name ?? $request->severity;
             
+            // Extract the offense count from the offense description
+            $offenseCount = '1st'; // Default to 1st offense
+            if (preg_match('/\b(1st|2nd|3rd|4th)\s+offense\b/i', $validated['offense'], $matches)) {
+                $offenseCount = strtolower($matches[1]);
+            }
+            
+            // Log the offense count for debugging
+            Log::info('Offense count from form', [
+                'offense_text' => $validated['offense'],
+                'extracted_offense_count' => $offenseCount
+            ]);
+            
+            // Check if the same student has an active violation with the same severity
+            // We only check severity, not violation type
+            $existingViolation = Violation::where('student_id', $validated['student_id'])
+                ->where('severity', $validated['severity'])
+                ->where('status', 'active')
+                ->orderBy('created_at', 'desc')
+                ->first();
+                
+            // Determine the appropriate offense count
+            if ($existingViolation) {
+                // Map offense strings to numeric values for incrementing
+                $offenseMap = [
+                    '1st' => 1,
+                    '2nd' => 2,
+                    '3rd' => 3,
+                    '4th' => 4
+                ];
+                
+                // Get current offense number
+                $currentOffense = '1st';
+                if (preg_match('/\b(1st|2nd|3rd|4th)\s+offense\b/i', $existingViolation->offense, $matches)) {
+                    $currentOffense = strtolower($matches[1]);
+                }
+                
+                // Get numeric value and increment
+                $offenseNum = $offenseMap[$currentOffense] ?? 1;
+                $offenseNum++;
+                
+                // Cap at 4th offense
+                $offenseNum = min($offenseNum, 4);
+                
+                // Map back to string representation
+                $offenseStrings = [
+                    1 => '1st',
+                    2 => '2nd',
+                    3 => '3rd',
+                    4 => '4th'
+                ];
+                
+                $newOffense = $offenseStrings[$offenseNum];
+                
+                // Set the new offense count for the new record
+                $validated['offense'] = $newOffense . ' offense';
+                
+                // Log the offense increment
+                Log::info('Incrementing offense count for new violation', [
+                    'student_id' => $validated['student_id'],
+                    'severity' => $validated['severity'],
+                    'previous_offense' => $currentOffense,
+                    'new_offense' => $newOffense
+                ]);
+            }
+            
+            // Validate and enforce the penalty based on severity and offense count
+            $offenseCount = '1st'; // Default
+            if (preg_match('/\b(1st|2nd|3rd|4th)\s+offense\b/i', $validated['offense'], $matches)) {
+                $offenseCount = strtolower($matches[1]);
+            }
+            
+            // Calculate the penalty based on current severity and offense
+            $calculatedPenalty = $this->determinePenalty($validated['severity'], $offenseCount, $validated['penalty']);
+            
+            // Check if the student has any existing violations with a higher penalty
+            $highestExistingPenalty = $this->getHighestExistingPenalty($validated['student_id']);
+            
+            // Define penalty ranking (from lowest to highest)
+            $penaltyRanks = [
+                'VW' => 1,  // Verbal Warning (lowest)
+                'WW' => 2,  // Written Warning
+                'Pro' => 3, // Probation
+                'Exp' => 4  // Expulsion (highest)
+            ];
+            
+            // Compare penalties and use the higher one
+            $calculatedRank = $penaltyRanks[$calculatedPenalty] ?? 1;
+            $existingRank = $penaltyRanks[$highestExistingPenalty] ?? 0;
+            
+            // Use the higher penalty (never downgrade)
+            $validated['penalty'] = $existingRank > $calculatedRank ? $highestExistingPenalty : $calculatedPenalty;
+            
+            // Log the penalty decision
+            Log::info('Penalty decision for new violation', [
+                'student_id' => $validated['student_id'],
+                'calculated_penalty' => $calculatedPenalty,
+                'highest_existing_penalty' => $highestExistingPenalty,
+                'final_penalty' => $validated['penalty'],
+                'calculated_rank' => $calculatedRank,
+                'existing_rank' => $existingRank
+            ]);
+            
             // Add recorded_by if authenticated
             if (Auth::check()) {
                 $validated['recorded_by'] = Auth::id();
             }
             
-            // Create the violation record
+            // Create a new violation record (always create a new record)
             $violation = Violation::create($validated);
+            
+            // Log the creation
+            Log::info('Created new violation record', [
+                'id' => $violation->id,
+                'student_id' => $validated['student_id'],
+                'severity' => $validated['severity'],
+                'offense' => $validated['offense'],
+                'penalty' => $validated['penalty']
+            ]);
             
             // Commit the transaction
             DB::commit();
             
             // Log the successful creation
-            Log::info('Violation record created', ['id' => $violation->id, 'student_id' => $student->student_id]);
+            Log::info('Violation record created', [
+                'id' => $violation->id, 
+                'student_id' => $student->student_id,
+                'severity' => $validated['severity'],
+                'offense_count' => $offenseCount,
+                'penalty' => $validated['penalty']
+            ]);
             
             return redirect()->route('educator.violation')
                 ->with('success', 'Violation record created successfully.');
@@ -376,12 +606,129 @@ class ViolationController extends Controller
             ]);
         }
         
-        // Update the violation
+        // Extract the offense count from the offense description
+        $offenseCount = '1st'; // Default to 1st offense
+        if (preg_match('/\b(1st|2nd|3rd|4th)\s+offense\b/i', $validated['offense'], $matches)) {
+            $offenseCount = strtolower($matches[1]);
+        }
+        
+        // Log the offense count for debugging
+        Log::info('Offense count from form', [
+            'offense_text' => $validated['offense'],
+            'extracted_offense_count' => $offenseCount
+        ]);
+        
+        // Validate and enforce the penalty based on severity and offense count
+        $validated['penalty'] = $this->determinePenalty($validated['severity'], $offenseCount, $validated['penalty']);
+        
         $violation = Violation::findOrFail($id);
         $violation->update($validated);
         
-        return redirect()->route('educator.violation')->with('success', 'Violation record updated successfully.');
+        return redirect()->route('educator.violation')
+            ->with('success', 'Violation updated successfully.');
     }
+
+    /**
+ * Determine the appropriate penalty based on severity and offense count
+ * 
+ * @param string $severity The severity level (Low, Medium, High, Very High)
+ * @param string $offenseCount The offense count (1st, 2nd, 3rd, 4th)
+ * @param string $currentPenalty The current penalty value (used as fallback)
+ * @return string The penalty code (VW, WW, Pro, Exp)
+ */
+private function determinePenalty($severity, $offenseCount, $currentPenalty = null)
+{
+    $severity = strtolower($severity);
+    $offenseCount = strtolower($offenseCount);
+    
+    // Define the penalty mapping based on severity and offense count
+    $penaltyMap = [
+        'low' => [
+            '1st' => 'VW', // Verbal Warning
+            '2nd' => 'WW', // Written Warning
+            '3rd' => 'Pro', // Probation
+            '4th' => 'Exp', // Expulsion
+        ],
+        'medium' => [
+            '1st' => 'WW', // Written Warning
+            '2nd' => 'Pro', // Probation
+            '3rd' => 'Exp', // Expulsion
+            '4th' => 'Exp', // Expulsion
+        ],
+        'high' => [
+            '1st' => 'Pro', // Probation
+            '2nd' => 'Exp', // Expulsion
+            '3rd' => 'Exp', // Expulsion
+            '4th' => 'Exp', // Expulsion
+        ],
+        'very high' => [
+            '1st' => 'Exp', // Expulsion
+            '2nd' => 'Exp', // Expulsion
+            '3rd' => 'Exp', // Expulsion
+            '4th' => 'Exp', // Expulsion
+        ]
+    ];
+    
+    // Get the penalty from the map or use the current penalty as fallback
+    if (isset($penaltyMap[$severity][$offenseCount])) {
+        return $penaltyMap[$severity][$offenseCount];
+    }
+    
+    // If severity or offense count is not recognized, log a warning and return the current penalty or default to Verbal Warning
+    Log::warning('Unrecognized severity or offense count when determining penalty', [
+        'severity' => $severity,
+        'offense_count' => $offenseCount
+    ]);
+    
+    return $currentPenalty ?: 'VW';
+}
+
+/**
+ * Get the highest penalty for a student from their existing violations
+ * 
+ * @param int $studentId
+ * @return string|null
+ */
+private function getHighestExistingPenalty($studentId)
+{
+    // Define penalty ranking (from lowest to highest)
+    $penaltyRanks = [
+        'VW' => 1,  // Verbal Warning (lowest)
+        'WW' => 2,  // Written Warning
+        'Pro' => 3, // Probation
+        'Exp' => 4  // Expulsion (highest)
+    ];
+    
+    // Get all active violations for this student
+    $violations = Violation::where('student_id', $studentId)
+        ->where('status', 'active')
+        ->get();
+    
+    if ($violations->isEmpty()) {
+        return null;
+    }
+    
+    // Find the highest penalty
+    $highestRank = 0;
+    $highestPenalty = null;
+    
+    foreach ($violations as $violation) {
+        $rank = $penaltyRanks[$violation->penalty] ?? 0;
+        if ($rank > $highestRank) {
+            $highestRank = $rank;
+            $highestPenalty = $violation->penalty;
+        }
+    }
+    
+    Log::info('Found highest existing penalty for student', [
+        'student_id' => $studentId,
+        'highest_penalty' => $highestPenalty,
+        'highest_rank' => $highestRank,
+        'violation_count' => $violations->count()
+    ]);
+    
+    return $highestPenalty;
+}
 
     /**
      * Display student violations
@@ -397,6 +744,47 @@ class ViolationController extends Controller
     }
     
     /**
+     * Count violations filtered by batch
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function countViolationsByBatchFilter(Request $request)
+    {
+        $batch = $request->query('batch', 'all');
+        
+        try {
+            // Base query for active violations
+            $query = Violation::where('status', 'active');
+            
+            // Filter by batch if not 'all'
+            if ($batch !== 'all') {
+                // Filter based on the student_id prefix (e.g., 2025 or 2026)
+                $query->where('student_id', 'like', $batch . '%');
+            }
+            
+            // Get the count
+            $count = $query->count();
+            
+            // Log for debugging
+            \Illuminate\Support\Facades\Log::info('Violation count for batch ' . $batch . ': ' . $count);
+            
+            return response()->json([
+                'success' => true,
+                'count' => $count,
+                'batch' => $batch
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in countViolationsByBatchFilter: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get violations count: ' . $e->getMessage(),
+                'count' => 0
+            ]);
+        }
+    }
+    
+    /**
      * Get violation statistics by time period for the educator dashboard
      * 
      * @param Request $request
@@ -407,6 +795,7 @@ class ViolationController extends Controller
         try {
             // Get and validate the period parameter
             $period = $this->validatePeriod($request->input('period', 'month'));
+            $batch = $request->input('batch', 'all');
             
             // Get date range for the selected period
             $dateRange = $this->getDateRangeForPeriod($period);
@@ -417,6 +806,7 @@ class ViolationController extends Controller
             // Log the date range for debugging
             Log::info('Violation stats query', [
                 'period' => $period,
+                'batch' => $batch,
                 'dateRange' => [
                     'start' => $startDate->format('Y-m-d'),
                     'end' => $endDate->format('Y-m-d')
@@ -424,7 +814,7 @@ class ViolationController extends Controller
             ]);
             
             // Get violation statistics directly from the database with optimized query
-            $violationStats = $this->getViolationStatsFromDatabase($period, $startDate, $endDate, $relevantMonths);
+            $violationStats = $this->getViolationStatsFromDatabase($period, $startDate, $endDate, $relevantMonths, $batch);
             
             // Log the results and return
             Log::info('Violation stats results count: ' . count($violationStats));
@@ -449,11 +839,11 @@ class ViolationController extends Controller
      * @param array $relevantMonths
      * @return array
      */
-    private function getViolationStatsFromDatabase($period, $startDate, $endDate, $relevantMonths)
+    private function getViolationStatsFromDatabase($period, $startDate, $endDate, $relevantMonths, $batch = 'all')
     {
         try {
             // Query to get violation statistics grouped by violation type
-            $stats = DB::table('violations')
+            $query = DB::table('violations')
                 ->join('violation_types', 'violations.violation_type_id', '=', 'violation_types.id')
                 ->select(
                     'violation_types.id',
@@ -461,8 +851,16 @@ class ViolationController extends Controller
                     DB::raw('COUNT(violations.id) as count')
                 )
                 ->where('violations.status', 'active')
-                ->whereBetween('violations.violation_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                ->groupBy('violation_types.id', 'violation_types.violation_name')
+                ->whereBetween('violations.violation_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+                
+            // Apply batch filter if specified
+            if ($batch !== 'all') {
+                $query->join('users', 'violations.student_id', '=', 'users.student_id')
+                      ->join('student_details', 'users.id', '=', 'student_details.user_id')
+                      ->where('student_details.batch', $batch);
+            }
+            
+            $stats = $query->groupBy('violation_types.id', 'violation_types.violation_name')
                 ->orderBy('count', 'desc')
                 ->limit(10)
                 ->get();
@@ -471,6 +869,7 @@ class ViolationController extends Controller
             Log::info('Violation stats query results', [
                 'count' => count($stats),
                 'period' => $period,
+                'batch' => $batch,
                 'startDate' => $startDate->format('Y-m-d'),
                 'endDate' => $endDate->format('Y-m-d')
             ]);
@@ -698,6 +1097,118 @@ class ViolationController extends Controller
     }
     
     // Using the studentsByPenalty method from EducatorController instead
+    
+    /**
+     * Check if a student has existing violations with the same severity
+     * and return the appropriate offense count
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkExistingViolations(Request $request)
+    {
+        try {
+            $studentId = $request->query('student_id');
+            $violationTypeId = $request->query('violation_type_id');
+            
+            if (!$studentId || !$violationTypeId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing student ID or violation type ID',
+                    'offenseCount' => 1
+                ]);
+            }
+            
+            // Get the severity for the violation type
+            $violationType = ViolationType::with('severityRelation')->findOrFail($violationTypeId);
+            $severity = $violationType->severityRelation->severity_name ?? null;
+            
+            if (!$severity) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Could not determine severity for violation type',
+                    'offenseCount' => 1
+                ]);
+            }
+            
+            // Count existing violations with the same severity only
+            // We don't check for the same violation type, only the severity matters
+            $existingViolations = Violation::where('student_id', $studentId)
+                ->where('severity', $severity)
+                ->where('status', 'active')
+                ->count();
+            
+            // Determine the next offense count (1-based)
+            $offenseCount = $existingViolations + 1;
+            
+            // Cap at 4th offense
+            $offenseCount = min($offenseCount, 4);
+            
+            // Convert offense count to string format (1st, 2nd, etc.)
+            $offenseStrings = [
+                1 => '1st',
+                2 => '2nd',
+                3 => '3rd',
+                4 => '4th'
+            ];
+            $offenseString = $offenseStrings[$offenseCount] ?? '1st';
+            
+            // Calculate the new penalty based on severity and offense
+            $calculatedPenalty = $this->determinePenalty($severity, $offenseString);
+            
+            // Check if the student has any existing violations with a higher penalty
+            $highestExistingPenalty = $this->getHighestExistingPenalty($studentId);
+            
+            // Define penalty ranking (from lowest to highest)
+            $penaltyRanks = [
+                'VW' => 1,  // Verbal Warning (lowest)
+                'WW' => 2,  // Written Warning
+                'Pro' => 3, // Probation
+                'Exp' => 4  // Expulsion (highest)
+            ];
+            
+            // Compare penalties and use the higher one
+            $calculatedRank = $penaltyRanks[$calculatedPenalty] ?? 1;
+            $existingRank = $penaltyRanks[$highestExistingPenalty] ?? 0;
+            
+            // Use the higher penalty (never downgrade)
+            $finalPenalty = $existingRank > $calculatedRank ? $highestExistingPenalty : $calculatedPenalty;
+            
+            // Log the result
+            Log::info('Checked existing violations', [
+                'student_id' => $studentId,
+                'violation_type_id' => $violationTypeId,
+                'severity' => $severity,
+                'existing_count' => $existingViolations,
+                'next_offense_count' => $offenseCount,
+                'calculated_penalty' => $calculatedPenalty,
+                'highest_existing_penalty' => $highestExistingPenalty,
+                'final_penalty' => $finalPenalty,
+                'calculated_rank' => $calculatedRank,
+                'existing_rank' => $existingRank
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'offenseCount' => $offenseCount,
+                'severity' => $severity,
+                'existingViolations' => $existingViolations,
+                'offenseString' => $offenseString . ' offense',
+                'calculatedPenalty' => $calculatedPenalty,
+                'highestExistingPenalty' => $highestExistingPenalty,
+                'finalPenalty' => $finalPenalty
+            ]);
+            
+        } catch (Exception $e) {
+            Log::error('Error checking existing violations: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking existing violations',
+                'error' => $e->getMessage(),
+                'offenseCount' => 1 // Default to 1st offense on error
+            ], 500);
+        }
+    }
     
     // End of ViolationController methods
 }

@@ -6,19 +6,26 @@
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Add New User</span>
+                    <span>Edit User</span>
                     <a href="{{ route('admin.dashboard') }}" class="btn btn-secondary btn-sm">Back</a>
                 </div>
 
                 <div class="card-body">
-                    <form method="POST" action="{{ route('admin.store_user') }}">
+                    @if(session('success'))
+                        <div class="alert alert-success">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('admin.update_user', $user->id) }}">
                         @csrf
+                        @method('PUT')
 
                         <div class="mb-3">
                             <label for="batch" class="form-label">Batch Year</label>
                             <input type="text" class="form-control @error('batch') is-invalid @enderror" 
                                    id="batch" name="batch" 
-                                   value="{{ old('batch') }}" 
+                                   value="{{ old('batch', $user->batch) }}" 
                                    pattern="[0-9]{4}" 
                                    title="Four digit year (e.g., 2025)">
                             @error('batch')
@@ -30,7 +37,7 @@
                             <label for="group" class="form-label">Group</label>
                             <input type="text" class="form-control @error('group') is-invalid @enderror" 
                                    id="group" name="group" 
-                                   value="{{ old('group') }}" 
+                                   value="{{ old('group', $user->group) }}" 
                                    maxlength="2" 
                                    title="Group code (max 2 characters)">
                             @error('group')
@@ -42,7 +49,7 @@
                             <label for="student_number" class="form-label">Student Number</label>
                             <input type="text" class="form-control @error('student_number') is-invalid @enderror" 
                                    id="student_number" name="student_number" 
-                                   value="{{ old('student_number') }}" 
+                                   value="{{ old('student_number', $user->student_number) }}" 
                                    maxlength="4" 
                                    title="Student number (max 4 digits)">
                             @error('student_number')
@@ -54,7 +61,7 @@
                             <label for="training_code" class="form-label">Training Code</label>
                             <input type="text" class="form-control @error('training_code') is-invalid @enderror" 
                                    id="training_code" name="training_code" 
-                                   value="{{ old('training_code') }}" 
+                                   value="{{ old('training_code', $user->training_code) }}" 
                                    maxlength="2" 
                                    title="Training code (max 2 characters)">
                             @error('training_code')
@@ -66,7 +73,7 @@
                             <label for="student_id" class="form-label">Student ID</label>
                             <input type="text" class="form-control @error('student_id') is-invalid @enderror" 
                                    id="student_id" name="student_id" 
-                                   value="{{ old('student_id') }}" 
+                                   value="{{ old('student_id', $user->student_id) }}" 
                                    pattern="[A-Za-z0-9]+" 
                                    title="Only letters and numbers are allowed" readonly>
                             @error('student_id')
@@ -76,7 +83,7 @@
 
                         <div class="mb-3">
                             <label for="fname" class="form-label">First Name</label>
-                            <input type="text" class="form-control @error('fname') is-invalid @enderror" id="fname" name="fname" value="{{ old('fname') }}" required>
+                            <input type="text" class="form-control @error('fname') is-invalid @enderror" id="fname" name="fname" value="{{ old('fname', $user->fname) }}" required>
                             @error('fname')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -84,7 +91,7 @@
 
                         <div class="mb-3">
                             <label for="lname" class="form-label">Last Name</label>
-                            <input type="text" class="form-control @error('lname') is-invalid @enderror" id="lname" name="lname" value="{{ old('lname') }}" required>
+                            <input type="text" class="form-control @error('lname') is-invalid @enderror" id="lname" name="lname" value="{{ old('lname', $user->lname) }}" required>
                             @error('lname')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -92,7 +99,7 @@
 
                         <div class="mb-3">
                             <label for="middle_initial" class="form-label">Middle Initial</label>
-                            <input type="text" class="form-control @error('middle_initial') is-invalid @enderror" id="middle_initial" name="middle_initial" value="{{ old('middle_initial') }}" maxlength="1">
+                            <input type="text" class="form-control @error('middle_initial') is-invalid @enderror" id="middle_initial" name="middle_initial" value="{{ old('middle_initial', $user->middle_initial) }}" maxlength="1">
                             @error('middle_initial')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -100,7 +107,7 @@
 
                         <div class="mb-3">
                             <label for="suffix" class="form-label">Suffix</label>
-                            <input type="text" class="form-control @error('suffix') is-invalid @enderror" id="suffix" name="suffix" value="{{ old('suffix') }}">
+                            <input type="text" class="form-control @error('suffix') is-invalid @enderror" id="suffix" name="suffix" value="{{ old('suffix', $user->suffix) }}">
                             @error('suffix')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -108,23 +115,18 @@
 
                         <div class="mb-3">
                             <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email') }}" required>
+                            <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email', $user->email) }}" required>
                             @error('email')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
                         </div>
 
                         <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control @error('password') is-invalid @enderror" id="password" name="password" required>
+                            <label for="password" class="form-label">Password (leave blank to keep current password)</label>
+                            <input type="password" class="form-control @error('password') is-invalid @enderror" id="password" name="password">
                             @error('password')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="password_confirmation" class="form-label">Confirm Password</label>
-                            <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
                         </div>
 
                         <div class="mb-3">
@@ -132,7 +134,7 @@
                             <select class="form-select @error('role') is-invalid @enderror" id="role" name="role" required>
                                 <option value="">Select Role</option>
                                 @foreach($roles as $role)
-                                    <option value="{{ $role->id }}">{{ ucfirst($role->name) }}</option>
+                                    <option value="{{ $role->id }}" {{ $userRole == $role->id ? 'selected' : '' }}>{{ ucfirst($role->name) }}</option>
                                 @endforeach
                             </select>
                             @error('role')
@@ -144,11 +146,11 @@
                             <label class="form-label">Sex</label>
                             <div class="d-flex">
                                 <div class="form-check me-3">
-                                    <input class="form-check-input" type="radio" name="sex" id="male" value="Male" required>
+                                    <input class="form-check-input" type="radio" name="sex" id="male" value="Male" {{ $user->sex == 'Male' ? 'checked' : '' }} required>
                                     <label class="form-check-label" for="male">Male</label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="sex" id="female" value="Female">
+                                    <input class="form-check-input" type="radio" name="sex" id="female" value="Female" {{ $user->sex == 'Female' ? 'checked' : '' }}>
                                     <label class="form-check-label" for="female">Female</label>
                                 </div>
                             </div>
@@ -158,7 +160,7 @@
                         </div>
 
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Register User</button>
+                            <button type="submit" class="btn btn-primary">Update User</button>
                         </div>
                     </form>
                 </div>
@@ -166,7 +168,7 @@
         </div>
     </div>
 </div>
-@endsection 
+@endsection
 
 @section('scripts')
 <script>

@@ -294,13 +294,13 @@
     </div>
     <h1 class="educator-name">{{ Auth::user()->name }}</h1>
     <p class="educator-role">Educator <span class="badge bg-light text-primary" style="font-size: 0.7rem; vertical-align: middle;">Active</span></p>
-    <div class="educator-stats">
+    <div class="educator-stats" style="position: relative;">
         <div class="stat-item">
             <p class="stat-value">{{ $totalViolations }}</p>
             <p class="stat-label">Violations Logged</p>
         </div>
         <div class="stat-item">
-            <p class="stat-value">{{ $totalStudents ?? 0 }}</p>
+            <p class="stat-value" id="total-students-count">{{ $totalStudents ?? 0 }}</p>
             <p class="stat-label">Students</p>
         </div>
         <div class="stat-item">
@@ -308,14 +308,23 @@
             <p class="stat-label">Current Period</p>
         </div>
     </div>
+    <div class="batch-filter-wrapper mt-3" style="display: flex; justify-content: center;">
+        <div class="btn-group" role="group" aria-label="Batch filter buttons">
+            <button type="button" class="btn btn-outline-primary batch-filter active" data-batch="all" onclick="window.filterDataByBatch('all')">All Batches</button>
+            <button type="button" class="btn btn-outline-primary batch-filter" data-batch="2025" onclick="window.filterDataByBatch('2025')">Batch 2025</button>
+            <button type="button" class="btn btn-outline-primary batch-filter" data-batch="2026" onclick="window.filterDataByBatch('2026')">Batch 2026</button>
+        </div>
+    </div>
 </div>
+
+
 
 <!-- Stats Row -->
 <div class="row g-3">
     <div class="col-md-6">
         <div class="card">
             <p class="title">Total Student Violations <img src="{{ asset('images/warning-removebg-preview.png') }}" alt="" class="icon"></p>
-            <h3>{{ DB::table('violations')->where('status', 'active')->count() }}</h3>
+            <h3 id="total-violations-count">{{ DB::table('violations')->where('status', 'active')->count() }}</h3>
             <p class="text-muted small">Active violations in the system</p>
         </div>
     </div>
@@ -359,13 +368,6 @@
             
             <div class="violation-status-header d-flex align-items-center justify-content-between" style="padding: 1.25rem; border-bottom: 1px solid rgba(0,0,0,0.05);">
                 <h2>Violation Status Overview</h2>
-                <div class="batch-filter-wrapper">
-                    <div class="btn-group" role="group" aria-label="Batch Filter">
-                        <button type="button" class="btn btn-sm btn-outline-primary active" data-batch="all">All Students</button>
-                        <button type="button" class="btn btn-sm btn-outline-primary" data-batch="1">1st Year</button>
-                        <button type="button" class="btn btn-sm btn-outline-primary" data-batch="2">2nd Year</button>
-                    </div>
-                </div>
             </div>
             <div class="card-body p-4">
                 <div class="row">
@@ -451,41 +453,46 @@
     </div>
 </div>
 
-<!-- Top Violators Section -->
+<!-- Batch-Specific Students Section -->
 <div class="row mt-3">
-    <div class="col-12">
+    <!-- Batch 2025 Students -->
+    <div class="col-md-6">
         <div class="card top-violators-card">
             <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs" id="violatorTabs" role="tablist">
+                <h5 class="mb-0">Batch 2025 Students</h5>
+                <ul class="nav nav-tabs card-header-tabs" id="batch2025Tabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="violators-tab" data-bs-toggle="tab" data-bs-target="#violators" type="button" role="tab" aria-controls="violators" aria-selected="true">
+                        <button class="nav-link active" id="batch2025-violators-tab" data-bs-toggle="tab" data-bs-target="#batch2025-violators" type="button" role="tab" aria-controls="batch2025-violators" aria-selected="true">
                             Non-Compliant Students
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="non-violators-tab" data-bs-toggle="tab" data-bs-target="#non-violators" type="button" role="tab" aria-controls="non-violators" aria-selected="false">
+                        <button class="nav-link" id="batch2025-non-violators-tab" data-bs-toggle="tab" data-bs-target="#batch2025-non-violators" type="button" role="tab" aria-controls="batch2025-non-violators" aria-selected="false">
                             Compliant Students
                         </button>
                     </li>
                 </ul>
             </div>
             <div class="card-body">
-                <div class="tab-content" id="violatorTabsContent">
-                    <!-- Violators Tab -->
-                    <div class="tab-pane fade show active" id="violators" role="tabpanel" aria-labelledby="violators-tab">
+                <div class="tab-content" id="batch2025TabsContent">
+                    <!-- Batch 2025 Violators Tab -->
+                    <div class="tab-pane fade show active" id="batch2025-violators" role="tabpanel" aria-labelledby="batch2025-violators-tab">
                         @php
-                            $hasViolators = false;
-                            if (isset($topViolators)) {
-                                if (is_object($topViolators) && method_exists($topViolators, 'count')) {
-                                    $hasViolators = $topViolators->count() > 0;
-                                } elseif (is_array($topViolators)) {
-                                    $hasViolators = count($topViolators) > 0;
-                                }
-                            }
+                            $batch2025Violators = DB::table('users')
+                                ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
+                                ->join('roles', 'user_roles.role_id', '=', 'roles.id')
+                                ->join('violations', 'users.student_id', '=', 'violations.student_id')
+                                ->where('roles.name', 'student')
+                                ->where('users.student_id', 'like', '202501%')
+                                ->where('violations.status', 'active')
+                                ->select('users.name', 'users.student_id', DB::raw('count(violations.id) as violations_count'))
+                                ->groupBy('users.id', 'users.name', 'users.student_id')
+                                ->orderBy('violations_count', 'desc')
+                                ->get();
                         @endphp
                         
-                        @if($hasViolators)
-                            @foreach($topViolators as $violator)
+                        @if($batch2025Violators->count() > 0)
+                            @foreach($batch2025Violators as $violator)
                                 <div class="d-flex align-items-center mb-3">
                                     <img src="{{ asset('images/newprof.png')}}" alt="{{ $violator->name ?? 'Student' }}" class="profile-img" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 15px;">
                                     <div class="violator-info">
@@ -497,18 +504,19 @@
                             @endforeach
                         @else
                             <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i> No violation records found.
+                                <i class="fas fa-info-circle"></i> No violation records found for Batch 2025.
                             </div>
                         @endif
                     </div>
 
-                    <!-- Non-Violators Tab -->
-                    <div class="tab-pane fade" id="non-violators" role="tabpanel" aria-labelledby="non-violators-tab">
+                    <!-- Batch 2025 Non-Violators Tab -->
+                    <div class="tab-pane fade" id="batch2025-non-violators" role="tabpanel" aria-labelledby="batch2025-non-violators-tab">
                         @php
-                            $nonViolators = DB::table('users')
+                            $batch2025NonViolators = DB::table('users')
                                 ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
                                 ->join('roles', 'user_roles.role_id', '=', 'roles.id')
                                 ->where('roles.name', 'student')
+                                ->where('users.student_id', 'like', '202501%')
                                 ->whereNotExists(function($query) {
                                     $query->select(DB::raw(1))
                                           ->from('violations')
@@ -519,8 +527,8 @@
                                 ->get();
                         @endphp
 
-                        @if($nonViolators->count() > 0)
-                            @foreach($nonViolators as $student)
+                        @if($batch2025NonViolators->count() > 0)
+                            @foreach($batch2025NonViolators as $student)
                                 <div class="d-flex align-items-center mb-3">
                                     <img src="{{ asset('images/newprof.png')}}" alt="{{ $student->name }}" class="profile-img" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 15px;">
                                     <div class="violator-info">
@@ -532,7 +540,101 @@
                             @endforeach
                         @else
                             <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i> No compliant students found.
+                                <i class="fas fa-info-circle"></i> No compliant students found for Batch 2025.
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Batch 2026 Students -->
+    <div class="col-md-6">
+        <div class="card top-violators-card">
+            <div class="card-header">
+                <h5 class="mb-0">Batch 2026 Students</h5>
+                <ul class="nav nav-tabs card-header-tabs" id="batch2026Tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="batch2026-violators-tab" data-bs-toggle="tab" data-bs-target="#batch2026-violators" type="button" role="tab" aria-controls="batch2026-violators" aria-selected="true">
+                            Non-Compliant Students
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="batch2026-non-violators-tab" data-bs-toggle="tab" data-bs-target="#batch2026-non-violators" type="button" role="tab" aria-controls="batch2026-non-violators" aria-selected="false">
+                            Compliant Students
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="batch2026TabsContent">
+                    <!-- Batch 2026 Violators Tab -->
+                    <div class="tab-pane fade show active" id="batch2026-violators" role="tabpanel" aria-labelledby="batch2026-violators-tab">
+                        @php
+                            $batch2026Violators = DB::table('users')
+                                ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
+                                ->join('roles', 'user_roles.role_id', '=', 'roles.id')
+                                ->join('violations', 'users.student_id', '=', 'violations.student_id')
+                                ->where('roles.name', 'student')
+                                ->where('users.student_id', 'like', '202601%')
+                                ->where('violations.status', 'active')
+                                ->select('users.name', 'users.student_id', DB::raw('count(violations.id) as violations_count'))
+                                ->groupBy('users.id', 'users.name', 'users.student_id')
+                                ->orderBy('violations_count', 'desc')
+                                ->get();
+                        @endphp
+                        
+                        @if($batch2026Violators->count() > 0)
+                            @foreach($batch2026Violators as $violator)
+                                <div class="d-flex align-items-center mb-3">
+                                    <img src="{{ asset('images/newprof.png')}}" alt="{{ $violator->name ?? 'Student' }}" class="profile-img" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 15px;">
+                                    <div class="violator-info">
+                                        <h6 class="mb-0 fw-bold">{{ $violator->name ?? 'Student' }}</h6>
+                                        <p class="text-muted small mb-0">{{ $violator->student_id }}</p>
+                                        <span class="badge bg-danger">{{ $violator->violations_count }} {{ Str::plural('violation', $violator->violations_count) }}</span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> No violation records found for Batch 2026.
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Batch 2026 Non-Violators Tab -->
+                    <div class="tab-pane fade" id="batch2026-non-violators" role="tabpanel" aria-labelledby="batch2026-non-violators-tab">
+                        @php
+                            $batch2026NonViolators = DB::table('users')
+                                ->join('user_roles', 'users.id', '=', 'user_roles.user_id')
+                                ->join('roles', 'user_roles.role_id', '=', 'roles.id')
+                                ->where('roles.name', 'student')
+                                ->where('users.student_id', 'like', '202601%')
+                                ->whereNotExists(function($query) {
+                                    $query->select(DB::raw(1))
+                                          ->from('violations')
+                                          ->whereRaw('violations.student_id = users.student_id')
+                                          ->where('violations.status', 'active');
+                                })
+                                ->select('users.name', 'users.student_id')
+                                ->get();
+                        @endphp
+
+                        @if($batch2026NonViolators->count() > 0)
+                            @foreach($batch2026NonViolators as $student)
+                                <div class="d-flex align-items-center mb-3">
+                                    <img src="{{ asset('images/newprof.png')}}" alt="{{ $student->name }}" class="profile-img" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 15px;">
+                                    <div class="violator-info">
+                                        <h6 class="mb-0 fw-bold">{{ $student->name }}</h6>
+                                        <p class="text-muted small mb-0">{{ $student->student_id }}</p>
+                                        <span class="badge bg-success">No Violations</span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> No compliant students found for Batch 2026.
                             </div>
                         @endif
                     </div>
@@ -545,6 +647,7 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ asset('js/behavior-charts.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize clock
@@ -588,7 +691,13 @@
                                     const label = context.label || '';
                                     const count = context.raw || 0;
                                     const total = {{ $violatorCount + $nonViolatorCount }};
-                                    const percentage = total > 0 ? Math.round((count / total) * 100 * 10) / 10 : 0;
+                                    // Use the same percentage calculation as displayed in the chart
+                                    let percentage;
+                                    if (label === 'Violators') {
+                                        percentage = {{ $violatorPercentage }};
+                                    } else {
+                                        percentage = {{ $nonViolatorPercentage }};
+                                    }
                                     return `${label}: ${percentage}% (${count} students)`;
                                 }
                             }
@@ -599,10 +708,11 @@
         );
         
         // Handle batch filter buttons
-        document.querySelectorAll('.batch-filter-wrapper .btn').forEach(button => {
+        document.querySelectorAll('.batch-filter-wrapper .btn, .batch-filter .btn').forEach(button => {
             button.addEventListener('click', function() {
-                // Remove active class from all buttons
-                document.querySelectorAll('.batch-filter-wrapper .btn').forEach(btn => {
+                // Remove active class from all buttons in the same group
+                const parentGroup = this.closest('.btn-group');
+                parentGroup.querySelectorAll('.btn').forEach(btn => {
                     btn.classList.remove('active');
                 });
                 
@@ -614,8 +724,91 @@
                 
                 // Update violation status chart with batch-specific data
                 updateViolationStatusByBatch(batch);
+                
+                // Filter students by batch
+                filterStudentsByBatch(batch);
             });
         });
+        
+        // Global function to filter data by batch (called from HTML)
+        window.filterDataByBatch = function(batch) {
+            console.log('Dashboard filterDataByBatch called with batch:', batch);
+            
+            // Update active state of batch filter buttons
+            document.querySelectorAll('.batch-filter').forEach(button => {
+                if (button.getAttribute('data-batch') === batch) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+            
+            // Call the local function to filter students by batch
+            filterStudentsByBatch(batch);
+        };
+        
+        // Function to filter students by batch
+        function filterStudentsByBatch(batch) {
+            // Get the total students count element
+            let studentCountElement = document.getElementById('total-students-count');
+            // Get the total violations count element
+            let violationsCountElement = document.getElementById('total-violations-count');
+            
+            // Make an AJAX request to get students by batch
+            fetch(`/educator/students-by-batch?batch=${batch}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update the student count
+                    studentCountElement.textContent = data.count;
+                })
+                .catch(error => {
+                    console.error('Error fetching students by batch:', error);
+                });
+                
+            // Make an AJAX request to get violations count by batch
+            fetch(`/educator/violations/count?batch=${batch}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update the violations count
+                    violationsCountElement.textContent = data.count;
+                })
+                .catch(error => {
+                    console.error('Error fetching violations count by batch:', error);
+                });
+                
+            // Update the violation report with the current period and selected batch
+            const currentPeriod = document.getElementById('violation-filter').value;
+            updateViolationReport(currentPeriod, batch);
+        }
+        
+        // Function to show toast notifications
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast show align-items-center text-white bg-${type === 'info' ? 'primary' : type}`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toastContainer.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
         
         // Function to update violation status chart based on selected batch
         function updateViolationStatusByBatch(batch) {
@@ -632,16 +825,31 @@
             fetch(`/api/violation-stats-by-batch?batch=${batch}`)
                 .then(response => response.json())
                 .then(data => {
-                    // Update chart data
-                    violationStatusChart.data.datasets[0].data = [data.violatorCount, data.nonViolatorCount];
-                    violationStatusChart.update();
-                    
                     // Calculate total students count
                     const totalStudents = data.violatorCount + data.nonViolatorCount;
                     
-                    // Update stats cards
+                    // Calculate percentages consistently
                     const violatorPercentage = totalStudents > 0 ? Math.round((data.violatorCount / totalStudents) * 100 * 10) / 10 : 0;
                     const nonViolatorPercentage = totalStudents > 0 ? Math.round((data.nonViolatorCount / totalStudents) * 100 * 10) / 10 : 0;
+                    
+                    // Update chart data with the calculated percentages
+                    violationStatusChart.data.datasets[0].data = [violatorPercentage, nonViolatorPercentage];
+                    
+                    // Update tooltip callback to use these percentages
+                    violationStatusChart.options.plugins.tooltip.callbacks.label = function(context) {
+                        const label = context.label || '';
+                        const percentage = context.raw || 0;
+                        let count;
+                        if (label === 'Violators') {
+                            count = data.violatorCount;
+                        } else {
+                            count = data.nonViolatorCount;
+                        }
+                        return `${label}: ${percentage}% (${count} students)`;
+                    };
+                    
+                    // Update the chart
+                    violationStatusChart.update();
                     
                     document.querySelector('.stats-container').innerHTML = `
                         <div class="stat-card mb-3 p-3 rounded-3 d-flex align-items-center" style="background-color: rgba(255, 107, 107, 0.1); border-left: 4px solid #FF6B6B;">
@@ -698,7 +906,14 @@
         }
         
         // Violation report functions
-        function updateViolationReport(period) {
+        function updateViolationReport(period, batch) {
+            // If batch is not provided, use the current batch filter
+            if (batch === undefined) {
+                // Find the active batch filter button
+                const activeBatchButton = document.querySelector('.batch-filter.active');
+                batch = activeBatchButton ? activeBatchButton.getAttribute('data-batch') : 'all';
+            }
+            
             const violationList = document.getElementById('violation-list');
             violationList.innerHTML = `
                 <div class="loading-overlay">
@@ -713,7 +928,7 @@
                 </div>
             `;
             
-            fetch(`/api/violation-stats?period=${period}`, {
+            fetch(`/api/violation-stats?period=${period}&batch=${batch}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

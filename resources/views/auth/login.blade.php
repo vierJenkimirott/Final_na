@@ -18,8 +18,8 @@
                         <form method="POST" action="{{ route('login') }}">
                             @csrf
                             <div class="mb-3">
-                                <label for="email">Email</label>
-                                <input type="email" name="email" id="email" placeholder="e.g.,john.doe@example.com" class="form-control" required>
+                                <label for="username">ID / Email</label>
+                                <input type="text" name="username" id="username" placeholder="Students: Student ID | Educators: Educator ID | Admin: Email" class="form-control" required>
                             </div>
                             <div class="mb-3">
                                 <label for="password">Password</label>
