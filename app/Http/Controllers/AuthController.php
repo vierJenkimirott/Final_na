@@ -39,9 +39,14 @@ class AuthController extends Controller
         }
         
         // Second attempt: try with educator_id for educators
-        if (!$isEmail && Auth::attempt(['educator_id' => $username, 'password' => $request->input('password')])) {
-            Log::info('Login successful with educator_id', ['user_id' => Auth::id()]);
-            return $this->processSuccessfulLogin($request);
+        if (!$isEmail) {
+            $user = User::where('educator_id', $username)->first();
+
+            if ($user && Hash::check($request->input('password'), $user->password)) {
+                Auth::login($user);
+                Log::info('Login successful with educator_id', ['user_id' => Auth::id()]);
+                return $this->processSuccessfulLogin($request);
+            }
         }
         
         // Third attempt: try with email for admin

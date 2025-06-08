@@ -31,45 +31,36 @@ class UserTableSeeder extends Seeder
         }
 
         // Create educator users
-        $educators = [
+        $educator1 = User::firstOrCreate(
+            ['email' => 'educator1@example.com'],
             [
-                'name' => 'Jean Tumulak',
-                'fname' => 'Jean',
-                'lname' => 'Tumulak',
-                'educator_id' => '23456789',
-                'email' => 'educator2@example.com',
-                'password' => 'password123',
-                'sex' => 'female',
-                'gender' => 'female' // For backward compatibility
-            ],
-            [
-                'name' => 'Charwel Glera',
+                'name' => 'Charwel Giera',
                 'fname' => 'Charwel',
-                'lname' => 'Glera',
-                'educator_id' => '12345678',
-                'email' => 'educator1@example.com',
-                'password' => 'password123',
-                'sex' => 'female',
-                'gender' => 'female' // For backward compatibility
+                'lname' => 'Giera',
+                'educator_id' => 'E2025001', // Add educator ID
+                'sex' => 'male',
+                'gender' => 'male',
+                'password' => Hash::make('password123')
             ]
-        ];
+        );
+        if (!$educator1->roles()->where('name', 'educator')->exists()) {
+            $educator1->roles()->attach($educatorRole);
+        }
 
-        foreach ($educators as $educator) {
-            $user = User::firstOrCreate(
-                ['email' => $educator['email']],
-                [
-                    'name' => $educator['name'],
-                    'fname' => $educator['fname'],
-                    'lname' => $educator['lname'],
-                    'educator_id' => $educator['educator_id'],
-                    'sex' => $educator['sex'],
-                    'gender' => $educator['gender'], // For backward compatibility
-                    'password' => Hash::make($educator['password'])
-                ]
-            );
-            if (!$user->roles()->where('name', 'educator')->exists()) {
-                $user->roles()->attach($educatorRole);
-            }
+        $educator2 = User::firstOrCreate(
+            ['email' => 'educator2@example.com'],
+            [
+                'name' => 'Jane Tumulak',
+                'fname' => 'Jane',
+                'lname' => 'Tumulak',
+                'educator_id' => 'E2025002', // Add educator ID
+                'sex' => 'female',
+                'gender' => 'female',
+                'password' => Hash::make('password123')
+            ]
+        );
+        if (!$educator2->roles()->where('name', 'educator')->exists()) {
+            $educator2->roles()->attach($educatorRole);
         }
 
         // Create student users
@@ -277,22 +268,16 @@ class UserTableSeeder extends Seeder
 
         ];
 
-        foreach ($students as $student) {
-            $user = User::firstOrCreate(
-                ['email' => $student['email']],
-                [
-                    'name' => $student['name'],
-                    'fname' => $student['fname'],
-                    'lname' => $student['lname'],
-                    'student_id' => $student['student_id'],
-                    'sex' => $student['sex'],
-                    'gender' => $student['gender'], // For backward compatibility
-                    'password' => Hash::make($student['password'])
-                ]
+        foreach ($students as $studentData) {
+            $student = User::firstOrCreate(
+                ['email' => $studentData['email']],
+                $studentData + ['password' => Hash::make($studentData['password'])]
             );
-            if (!$user->roles()->where('name', 'student')->exists()) {
-                $user->roles()->attach($studentRole);
+            
+            if (!$student->roles()->where('name', 'student')->exists()) {
+                $student->roles()->attach($studentRole);
             }
         }
     }
 }
+

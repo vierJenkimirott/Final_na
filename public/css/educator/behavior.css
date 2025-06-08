@@ -2,7 +2,7 @@
 body {
     margin: 0;
     padding: 0;
-    font-family: Arial, sans-serif;
+    font-family: 'Poppins', sans-serif;
     background-color: #f5f5f5;
 }
 
@@ -123,8 +123,9 @@ body {
 .stat-box {
     background-color: #fff;
     border-radius: 8px;
+    border-bottom: 3px solid #4299e1;
     padding: 1.25rem;
-    height: 100%;
+    max-height: 100%;
     display: flex;
     align-items: center;
     box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
@@ -217,8 +218,25 @@ h2 {
     padding: 1.5rem;
     margin-bottom: 0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    
+    margin-top: 10px;
 }
+
+.card-header{
+    background: none;
+}
+
+.card h5{
+    color: #4299e1;
+}
+
+
+.card-body h6{
+    font-size: 1.3rem;
+}
+
+/* .card {
+    border: 1px solid #4299e1;
+} */
 
 /* Top stat cards */
 .row:first-of-type .card {
@@ -278,3 +296,176 @@ canvas {
 }
 
 
+.period-btn {
+    background-color: #fff;
+    border: 1px solid #4e73df;
+    color: #4e73df;
+    padding: 0.375rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.period-btn.active {
+    background-color: #4e73df;
+    color: white;
+}
+
+.period-btn:hover:not(.active) {
+    background-color: rgba(78, 115, 223, 0.1);
+}
+
+/* Export Button */
+.btn-export {
+    background-color: #e74a3b;
+    color: white;
+    border: none;
+    padding: 0.375rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-export:hover {
+    background-color: #d52a1a;
+}
+
+/* Severity Cards */
+.severity-card {
+    background-color: #f8f9fc;
+    border-radius: 8px;
+    padding: 1rem;
+    height: 100%;
+    text-align: center;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.severity-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.severity-value {
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+/* Clickable Stat Boxes */
+.stat-box-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+}
+
+.stat-box-link:hover .stat-box {
+    border: 1px solid #4299e1;
+    border-bottom: 3px solid #4299e1;
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.stat-box {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.severity-low { color: #1cc88a; }
+.severity-medium { color: #f6c23e; }
+.severity-high { color: #e74a3b; }
+.severity-very-high { color: #6f42c1; }
+
+/* Legend */
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.behavior-toast {
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 24px rgba(44,62,80,0.15);
+    font-size: 1rem;
+    padding: 1rem 1.5rem;
+}
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+.behavior-toast {
+    transition: opacity 0.3s;
+}
+h5{
+    margin: 0;
+    color:#2c3e50;
+}
+
+/* Student behavior modal styles */
+.student-name-link {
+    color: #4e73df;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.student-name-link:hover {
+    text-decoration: underline;
+    color: #2e59d9;
+}
+
+.loading-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.8);
+    z-index: 10;
+}
+
+.loading-indicator .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #4e73df;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 10px;
+}
+
+.error-message {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.9);
+    z-index: 10;
+}
+
+.error-message i {
+    font-size: 40px;
+    color: #e74a3b;
+    margin-bottom: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

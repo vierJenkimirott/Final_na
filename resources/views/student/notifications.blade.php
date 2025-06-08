@@ -3,7 +3,7 @@
 @section('title', 'Notifications')
 
 @section('css')
-    <link rel="stylesheet" href="{{ asset('css/student.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/student/student.css') }}">
     <style>
         .notification-card {
             margin-bottom: 15px;

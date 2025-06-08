@@ -1249,13 +1249,16 @@ window.updateDashboardData = function(batch) {
 };
 
 // Function to update violation report based on period and batch
-window.updateViolationReport = function(batch) {
+window.updateViolationReport = function(period, batch) {
     // Get CSRF token for secure request
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     
-    // Get the selected period from the filter
-    const violationFilter = document.getElementById('violation-filter');
-    const period = violationFilter ? violationFilter.value : 'month';
+    // If batch is not provided, use the current batch filter
+    if (batch === undefined) {
+        // Find the active batch filter button
+        const activeBatchButton = document.querySelector('.batch-filter.active');
+        batch = activeBatchButton ? activeBatchButton.getAttribute('data-batch') : 'all';
+    }
     
     fetch(`/api/violation-stats?period=${period}&batch=${batch}`, {
         method: 'GET',
@@ -1294,6 +1297,12 @@ window.updateViolationReport = function(batch) {
                         `;
                         violationList.appendChild(violationItem);
                     });
+                    
+                    // Ensure the container is scrollable
+                    const reportList = document.querySelector('.violation-report-list');
+                    if (reportList) {
+                        reportList.style.overflowY = 'auto';
+                    }
                 } else {
                     violationList.innerHTML = `
                         <div class="empty-state">
@@ -1311,7 +1320,8 @@ window.updateViolationReport = function(batch) {
         if (violationList) {
             violationList.innerHTML = `
                 <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-circle"></i> Error loading violation data.
+                    <i class="fas fa-exclamation-circle"></i>
+                    Error loading violation data
                 </div>
             `;
         }
@@ -1838,3 +1848,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Check if violation stats is scrollable and add indicator
+function checkScrollable() {
+    const violationStats = document.querySelector('.violation-stats');
+    if (violationStats) {
+        // Check if content is scrollable
+        if (violationStats.scrollHeight > violationStats.clientHeight) {
+            violationStats.classList.add('scrollable');
+        } else {
+            violationStats.classList.remove('scrollable');
+        }
+    }
+}
+
+// Call this function after the violation list is populated
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if scrollable after the violation list is loaded
+    setTimeout(checkScrollable, 1000);
+    
+    // Add event listener to the violation filter to check again after filtering
+    const violationFilter = document.getElementById('violation-filter');
+    if (violationFilter) {
+        violationFilter.addEventListener('change', function() {
+            setTimeout(checkScrollable, 1000);
+        });
+    }
+});
+
+
+
+
+

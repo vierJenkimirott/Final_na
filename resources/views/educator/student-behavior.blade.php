@@ -3,7 +3,7 @@
 @section('title', 'Student Behavior - ' . $student->name)
 
 @section('styles')
-<link rel="stylesheet" href="{{ asset('css/behavior.css') }}">
+<link rel="stylesheet" href="{{ asset('css/educator/behavior.css') }}">
 <style>
     @keyframes spin {
         0% { transform: rotate(0deg); }
