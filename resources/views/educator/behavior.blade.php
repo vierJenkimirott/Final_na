@@ -3,183 +3,8 @@
 @section('title', 'Student Behavior Monitoring')
 
 @section('css')
-    <link rel="stylesheet" href="{{ asset('css/behavior.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/educator/behavior.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-
-        /* Period Buttons */
-        .period-btn {
-            background-color: #fff;
-            border: 1px solid #4e73df;
-            color: #4e73df;
-            padding: 0.375rem 0.75rem;
-            border-radius: 4px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .period-btn.active {
-            background-color: #4e73df;
-            color: white;
-        }
-
-        .period-btn:hover:not(.active) {
-            background-color: rgba(78, 115, 223, 0.1);
-        }
-
-        /* Export Button */
-        .btn-export {
-            background-color: #e74a3b;
-            color: white;
-            border: none;
-            padding: 0.375rem 0.75rem;
-            border-radius: 4px;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .btn-export:hover {
-            background-color: #d52a1a;
-        }
-
-        /* Severity Cards */
-        .severity-card {
-            background-color: #f8f9fc;
-            border-radius: 8px;
-            padding: 1rem;
-            height: 100%;
-            text-align: center;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .severity-title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .severity-value {
-            font-weight: 700;
-            font-size: 1.25rem;
-        }
-
-        /* Clickable Stat Boxes */
-        .stat-box-link {
-            display: block;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.3s ease;
-        }
-
-        .stat-box-link:hover .stat-box {
-            transform: translateY(-5px);
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        }
-
-        .stat-box {
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .severity-low { color: #1cc88a; }
-        .severity-medium { color: #f6c23e; }
-        .severity-high { color: #e74a3b; }
-        .severity-very-high { color: #6f42c1; }
-
-        /* Legend */
-        .legend-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 0.5rem;
-        }
-
-        .behavior-toast {
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 24px rgba(44,62,80,0.15);
-            font-size: 1rem;
-            padding: 1rem 1.5rem;
-        }
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes fadeOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-        .behavior-toast {
-            transition: opacity 0.3s;
-        }
-        h5{
-            margin: 0;
-            color:#2c3e50;
-        }
-
-        /* Student behavior modal styles */
-        .student-name-link {
-            color: #4e73df;
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .student-name-link:hover {
-            text-decoration: underline;
-            color: #2e59d9;
-        }
-
-        .loading-indicator {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background-color: rgba(255, 255, 255, 0.8);
-            z-index: 10;
-        }
-
-        .loading-indicator .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #4e73df;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 10px;
-        }
-
-        .error-message {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background-color: rgba(255, 255, 255, 0.9);
-            z-index: 10;
-        }
-
-        .error-message i {
-            font-size: 40px;
-            color: #e74a3b;
-            margin-bottom: 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
 @endsection
 
 @section('content')
@@ -214,11 +39,7 @@
                                     <!-- Student rows will be populated here -->
                                     @foreach(\App\Models\User::whereHas('roles', function($q) { $q->where('name', 'student'); })->get() as $student)
                                     <tr>
-                                        <td>
-                                            <a href="{{ route('educator.view-student-behavior', ['student_id' => $student->student_id ?? $student->id]) }}" class="student-name-link" data-student-id="{{ $student->student_id ?? $student->id }}">
-                                                {{ $student->name }}
-                                            </a>
-                                        </td>
+                                        <td>{{ $student->name }}</td>
                                         <td>{{ $student->student_id ?? 'ID-' . $student->id }}</td>
                                         <td>{{ $student->sex ?? 'Not specified' }}</td>
                                         <td>
@@ -335,7 +156,7 @@
                         <div class="stat-content">
                             <h6>Students Needing Attention</h6>
                             <h2 class="attention-students">{{ $studentsWithMultipleViolations }}</h2>
-                            <div class="small text-muted mt-1">With more than 2 violations</div>
+                            <!-- <div class="small text-muted mt-1">With more than 2 violations</div> -->
                         </div>
                     </div>
                 </a>
@@ -344,7 +165,7 @@
 
         <!-- Behavior Status Overview Section -->
         <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-gradient-primary-to-secondary text-white">
+            <div class="card-header">
                 <div class="d-flex align-items-center justify-content-between">
                     <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Behavior Status Overview</h5>
                     <div class="d-flex align-items-center">
@@ -354,11 +175,11 @@
                     </div>
                 </div>
             </div>
-            <div class="card-body">
+            <!-- <div class="card-body"> -->
                 <!-- Chart Controls in a Card -->
-                <div class="card mb-4 shadow-sm border-0 rounded-3 bg-light">
-                    <div class="card-body p-3">
-                        <h6 class="text-primary mb-3"><i class="fas fa-sliders-h me-2"></i>Chart Controls</h6>
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body p-3 mt-3">
+                        <h6 class="mb-4">Chart Controls</h6>
                         
                         <!-- Time Period Controls -->
                         <div class="row mb-3 align-items-center">
@@ -470,7 +291,6 @@
 
             </div>
         </div>
-    </div>
 @endsection
 
 @push('scripts')

@@ -2,7 +2,7 @@
 
 @section('css')
     <!-- External CSS Dependencies -->
-    <link rel="stylesheet" href="{{ asset('css/newViolation.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/educator/newViolation.css') }}">
 @endsection
 
 @section('content')

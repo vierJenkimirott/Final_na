@@ -5,7 +5,7 @@
     <title>@yield('title', 'Staff Dashboard')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="stylesheet" href="{{ asset('css/educator.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/educator/educator.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -176,7 +176,7 @@
                 <li class="p-3 {{ request()->routeIs('educator.violation') ? 'active' : ''}}"><a href="{{ route('educator.violation') }}" class="text-decoration-none"><img src="{{ asset('images/warning (1).png') }}" alt=""> Violations</a></li>
                 <li class="p-3 {{ request()->routeIs('educator.behavior') ? 'active' : '' }}"><a href="{{ route('educator.behavior') }}" class="text-decoration-none"><img src="{{ asset('images/online-report.png') }}" alt=""> Behavior Monitoring</a></li>
 
-                <li class="p-3 {{ request()->routeIs('educator.manual') ? 'active' : ''}}"><a href="{{ route('educator.manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt=""> Student Violation Manual</a></li>
+                <li class="p-3 {{ request()->routeIs('educator.manual') ? 'active' : ''}}"><a href="{{ route('educator.manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt="">Student Code of Conduct</a></li>
 
                 <!-- <div class="dropdown-container">
                     <a href="page2.html">General Behavior</a>

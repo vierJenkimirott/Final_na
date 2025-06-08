@@ -3,8 +3,8 @@
 @section('title', 'Behavior Report')
 
 @section('css')
-<link rel="stylesheet" href="{{ asset('css/student-violation.css') }}">
-<link rel="stylesheet" href="{{ asset('css/behavior.css') }}">
+<link rel="stylesheet" href="{{ asset('css/student/student-violation.css') }}">
+
 <style>
     @keyframes spin {
         0% { transform: rotate(0deg); }
