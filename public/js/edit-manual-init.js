@@ -1,7 +1,7 @@
     document.addEventListener('DOMContentLoaded', function() {
     // Initialize all severity selects
     document.querySelectorAll('.severity-select').forEach(select => {
-        updateOffensesAndPenalties(select);
+        // Removed updateOffensesAndPenalties(select);
     });
 
     // Removing unused tracking variables for new violations
@@ -126,8 +126,139 @@
             // Hide and remove the modal
             modal.hide();
 
-            // Submit the form
-            form.submit();
+            // Gather all form data
+            const formData = new FormData(form);
+            const jsonData = {};
+            formData.forEach((value, key) => {
+                // Handle array-like inputs (e.g., categories[][id])
+                const matches = key.match(/(\w+)\[(\d+)\](?:\[(\w+)\](?:\[(\d+)\](?:\[(\w+)\])?)?)?/);
+                if (matches) {
+                    const field = matches[1];
+                    const index1 = matches[2];
+                    const subField1 = matches[3];
+                    const index2 = matches[4];
+                    const subField2 = matches[5];
+
+                    if (!jsonData[field]) {
+                        jsonData[field] = [];
+                    }
+                    if (!jsonData[field][index1]) {
+                        jsonData[field][index1] = {};
+                    }
+                    if (subField1 && !jsonData[field][index1][subField1]) {
+                        jsonData[field][index1][subField1] = [];
+                    }
+
+                    if (subField2) {
+                        if (!jsonData[field][index1][subField1][index2]) {
+                            jsonData[field][index1][subField1][index2] = {};
+                        }
+                        jsonData[field][index1][subField1][index2][subField2] = value;
+                    } else if (subField1) {
+                        jsonData[field][index1][subField1] = value; // This should be for direct sub-fields, not nested arrays
+                    } else {
+                         jsonData[field][index1] = value; // This handles category_name
+                    }
+
+                    // Correct handling for nested arrays like violationTypes
+                    if (subField1 === 'violationTypes' && index2 !== undefined) {
+                        if (!jsonData[field][index1][subField1][index2]) {
+                            jsonData[field][index1][subField1][index2] = {};
+                        }
+                        jsonData[field][index1][subField1][index2][subField2] = value;
+                    } else if (subField1) {
+                         if (index2 === undefined) { // For cases like new_category[violations][0][name]
+                            jsonData[field][index1][subField1] = value;
+                        } else {
+                            // This is for nested violation details, like violation_name, default_penalty
+                            if (!jsonData[field][index1][subField1][index2]) {
+                                jsonData[field][index1][subField1][index2] = {};
+                            }
+                            jsonData[field][index1][subField1][index2][subField2] = value;
+                        }
+                    } else {
+                        jsonData[key] = value;
+                    }
+
+                } else {
+                    jsonData[key] = value;
+                }
+            });
+            
+            // Special handling for new_category, as it's a single object with nested violations
+            const newCategoryNameInput = document.getElementById('new_category_name');
+            if (newCategoryNameInput && newCategoryNameInput.value.trim() !== '') {
+                const newCategoryData = {
+                    category_name: newCategoryNameInput.value.trim(),
+                    violationTypes: []
+                };
+
+                // Collect all new_category violations
+                const newViolationRows = form.querySelectorAll('.new-violation-row');
+                if (newViolationRows.length > 0) {
+                    newViolationRows.forEach(row => {
+                        const violationNameInput = row.querySelector('[name^="new_category[violations]"][name$="[name]"]');
+                        const severitySelect = row.querySelector('[name^="new_category[violations]"][name$="[default_penalty]"]');
+
+                        if (violationNameInput && violationNameInput.value.trim() !== '') {
+                            newCategoryData.violationTypes.push({
+                                violation_name: violationNameInput.value.trim(),
+                                default_penalty: severitySelect ? severitySelect.value : 'W'
+                            });
+                        }
+                    });
+                } else {
+                    // Handle the initial new violation if no dynamic rows are added
+                    const initialNewViolationName = document.getElementById('new_violation_name');
+                    const initialNewViolationSeverity = document.getElementById('new_violation_severity');
+                    if (initialNewViolationName && initialNewViolationName.value.trim() !== '') {
+                        newCategoryData.violationTypes.push({
+                            violation_name: initialNewViolationName.value.trim(),
+                            default_penalty: initialNewViolationSeverity ? initialNewViolationSeverity.value : 'W'
+                        });
+                    }
+                }
+
+                // Ensure categories is an array, even if empty initially from existing categories
+                if (!jsonData.categories) {
+                    jsonData.categories = [];
+                }
+                jsonData.categories.push(newCategoryData);
+            }
+            
+            // Remove the old new_category fields from jsonData if they were incorrectly added by the generic parser
+            delete jsonData.new_category;
+
+            // Send data using Fetch API
+            fetch(form.action, {
+                method: form.method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify(jsonData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessToast(data.message);
+                    // Redirect to the specified URL from the backend after a short delay
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url;
+                    }, 2500);
+                } else {
+                    showErrorToast(data.message || 'Failed to save manual changes');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showErrorToast('An error occurred while saving the manual');
+            })
+            .finally(() => {
+                // Reset button state
+                saveButton.innerHTML = 'Save Changes';
+                saveButton.disabled = false;
+            });
         });
 
         // Remove the modal from the DOM when it's closed

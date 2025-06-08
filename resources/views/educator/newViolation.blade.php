@@ -141,17 +141,12 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
-                    // Hide the form title as well as the form
+                    // Hide the form title and form
                     $('.form-title').hide();
                     $('#violationForm').hide();
                     
-                    // Create a simple success message div
-                    const notification = document.createElement('div');
-                    notification.className = 'simple-success';
-                    notification.textContent = 'Violation added successfully!';
-                    
-                    // Add the success message to the form container
-                    $('.form-container').prepend(notification);
+                    // Show success toast
+                    showSuccessToast('Violation added successfully!');
                     
                     // Redirect after a short delay
                     setTimeout(function() {
@@ -162,11 +157,12 @@ $(document).ready(function() {
                         }
                     }, 2000);
                 } else {
-                    alert('Error: ' + response.message);
+                    showErrorToast(response.message || 'Failed to create violation');
                 }
             },
             error: function(xhr) {
-                alert('Error: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Failed to create violation type'));
+                const errorMessage = xhr.responseJSON?.message || 'An error occurred while creating the violation';
+                showErrorToast(errorMessage);
             }
         });
     });

@@ -18,7 +18,6 @@ return new class extends Migration
             $table->foreign('student_id')->references('student_id')->on('users')->onDelete('cascade');
             $table->foreignId('violation_type_id')->constrained();
             $table->string('severity')->nullable()->comment('Severity of the violation');
-            $table->string('offense')->nullable()->comment('Offense committed by the student');
             $table->date('violation_date');
             $table->enum('penalty', ['W', 'VW', 'WW', 'Pro', 'Exp'])->comment('W=Warning, VW=Verbal Warning, WW=Written Warning, Pro=Probation, Exp=Expulsion');
             $table->text('consequence');

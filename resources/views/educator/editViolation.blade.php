@@ -8,20 +8,8 @@
             <a href="{{ route('educator.violation') }}" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>Back to Violations</a>
         </div>
         
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-        
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session('error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-        
+        {{-- Removed Laravel session success/error alerts, now handled by JavaScript toasts --}}
+
         <!-- Edit Violation Form -->
         <form action="{{ route('educator.update-violation', ['id' => $violation->id]) }}" method="POST">
             @csrf
@@ -258,205 +246,117 @@
 
 @endsection
 
-@section('scripts')
-<script>
-    // Debug output to check violation types and their severities
-    console.log('Debug: All violation types', @json($violationTypes));
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get form elements
-        const severitySelect = document.getElementById('severity');
-        const offenseCountSelect = document.getElementById('offense_count');
-        const penaltySelect = document.getElementById('penalty');
-        
-        // Set default offense count
-        offenseCountSelect.value = '1st';
-        
-        // Function to update penalty based on severity and offense count
-        function updatePenalty() {
-            const severity = severitySelect.value;
-            const offenseCount = offenseCountSelect.value;
-            
-            if (!severity || !offenseCount) return;
-            
-            // Determine the appropriate penalty based on severity and offense count
-            let penaltyValue = '';
-            
-            if (severity === 'Low') {
-                if (offenseCount === '1st') penaltyValue = 'VW'; // Verbal Warning
-                else if (offenseCount === '2nd') penaltyValue = 'WW'; // Written Warning
-                else if (offenseCount === '3rd') penaltyValue = 'Pro'; // Probation
-                else penaltyValue = 'Exp'; // Expulsion for 4th offense
-            } else if (severity === 'Medium') {
-                if (offenseCount === '1st') penaltyValue = 'WW'; // Written Warning
-                else if (offenseCount === '2nd') penaltyValue = 'Pro'; // Probation
-                else penaltyValue = 'Exp'; // Expulsion for 3rd or more offense
-            } else if (severity === 'High') {
-                if (offenseCount === '1st') penaltyValue = 'Pro'; // Probation
-                else penaltyValue = 'Exp'; // Expulsion for 2nd or more offense
-            } else if (severity === 'Very High') {
-                penaltyValue = 'Exp'; // Always expulsion for very high severity
-            }
-            
-            // Set the penalty value
-            penaltySelect.value = penaltyValue;
-        }
-        
-        // Add event listeners
-        severitySelect.addEventListener('change', updatePenalty);
-        offenseCountSelect.addEventListener('change', updatePenalty);
-        
-        // Update penalty on page load
-        updatePenalty();
-        
-        // Update available offense counts based on severity
-        severitySelect.addEventListener('change', function() {
-            const severity = this.value;
-            const offenseCountOptions = offenseCountSelect.options;
-            
-            // Show/hide 4th offense option based on severity
-            for (let i = 0; i < offenseCountOptions.length; i++) {
-                if (offenseCountOptions[i].value === '4th') {
-                    offenseCountOptions[i].style.display = (severity === 'Low') ? '' : 'none';
-                }
-            }
-            
-            // If a non-Low severity is selected and 4th offense was selected, reset to 3rd
-            if (severity !== 'Low' && offenseCountSelect.value === '4th') {
-                offenseCountSelect.value = '3rd';
-            }
-        });
-        
-        // Trigger the severity change event to initialize the offense count options
-        severitySelect.dispatchEvent(new Event('change'));
-    });
-</script>
-
-    <!-- JavaScript -->
+@push('scripts')
     <script>
-        // =============================================
-        // Form Initialization
-        // =============================================
         document.addEventListener('DOMContentLoaded', function() {
-            const categorySelect = document.getElementById('offense_category_id');
+            // Display session messages as custom toasts
+            @if(session('success'))
+                window.showCustomToast('{{ session('success') }}', 'success');
+            @endif
+
+            @if(session('error'))
+                window.showCustomToast('{{ session('error') }}', 'error');
+            @endif
+
+            // Logic to fetch violation types based on category selection
+            const offenseCategorySelect = document.getElementById('offense_category_id');
             const violationTypeSelect = document.getElementById('violation_type_id');
-            
-            // Validate required elements
-            if (!categorySelect || !violationTypeSelect) {
-                console.error('Could not find required select elements:', {
-                    categorySelect: !!categorySelect,
-                    violationTypeSelect: !!violationTypeSelect
-                });
-                return;
+            const severitySelect = document.getElementById('severity');
+            const offenseCountSelect = document.getElementById('offense_count');
+            const penaltySelect = document.getElementById('penalty');
+
+            function fetchViolationTypes(categoryId, selectedViolationTypeId = null) {
+                if (!categoryId) {
+                    violationTypeSelect.innerHTML = '<option value="">Select Violation Type</option>';
+                    return;
+                }
+
+                fetch(`/api/violation-types/${categoryId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        violationTypeSelect.innerHTML = '<option value="">Select Violation Type</option>';
+                        data.forEach(type => {
+                            const option = document.createElement('option');
+                            option.value = type.id;
+                            option.textContent = type.violation_name;
+                            option.dataset.severity = type.severity.severity_name; // Store severity name
+                            if (selectedViolationTypeId && type.id == selectedViolationTypeId) {
+                                option.selected = true;
+                            }
+                            violationTypeSelect.appendChild(option);
+                        });
+
+                        // If a violation type was pre-selected, update severity and penalty
+                        if (selectedViolationTypeId) {
+                            updateSeverityAndPenalty();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching violation types:', error);
+                        window.showCustomToast('Failed to load violation types.', 'error');
+                    });
             }
 
-            console.log('Initial category value:', categorySelect.value);
-            
-            // Initialize severity based on the selected violation type
-            function initializeSeverity() {
-                const selectedViolationType = violationTypeSelect.options[violationTypeSelect.selectedIndex];
-                if (selectedViolationType && selectedViolationType.dataset.severity) {
-                    const severity = selectedViolationType.dataset.severity;
-                    console.log('Initial severity from violation type:', severity);
-                    
-                    const severitySelect = document.getElementById('severity');
-                    if (severitySelect) {
-                        severitySelect.value = severity;
-                        console.log('Setting initial severity to:', severity);
-                        
-                        // Trigger the change event to update dependent fields
-                        severitySelect.dispatchEvent(new Event('change'));
-                    }
-                }
+            function updateSeverityAndPenalty() {
+                const selectedOption = violationTypeSelect.options[violationTypeSelect.selectedIndex];
+                const selectedSeverity = selectedOption ? selectedOption.dataset.severity : '';
+
+                severitySelect.value = selectedSeverity;
+                updatePenaltyField(selectedSeverity, offenseCountSelect.value);
             }
-            
-            // Call the initialization function after the DOM is fully loaded
-            setTimeout(initializeSeverity, 100);
-            
-            // =============================================
-            // Violation Type Change Handler
-            // =============================================
-            violationTypeSelect.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                console.log('Selected violation type:', selectedOption.textContent);
-                
-                // Get severity from data attribute
-                const severity = selectedOption.dataset.severity;
-                console.log('Severity from data attribute:', severity);
-                
-                if (severity) {
-                    // Set the severity in the select field
-                    const severitySelect = document.getElementById('severity');
-                    if (severitySelect) {
-                        severitySelect.value = severity;
-                        console.log('Setting severity to:', severity);
-                        
-                        // Trigger the change event to update dependent fields
-                        severitySelect.dispatchEvent(new Event('change'));
-                    } else {
-                        console.error('Severity select element not found');
+
+            function updatePenaltyField(severity, offenseCount) {
+                let penalty = '';
+                if (severity && offenseCount) {
+                    switch (severity) {
+                        case 'Low':
+                            if (offenseCount === '1st') penalty = 'VW';
+                            else if (offenseCount === '2nd') penalty = 'WW';
+                            else if (offenseCount === '3rd') penalty = 'Pro';
+                            else if (offenseCount === '4th') penalty = 'Exp';
+                            break;
+                        case 'Medium':
+                            if (offenseCount === '1st') penalty = 'WW';
+                            else if (offenseCount === '2nd') penalty = 'Pro';
+                            else if (offenseCount === '3rd') penalty = 'Exp';
+                            else if (offenseCount === '4th') penalty = 'Exp';
+                            break;
+                        case 'High':
+                            if (offenseCount === '1st') penalty = 'Pro';
+                            else if (offenseCount === '2nd') penalty = 'Exp';
+                            else if (offenseCount === '3rd') penalty = 'Exp';
+                            else if (offenseCount === '4th') penalty = 'Exp';
+                            break;
+                        case 'Very High':
+                            penalty = 'Exp'; // All Very High offenses result in Expulsion
+                            break;
                     }
                 }
+                penaltySelect.value = penalty;
+            }
+
+            // Event Listeners
+            offenseCategorySelect.addEventListener('change', function() {
+                fetchViolationTypes(this.value);
+                updateSeverityAndPenalty(); // Update severity and penalty after category changes
             });
-            
-            // =============================================
-            // Category Change Handler
-            // =============================================
-            categorySelect.addEventListener('change', async function() {
-                const categoryId = this.value;
-                console.log('Category changed to:', categoryId);
-                
-                violationTypeSelect.innerHTML = '<option value="">Select Violation Type</option>';
-                
-                if (categoryId) {
-                    try {
-                        console.log('Fetching violation types for category:', categoryId);
-                        const response = await fetch(`/educator/violation-types/${categoryId}`);
-                        
-                        console.log('Response status:', response.status);
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        
-                        const data = await response.json();
-                        console.log('Received data:', data);
-                        
-                        // Clear existing options
-                        violationTypeSelect.innerHTML = '<option value="">Select Violation Type</option>';
-                        
-                        if (Array.isArray(data) && data.length > 0) {
-                            console.log('Processing violation types:', data.length);
-                            data.forEach(type => {
-                                console.log('Adding option:', type);
-                                const option = document.createElement('option');
-                                option.value = type.id;
-                                option.textContent = type.name;
-                                
-                                // Make sure severity is set correctly
-                                const severity = type.severity || 'Medium';
-                                option.dataset.severity = severity;
-                                
-                                console.log('Adding violation type with severity:', type.name, severity);
-                                violationTypeSelect.appendChild(option);
-                            });
-                            
-                            // If we have options, trigger change on the first one to update severity
-                            if (violationTypeSelect.options.length > 1) {
-                                console.log('Auto-selecting first violation type');
-                                violationTypeSelect.selectedIndex = 0; // Select the first option (which is the placeholder)
-                                violationTypeSelect.selectedIndex = 1; // Select the first real option
-                                violationTypeSelect.dispatchEvent(new Event('change'));
-                            }
-                        } else {
-                            console.log('No violation types found for this category');
-                        }
-                    }
-                    } catch (error) {
-                        console.error('Error fetching violation types:', error);
-                        violationTypeSelect.innerHTML = '<option value="">Error loading violation types</option>';
-                    }
-                }
+
+            violationTypeSelect.addEventListener('change', updateSeverityAndPenalty);
+            offenseCountSelect.addEventListener('change', function() {
+                updatePenaltyField(severitySelect.value, this.value);
             });
+
+            // Initial fetch and update if editing an existing violation
+            const initialCategoryId = offenseCategorySelect.value;
+            const initialViolationTypeId = '{{ $violation->violation_type_id }}';
+            const initialOffenseCount = '{{ $violation->offense_count }}';
+
+            if (initialCategoryId) {
+                fetchViolationTypes(initialCategoryId, initialViolationTypeId);
+            }
+            offenseCountSelect.value = initialOffenseCount; // Set initial offense count
+            updatePenaltyField(severitySelect.value, initialOffenseCount);
+
         });
     </script>
-@endsection 
+@endpush 

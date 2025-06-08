@@ -29,13 +29,14 @@ class EducatorManualController extends Controller
     }
 
     public function index()
-{
-    $categories = OffenseCategory::with(['violationTypes' => function($query) {
-        $query->orderBy('violation_name');
-    }])->get();
+    {
+        $categories = OffenseCategory::with(['violationTypes' => function($query) {
+            $query->orderByRaw("FIELD(default_penalty, 'W', 'VW', 'WW', 'Pro', 'Exp')");
+            $query->orderBy('violation_name');
+        }])->get();
 
-    return view('educator.educator-manual', compact('categories'));
-}
+        return view('educator.educator-manual', compact('categories'));
+    }
 
     
 }

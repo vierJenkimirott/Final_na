@@ -59,8 +59,6 @@
                             <th style="width: 5%">#</th>
                             <th style="width: 35%">Violation Name</th>
                             <th style="width: 15%">Severity</th>
-                            <th style="width: 15%">Offenses</th>
-                            <th style="width: 20%">Penalties</th>
                             <th style="width: 10%">Action</th>
                         </tr>
                     </thead>
@@ -89,16 +87,6 @@
                                         <option value="Exp" {{ $type->default_penalty == 'Exp' ? 'selected' : '' }}>Very High</option>
                                     </select>
                                 </td>
-                                <td>
-                                    <input type="text" class="form-control" readonly
-                                           name="categories[{{ $loop->parent->index }}][violationTypes][{{ $loop->index }}][offenses]"
-                                           value="{{ $type->offenses ?? '1st, 2nd, 3rd' }}">
-                                </td>
-                                <td>
-                                    <input type="text" class="form-control" readonly
-                                           name="categories[{{ $loop->parent->index }}][violationTypes][{{ $loop->index }}][penalties_text]"
-                                           value="{{ $type->description ?? '' }}">
-                                </td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-danger btn-sm delete-violation"
                                             data-violation-id="{{ $type->id }}"
@@ -112,12 +100,12 @@
                 </table>
 
                 <!-- Remove this button section from each category -->
-                <!-- <div class="d-flex justify-content-end align-items-center mt-3">
+                <div class="d-flex justify-content-end align-items-center mt-3">
                     <button type="button" class="btn btn-sm btn-outline-success add-violation-btn"
                             data-category-index="{{ $loop->index }}" data-category-id="{{ $category->id }}">
                         <i class="fas fa-plus"></i> Add Violation to {{ $category->category_name }}
                     </button>
-                </div> -->
+                </div>
             </div>
         @endforeach
 
@@ -156,20 +144,6 @@
                         <option value="WW">High</option>
                         <option value="Exp">Very High</option>
                     </select>
-                </div>
-
-                <div class="form-group mb-3">
-                    <label for="new_violation_offenses" class="form-label">Offenses:</label>
-                    <input type="text" id="new_violation_offenses" class="form-control" readonly
-                           name="new_category[violations][0][offenses]"
-                           value="1st, 2nd, 3rd">
-                </div>
-
-                <div class="form-group mb-3">
-                    <label for="new_violation_penalties" class="form-label">Penalties:</label>
-                    <input type="text" id="new_violation_penalties" class="form-control" readonly
-                           name="new_category[violations][0][penalties_text]"
-                           value="1st: Warning, 2nd: Verbal Warning, 3rd: Written Warning">
                 </div>
 
                 <div id="empty-category-alert" class="empty-form-alert">

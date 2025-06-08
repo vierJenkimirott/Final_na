@@ -105,9 +105,9 @@ class UserTableSeeder extends Seeder
                 'gender' => 'male' // For backward compatibility
             ],
             [
-                'name' => 'Sarah Jumuad',
+                'name' => 'Sarah Jomuad',
                 'fname' => 'Sarah',
-                'lname' => 'Jumuad',
+                'lname' => 'Jomuad',
                 'student_id' => '2025010004C1',
                 'email' => 'sarah@example.com',
                 'password' => 'password123',
