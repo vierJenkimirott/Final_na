@@ -247,7 +247,7 @@ class UserTableSeeder extends Seeder
             [
                 'name' => 'Grace Bautista',
                 'fname' => 'Grace',
-                'lname' => 'Baustista',
+                'lname' => 'Bautista',
                 'student_id' => '2026010008C1',
                 'email' => 'grace@example.com',
                 'password' => 'password123',

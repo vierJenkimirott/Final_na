@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\OffenseCategory;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class OffenseCategorySeeder extends Seeder
 {
@@ -37,7 +37,7 @@ class OffenseCategorySeeder extends Seeder
         ];
 
         foreach ($categories as $category) {
-            DB::table('offense_categories')->insert($category);
+            OffenseCategory::updateOrCreate(['category_name' => $category['category_name']], $category);
         }
     }
 }
