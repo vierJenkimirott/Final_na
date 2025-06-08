@@ -90,12 +90,12 @@ Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMidd
     Route::get('/check-behavior-updates', [EducatorController::class, 'checkBehaviorUpdates'])->name('educator.check-behavior-updates');
     Route::get('/generate-sample-violations', [EducatorController::class, 'generateSampleViolations'])->name('educator.generate-sample-violations');
 
-
     // Manual edit routes
     Route::get('/manual/edit', [EducatorController::class, 'editManual'])->name('educator.manual.edit');
     Route::post('/manual/update', [EducatorController::class, 'updateManual'])->name('educator.manual.update');
+    Route::post('/manual/delete-category', [EducatorController::class, 'deleteOffenseCategory'])->name('educator.manual.delete-category');
+    Route::post('/manual/delete-violation-type', [EducatorController::class, 'deleteViolationType'])->name('educator.manual.delete-violation-type');
     Route::get('/student-manual', [StudentManualController::class, 'index'])->name('student-manual')->middleware('auth');
-
 });
 
 // API Routes
@@ -117,20 +117,12 @@ Route::prefix('student')->middleware(['auth'])->group(function () {
     Route::get('/behavior-data', [StudentController::class, 'getBehaviorData'])->name('student.behavior-data');
     Route::get('/check-violation-updates', [StudentController::class, 'checkForViolationUpdates'])->name('student.check-violation-updates');
 
+    // For students
+    Route::get('/student-manual', [StudentManualController::class, 'index'])->name('student.manual');
 
-
-// For students
-Route::get('/student-manual', [StudentManualController::class, 'index'])->name('student.manual');
-
-// For educators
-Route::get('/educator-manual', [EducatorManualController::class, 'index'])->name('educator.manual');
-    
-    
-
-
+    // For educators
+    Route::get('/educator-manual', [EducatorManualController::class, 'index'])->name('educator.manual');
 });
-
-
 
 Route::fallback(function () {
     return redirect('/login');

@@ -3,288 +3,10 @@
 @section('title', 'Educator Dashboard')
 
 @section('css')
-<link rel="stylesheet" href="{{ asset('css/educator.css') }}">
-@endsection
-
-@section('css')
-<style>
-    /* Violation Report Card Styling */
-    .violation-report-card {
-        background-color: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        padding: 20px;
-        height: 100%;
-        position: relative;
-    }
-    
-    .violation-report-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-    
-    .violation-report-header h2 {
-        font-size: 1.5rem;
-        margin: 0;
-        font-weight: 600;
-        color: #333;
-    }
-    
-    .filter-wrapper select {
-        padding: 6px 12px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background-color: #f8f9fa;
-        font-size: 0.9rem;
-    }
-    
-    .violation-stats {
-        margin-bottom: 15px;
-    }
-    
-    .violation-report-list {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .violation-item {
-        margin-bottom: 15px;
-    }
-    
-    .violation-text {
-        font-size: 0.9rem;
-        margin-bottom: 5px;
-        color: #333;
-    }
-    
-    .progress {
-        height: 10px;
-        background-color: #e9ecef;
-        border-radius: 5px;
-        overflow: hidden;
-    }
-    
-    .progress-bar {
-        background-color: #007bff;
-        height: 100%;
-    }
-    
-    .violation-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.8rem;
-        color: #6c757d;
-        border-top: 1px solid #eee;
-        padding-top: 15px;
-        margin-top: auto;
-    }
-    
-    .violation-info {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-    
-    .btn-refresh-violations {
-        background: none;
-        border: none;
-        color: #6c757d;
-        cursor: pointer;
-        padding: 5px;
-        border-radius: 4px;
-    }
-    
-    .btn-refresh-violations:hover {
-        background-color: #f8f9fa;
-        color: #007bff;
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 30px 0;
-        color: #6c757d;
-    }
-    
-    .empty-state i {
-        font-size: 2rem;
-        margin-bottom: 10px;
-        color: #adb5bd;
-    }
-    
-    .loading-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-        text-align: center;
-    }
-
-    .loading-container .spinner-border {
-        width: 3rem;
-        height: 3rem;
-        margin-bottom: 1rem;
-        color: #007bff;
-    }
-
-    .loading-container .loading-text {
-        color: #6c757d;
-        font-size: 0.9rem;
-        margin-top: 0.5rem;
-    }
-
-    .loading-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(255, 255, 255, 0.95);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        backdrop-filter: blur(2px);
-    }
-
-    .loading-message-container {
-        background: white;
-        padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        text-align: center;
-        max-width: 300px;
-        width: 90%;
-    }
-
-    /* Toast Notification Styles */
-    .toast-container {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-    }
-
-    .toast {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        padding: 1rem;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        animation: slideIn 0.3s ease-out;
-    }
-
-    .toast.success {
-        border-left: 4px solid #28a745;
-    }
-
-    .toast i {
-        color: #28a745;
-        font-size: 1.25rem;
-    }
-
-    .toast-message {
-        color: #333;
-        font-size: 0.9rem;
-    }
-
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes fadeOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-    
-    /* Batch Filter Styling */
-    .batch-filter-wrapper {
-        margin-left: auto;
-    }
-    
-    .batch-filter-wrapper .btn-group {
-        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-        border-radius: 6px;
-        overflow: hidden;
-    }
-    
-    .batch-filter-wrapper .btn {
-        border-radius: 0;
-        font-weight: 500;
-        transition: all 0.2s ease;
-        padding: 0.375rem 0.75rem;
-        border: 1px solid #3490dc;
-    }
-    
-    .batch-filter-wrapper .btn:first-child {
-        border-top-left-radius: 6px;
-        border-bottom-left-radius: 6px;
-    }
-    
-    .batch-filter-wrapper .btn:last-child {
-        border-top-right-radius: 6px;
-        border-bottom-right-radius: 6px;
-    }
-    
-    .batch-filter-wrapper .btn.active {
-        background-color: #3490dc;
-        color: white;
-        box-shadow: 0 2px 5px rgba(52, 144, 220, 0.3);
-    }
-    
-    .batch-filter-wrapper .btn:hover:not(.active) {
-        background-color: rgba(52, 144, 220, 0.1);
-    }
-    
-    /* Violation Status Header Styling */
-    .violation-status-header {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        padding: 1.25rem;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-        border-radius: 12px 12px 0 0;
-        background-color: white;
-    }
-    
-    .violation-status-header h2 {
-        font-size: 1.5rem;
-        margin-bottom: 0;
-        font-weight: 600;
-        color: #333;
-    }
-    
-    .violation-status-header .badge {
-        margin-left: 1rem;
-        padding: 0.5rem 0.75rem;
-        font-weight: 500;
-        font-size: 0.875rem;
-    }
-</style>
+<link rel="stylesheet" href="{{ asset('css/educator/educator.css') }}">
 @endsection
 
 @section('content')
-<!-- Add toast container at the top of the content -->
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- Educator Profile Header -->
@@ -308,29 +30,28 @@
             <p class="stat-label">Current Period</p>
         </div>
     </div>
-    <div class="batch-filter-wrapper mt-3" style="display: flex; justify-content: center;">
-        <div class="btn-group" role="group" aria-label="Batch filter buttons">
-            <button type="button" class="btn btn-outline-primary batch-filter active" data-batch="all" onclick="window.filterDataByBatch('all')">All Batches</button>
-            <button type="button" class="btn btn-outline-primary batch-filter" data-batch="2025" onclick="window.filterDataByBatch('2025')">Batch 2025</button>
-            <button type="button" class="btn btn-outline-primary batch-filter" data-batch="2026" onclick="window.filterDataByBatch('2026')">Batch 2026</button>
-        </div>
-    </div>
 </div>
 
-
+<div class="batch-filter mt-3 mb-3">
+        <div class="btn-group" role="group" aria-label="Batch filter buttons">
+            <button type="button" class="btn btn-outline-primary batch-filter active" data-batch="all" onclick="window.filterDataByBatch('all')">All Class</button>
+            <button type="button" class="btn btn-outline-primary batch-filter" data-batch="2025" onclick="window.filterDataByBatch('2025')">Class 2025</button>
+            <button type="button" class="btn btn-outline-primary batch-filter" data-batch="2026" onclick="window.filterDataByBatch('2026')">Class 2026</button>
+        </div>
+</div>
 
 <!-- Stats Row -->
 <div class="row g-3">
     <div class="col-md-6">
-        <div class="card">
+        <div class="card" style="height: 200px">
             <p class="title">Total Student Violations <img src="{{ asset('images/warning-removebg-preview.png') }}" alt="" class="icon"></p>
             <h3 id="total-violations-count">{{ DB::table('violations')->where('status', 'active')->count() }}</h3>
             <p class="text-muted small">Active violations in the system</p>
         </div>
     </div>
     <div class="col-md-6">
-        <div class="card" style="background-color: #2c3e50; color: white;">
-            <p class="title">Current Date & Time <i class="fas fa-clock" style="margin-left: 5px;"></i></p>
+        <div class="card" style="color: black; height: 200px">
+            <p class="title mb-5">Current Date & Time <i class="fas fa-clock" style="margin-left: 5px;"></i></p>
             <h3 id="current-time">Loading...</h3>
         </div>
     </div>
@@ -366,7 +87,7 @@
                 $nonViolatorPercentage = $totalStudents > 0 ? round(($nonViolatorCount / $totalStudents) * 100, 1) : 0;
             @endphp
             
-            <div class="violation-status-header d-flex align-items-center justify-content-between" style="padding: 1.25rem; border-bottom: 1px solid rgba(0,0,0,0.05);">
+            <div class="violation-status-header" style=" border-bottom: 1px solid rgba(0,0,0,0.05);">
                 <h2>Violation Status Overview</h2>
             </div>
             <div class="card-body p-4">
@@ -378,9 +99,9 @@
                     </div>
                     <div class="col-md-5">
                         <div class="stats-container mt-3 mt-md-0">
-                            <div class="stat-card mb-3 p-3 rounded-3 d-flex align-items-center" style="background-color: rgba(255, 107, 107, 0.1); border-left: 4px solid #FF6B6B;">
-                                <div class="stat-icon me-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #FF6B6B; color: white;">
-                                    <i class="fas fa-exclamation-triangle"></i>
+                            <div class="stat-card d-flex align-items-center" style="border-bottom: 3px solid red">
+                                <div class="stat-icon me-3 d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-exclamation-triangle" style="color:rgb(234, 48, 88);"></i>
                                 </div>
                                 <div>
                                     <h6 class="mb-0">Violators</h6>
@@ -390,9 +111,9 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="stat-card p-3 rounded-3 d-flex align-items-center" style="background-color: rgba(76, 175, 80, 0.1); border-left: 4px solid #4CAF50;">
-                                <div class="stat-icon me-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #4CAF50; color: white;">
-                                    <i class="fas fa-check-circle"></i>
+                            <div class="stat-card d-flex align-items-center" style="border-bottom: 3px solid green">
+                                <div class="stat-icon me-3 d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-check-circle" style="color:  #4CAF50"></i>
                                 </div>
                                 <div>
                                     <h6 class="mb-0">Non-Violators</h6>
@@ -411,7 +132,7 @@
 
     <!-- Violation Report Card -->
     <div class="col-md-6">
-        <div class="card violation-report-card" style="border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); height: 100%;">
+        <div class="card violation-report-card">
             <div class="violation-report-header">
                 <h2>Violation Report</h2>
                 <div class="filter-wrapper">
@@ -459,7 +180,7 @@
     <div class="col-md-6">
         <div class="card top-violators-card">
             <div class="card-header">
-                <h5 class="mb-0">Batch 2025 Students</h5>
+                <h5 class="mb-0">Class 2025 Students</h5>
                 <ul class="nav nav-tabs card-header-tabs" id="batch2025Tabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="batch2025-violators-tab" data-bs-toggle="tab" data-bs-target="#batch2025-violators" type="button" role="tab" aria-controls="batch2025-violators" aria-selected="true">
@@ -553,7 +274,7 @@
     <div class="col-md-6">
         <div class="card top-violators-card">
             <div class="card-header">
-                <h5 class="mb-0">Batch 2026 Students</h5>
+                <h5 class="mb-0">Class 2026 Students</h5>
                 <ul class="nav nav-tabs card-header-tabs" id="batch2026Tabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="batch2026-violators-tab" data-bs-toggle="tab" data-bs-target="#batch2026-violators" type="button" role="tab" aria-controls="batch2026-violators" aria-selected="true">
@@ -838,12 +559,13 @@
                     // Update tooltip callback to use these percentages
                     violationStatusChart.options.plugins.tooltip.callbacks.label = function(context) {
                         const label = context.label || '';
-                        const percentage = context.raw || 0;
-                        let count;
+                        const count = context.raw || 0;
+                        const total = totalStudents;
+                        let percentage;
                         if (label === 'Violators') {
-                            count = data.violatorCount;
+                            percentage = violatorPercentage;
                         } else {
-                            count = data.nonViolatorCount;
+                            percentage = nonViolatorPercentage;
                         }
                         return `${label}: ${percentage}% (${count} students)`;
                     };
@@ -851,28 +573,29 @@
                     // Update the chart
                     violationStatusChart.update();
                     
+                    // Update stats cards with consistent styling
                     document.querySelector('.stats-container').innerHTML = `
-                        <div class="stat-card mb-3 p-3 rounded-3 d-flex align-items-center" style="background-color: rgba(255, 107, 107, 0.1); border-left: 4px solid #FF6B6B;">
-                            <div class="stat-icon me-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #FF6B6B; color: white;">
-                                <i class="fas fa-exclamation-triangle"></i>
+                        <div class="stat-card d-flex align-items-center" style="border-bottom: 3px solid red">
+                            <div class="stat-icon me-3 d-flex align-items-center justify-content-center">
+                                <i class="fas fa-exclamation-triangle" style="color:rgb(234, 48, 88);"></i>
                             </div>
                             <div>
                                 <h6 class="mb-0">Violators</h6>
                                 <div class="d-flex align-items-baseline">
-                                    <h3 class="mb-0 me-2">${violatorPercentage}%</h3>
-                                    <span class="text-muted">${data.violatorCount} students</span>
+                                    <h3 class="mb-0 me-2">${data.violatorCount}</h3>
+                                    <span class="text-danger">${violatorPercentage}%</span>
                                 </div>
                             </div>
                         </div>
-                        <div class="stat-card p-3 rounded-3 d-flex align-items-center" style="background-color: rgba(76, 175, 80, 0.1); border-left: 4px solid #4CAF50;">
-                            <div class="stat-icon me-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #4CAF50; color: white;">
-                                <i class="fas fa-check-circle"></i>
+                        <div class="stat-card d-flex align-items-center" style="border-bottom: 3px solid green">
+                            <div class="stat-icon me-3 d-flex align-items-center justify-content-center">
+                                <i class="fas fa-check-circle" style="color: #4CAF50"></i>
                             </div>
                             <div>
                                 <h6 class="mb-0">Non-Violators</h6>
                                 <div class="d-flex align-items-baseline">
-                                    <h3 class="mb-0 me-2">${nonViolatorPercentage}%</h3>
-                                    <span class="text-muted">${data.nonViolatorCount} students</span>
+                                    <h3 class="mb-0 me-2">${data.nonViolatorCount}</h3>
+                                    <span class="text-success">${nonViolatorPercentage}%</span>
                                 </div>
                             </div>
                         </div>
@@ -882,27 +605,6 @@
                     console.error('Error fetching batch data:', error);
                     showToast('Failed to load batch data. Please try again.', 'error');
                 });
-        }
-        
-        // Function to show toast notification
-        function showToast(message, type = 'success') {
-            const toastContainer = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <i class="fas fa-check-circle"></i>
-                <div class="toast-message">${message}</div>
-            `;
-            
-            toastContainer.appendChild(toast);
-            
-            // Remove toast after 3 seconds
-            setTimeout(() => {
-                toast.style.animation = 'fadeOut 0.3s ease-out forwards';
-                setTimeout(() => {
-                    toast.remove();
-                }, 300);
-            }, 3000);
         }
         
         // Violation report functions
@@ -939,9 +641,12 @@
             .then(data => {
                 violationList.innerHTML = '';
                 
-                if (data.length > 0) {
-                    const maxCount = Math.max(...data.map(item => item.count));
-                    data.forEach(violation => {
+                // Sort data by count in descending order and take only the top 5
+                const top5Violations = data.sort((a, b) => b.count - a.count).slice(0, 5);
+
+                if (top5Violations.length > 0) {
+                    const maxCount = Math.max(...top5Violations.map(item => item.count));
+                    top5Violations.forEach(violation => {
                         const violationItem = document.createElement('div');
                         violationItem.className = 'violation-item';
                         violationItem.innerHTML = `
@@ -1001,3 +706,5 @@
     });
 </script>
 @endpush
+
+

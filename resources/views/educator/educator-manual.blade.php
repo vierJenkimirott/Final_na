@@ -3,7 +3,7 @@
 @section('title', 'Student Violation Manual')
 
 @section('css')
-    <link rel="stylesheet" href="{{ asset('css/student-manual.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/student/student-manual.css') }}">
 @endsection
 
 @section('content')
@@ -37,8 +37,6 @@
                             <th>#</th>
                             <th>Violation Name</th>
                             <th>Severity</th>
-                            <th>Offenses</th>
-                            <th>Penalties</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -65,37 +63,6 @@
                                         @break
                                     @default
                                         Medium
-                                @endswitch
-                            </td>
-                            <td>
-                                1st, 2nd, 3rd
-                            </td>
-                            <td>
-                                @switch($type->default_penalty)
-                                    @case('W')
-                                        1st: Warning<br>
-                                        2nd: Verbal Warning<br>
-                                        3rd: Written Warning
-                                        @break
-                                    @case('VW')
-                                        1st: Verbal Warning<br>
-                                        2nd: Written Warning<br>
-                                        3rd: Probation
-                                        @break
-                                    @case('WW')
-                                        1st: Written Warning<br>
-                                        2nd: Probation<br>
-                                        3rd: Expulsion
-                                        @break
-                                    @case('Pro')
-                                        1st: Probation<br>
-                                        2nd: Expulsion
-                                        @break
-                                    @case('Exp')
-                                        Immediate Expulsion
-                                        @break
-                                    @default
-                                        {{ $type->default_penalty }}
                                 @endswitch
                             </td>
                         </tr>

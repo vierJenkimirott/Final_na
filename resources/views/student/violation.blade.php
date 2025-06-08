@@ -3,7 +3,7 @@
 @section('title', 'Student Violation')
 
 @section('css')
-<link rel="stylesheet" href="{{ asset('css/student-violation.css') }}">
+<link rel="stylesheet" href="{{ asset('css/student/student-violation.css') }}">
 <style>
     /* Basic Styling */
     .no-violations {

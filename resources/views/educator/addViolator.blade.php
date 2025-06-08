@@ -2,18 +2,13 @@
 
 @section('css')
     <!-- External CSS Dependencies -->
-    <link rel="stylesheet" href="{{ asset('css/addViolator.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/educator/addViolator.css') }}">
 @endsection
 
 @section('content')
     <!-- Main Content Wrapper -->
     <div class="content-wrapper">
         <!-- Back Button -->
-        <button class="back-btn">
-            <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12l4-4m-4 4 4 4"/>
-            </svg>Back
-        </button>
 
         <!-- Form Container -->
         <div class="form-container">
@@ -115,6 +110,9 @@
                     <button type="button" class="cancel-btn">
                         <i class="fas fa-times"></i> Cancel
                     </button>
+                    <button type="button" class="back-btn">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
                     <button type="submit" class="submit-btn">
                         <i class="fas fa-plus"></i> Add Violator
                     </button>
@@ -129,11 +127,13 @@
     // =============================================
     // Navigation Event Handlers
     // =============================================
-    document.querySelector('.back-btn').addEventListener('click', () => {
+    document.querySelector('.back-btn').addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent default form submission behavior
         window.history.back();
     });
 
-    document.querySelector('.cancel-btn').addEventListener('click', () => {
+    document.querySelector('.cancel-btn').addEventListener('click', (e) => {
+        e.preventDefault(); // Also prevent default to be safe
         window.history.back();
     });
 

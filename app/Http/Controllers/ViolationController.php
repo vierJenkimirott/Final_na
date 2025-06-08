@@ -81,7 +81,7 @@ class ViolationController extends Controller
             // Eager load relationships and paginate for better performance
             $violations = Violation::with(['student', 'violationType'])
                 ->orderBy('created_at', 'desc')
-                ->paginate(15); // Paginate results for better performance with large datasets
+                ->paginate(5); // Changed to 5 items per page
                 
             return view('educator.violation', ['violations' => $violations]);
         } catch (Exception $e) {

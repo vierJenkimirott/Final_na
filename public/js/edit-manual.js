@@ -1,4 +1,6 @@
 // Function to update offenses and penalties based on severity
+// This function is no longer needed as offenses and penalties fields have been removed from the view.
+/*
 function updateOffensesAndPenalties(selectElement) {
     const severity = selectElement.value;
     const offensesFieldName = selectElement.getAttribute('data-offenses-field');
@@ -33,6 +35,7 @@ function updateOffensesAndPenalties(selectElement) {
             penaltiesField.value = '1st: Warning, 2nd: Verbal Warning, 3rd: Written Warning';
     }
 }
+*/
 
 // Function to delete a category
 function deleteCategory(button) {
@@ -71,20 +74,36 @@ function deleteCategory(button) {
     
     // Handle the confirmation
     document.getElementById('confirmDeleteCategoryBtn').addEventListener('click', function() {
-        // Create a hidden input to mark this category for deletion
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = 'delete_categories[]';
-        hiddenInput.value = categoryId;
-        document.getElementById('manualForm').appendChild(hiddenInput);
-        
-        // Remove the category section from the page
-        categorySection.remove();
-        
-        // Hide and remove the modal
-        modal.hide();
-        document.getElementById('deleteCategoryModal').addEventListener('hidden.bs.modal', function() {
-            document.getElementById('deleteCategoryModal').remove();
+        // Perform AJAX call for deletion
+        fetch('/educator/manual/delete-category', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ category_id: categoryId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the category section from the page
+                categorySection.remove();
+                // Optionally show a success message to the user
+                alert(data.message);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the category.');
+        })
+        .finally(() => {
+            // Hide and remove the modal
+            modal.hide();
+            document.getElementById('deleteCategoryModal').addEventListener('hidden.bs.modal', function() {
+                document.getElementById('deleteCategoryModal').remove();
+            });
         });
     });
     
@@ -132,20 +151,36 @@ function deleteViolation(button) {
     
     // Handle the confirmation
     document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-        // Create a hidden input to mark this violation for deletion
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = 'delete_violations[]';
-        hiddenInput.value = violationId;
-        document.getElementById('manualForm').appendChild(hiddenInput);
-        
-        // Remove the row from the table
-        row.remove();
-        
-        // Hide and remove the modal
-        modal.hide();
-        document.getElementById('deleteConfirmModal').addEventListener('hidden.bs.modal', function() {
-            document.getElementById('deleteConfirmModal').remove();
+        // Perform AJAX call for deletion
+        fetch('/educator/manual/delete-violation-type', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ violation_type_id: violationId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the row from the table
+                row.remove();
+                // Optionally show a success message to the user
+                alert(data.message);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the violation.');
+        })
+        .finally(() => {
+            // Hide and remove the modal
+            modal.hide();
+            document.getElementById('deleteConfirmModal').addEventListener('hidden.bs.modal', function() {
+                document.getElementById('deleteConfirmModal').remove();
+            });
         });
     });
     
@@ -155,9 +190,84 @@ function deleteViolation(button) {
     });
 }
 
+// Function to add a new violation row to an existing category
+function addViolationToCategory(button) {
+    const categorySection = button.closest('.category-section');
+    const categoryId = button.getAttribute('data-category-id');
+    const categoryIndex = button.getAttribute('data-category-index');
+    const violationsContainer = categorySection.querySelector('tbody');
+    
+    // Determine the next index for the new violation
+    const existingViolationRows = violationsContainer.querySelectorAll('tr');
+    const newViolationIndex = existingViolationRows.length; // Use the current count as the new index
+
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <input type="hidden" name="categories[${categoryIndex}][violationTypes][${newViolationIndex}][id]" value="">
+        <td>${newViolationIndex + 1}</td>
+        <td class="editable-cell">
+            <textarea name="categories[${categoryIndex}][violationTypes][${newViolationIndex}][violation_name]"
+                      class="violation-textarea" maxlength="500" required placeholder="Enter violation name"></textarea>
+            <div class="char-counter small text-muted">
+                <span class="current-count">0</span>/500 characters
+            </div>
+        </td>
+        <td>
+            <select class="penalty-select severity-select"
+                    name="categories[${categoryIndex}][violationTypes][${newViolationIndex}][default_penalty]" required>
+                <option value="W">Low</option>
+                <option value="VW">Medium</option>
+                <option value="WW">High</option>
+                <option value="Exp">Very High</option>
+            </select>
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-danger btn-sm delete-new-violation-row">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </td>
+    `;
+    violationsContainer.appendChild(newRow);
+
+    // Add character counter to the new textarea
+    const newTextarea = newRow.querySelector('.violation-textarea');
+    if (newTextarea) {
+        newTextarea.addEventListener('input', function() {
+            const counter = this.parentNode.querySelector('.char-counter .current-count');
+            if (counter) {
+                const currentLength = this.value.length;
+                counter.textContent = currentLength;
+                if (currentLength > 450) {
+                    counter.classList.add('char-limit-warning');
+                } else {
+                    counter.classList.remove('char-limit-warning');
+                }
+            }
+        });
+    }
+
+    // Add event listener for deleting the newly added row
+    newRow.querySelector('.delete-new-violation-row').addEventListener('click', function() {
+        newRow.remove();
+        // Re-index rows if needed (optional, for visual consistency)
+        // reindexViolationRows(violationsContainer);
+    });
+
+    // Scroll to the new row
+    newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Attach event listeners for adding new violation rows
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.add-violation-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            addViolationToCategory(this);
+        });
+    });
+});
+
 // Function to delete a new violation that hasn't been saved yet
 function deleteNewViolation(button) {
-    // All this code can be removed
     const row = button.closest('tr');
-    // ...rest of the function...
+    row.remove();
 }
