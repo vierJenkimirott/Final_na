@@ -214,14 +214,58 @@ input[type="date"].form-control:hover::-webkit-calendar-picker-indicator {
     }
 }
 
-/* Hide SVG arrows in pagination */
+/* Aggressive SVG hiding in pagination */
+.pagination .page-item:first-child .page-link,
+.pagination .page-item:last-child .page-link {
+    color: transparent !important; /* Make text transparent */
+    font-size: 0 !important; /* Hide text content */
+    padding: 0.5rem 0.8rem; /* Keep padding for button shape */
+    overflow: hidden; /* Ensure content is hidden */
+    text-indent: -9999px; /* For accessibility, move text off-screen */
+}
+
+.pagination .page-item:first-child .page-link::before,
+.pagination .page-item:last-child .page-link::before,
+.pagination .page-item:first-child .page-link::after,
+.pagination .page-item:last-child .page-link::after {
+    content: "" !important; /* Remove any pseudo-element content */
+    display: none !important; /* Ensure pseudo-elements are not rendered */
+}
+
+/* Hide the SVG completely */
 .pagination .page-link svg {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Target and hide SVG elements specifically */
+svg.w-5.h-5 {
     display: none !important;
 }
 
-/* Ensure no SVG icons appear in pagination links */
-.pagination .page-item .page-link svg,
-.pagination .page-item:first-child .page-link svg,
-.pagination .page-item:last-child .page-link svg {
+/* Force text to be visible in pagination links */
+a[href*="educator/violation?page"] {
+    color: #4299e1 !important;
+    font-size: 0.9rem !important;
+    text-indent: 0 !important;
+    overflow: visible !important;
+}
+
+/* Hide duplicate pagination on small screens */
+div.hidden.sm\:flex-1 {
     display: none !important;
 }
+
+/* Ensure sm: responsive classes don't override our hiding */
+@media (min-width: 640px) {
+    div.hidden.sm\:flex-1,
+    div.sm\:flex-1.sm\:flex.sm\:items-center.sm\:justify-between {
+        display: none !important;
+    }
+}
+
+
+
