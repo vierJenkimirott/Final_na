@@ -114,9 +114,9 @@
                 <table class="table table-bordered">
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Violation Name</th>
-                            <th>Severity</th>
+                            <th style="width: 10%; text-align: center;">#</th>
+                            <th style="width: 60%;">Violation Name</th>
+                            <th style="width: 30%; text-align: center;">Severity</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -124,27 +124,7 @@
                         <tr>
                             <td>{{ $index + 1 }}.{{ $typeIndex + 1 }}</td>
                             <td>{{ $type->violation_name }}</td>
-                            <td>
-                                @switch($type->default_penalty)
-                                    @case('W')
-                                        Low
-                                        @break
-                                    @case('VW')
-                                        Medium
-                                        @break
-                                    @case('WW')
-                                        High
-                                        @break
-                                    @case('Pro')
-                                        High
-                                        @break
-                                    @case('Exp')
-                                        Very High
-                                        @break
-                                    @default
-                                        Medium
-                                @endswitch
-                            </td>
+                            <td>{{ $type->severity }}</td>
                         </tr>
                         @endforeach
                     </tbody>

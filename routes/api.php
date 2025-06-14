@@ -22,3 +22,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::get('/violation-stats', 'App\Http\Controllers\ViolationController@getViolationStatsByPeriod');
 Route::get('/violation-stats-by-batch', 'App\Http\Controllers\BehaviorDataController@getViolationStatsByBatch');
 
+// Add route for fetching violation types by category
+Route::get('/violation-types/{categoryId}', 'App\Http\Controllers\ViolationController@getViolationTypesByCategory');
+

@@ -33,8 +33,8 @@ class BehaviorDataController extends Controller
             
             // Filter by batch if not 'all'
             if ($batch !== 'all') {
-                // Filter based on the student_id prefix (e.g., 2025 or 2026)
-                $studentsQuery->where('users.student_id', 'like', $batch . '%');
+                // Filter based on the student_id prefix (e.g., 202501 for 2025, 202601 for 2026)
+                $studentsQuery->where('users.student_id', 'like', $batch . '01%');
             }
             
             // Count total students in the batch

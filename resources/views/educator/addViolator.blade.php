@@ -101,7 +101,36 @@
                     </select>
                     <input type="text" class="form-field" id="consequence-input" name="consequence" placeholder="Enter custom consequence" style="display:none; margin-top:8px;" />
                 </div>
-                
+
+                <!-- Incident Details Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Incident Details</h3>
+
+                    <!-- Incident Date and Time -->
+                    <div class="form-group">
+                        <label for="incident-datetime">Date & Time of Incident</label>
+                        <input type="datetime-local" class="form-field" id="incident-datetime" name="incident_datetime" />
+                    </div>
+
+                    <!-- Incident Place -->
+                    <div class="form-group">
+                        <label for="incident-place">Place of Incident</label>
+                        <input type="text" class="form-field" id="incident-place" name="incident_place" placeholder="Enter location where incident occurred" />
+                    </div>
+
+                    <!-- Incident Details -->
+                    <div class="form-group">
+                        <label for="incident-details">Incident Details</label>
+                        <textarea class="form-field" id="incident-details" name="incident_details" rows="4" placeholder="Describe what happened in detail..."></textarea>
+                    </div>
+
+                    <!-- Prepared By -->
+                    <div class="form-group">
+                        <label for="prepared-by">Prepared By</label>
+                        <input type="text" class="form-field" id="prepared-by" name="prepared_by" value="{{ Auth::user()->name }}" readonly />
+                    </div>
+                </div>
+
                 <!-- Hidden Status Field -->
                 <input type="hidden" name="status" value="active" />
 
@@ -159,7 +188,7 @@
         if (categoryId) {
             console.log('Fetching violation types for category:', categoryId);
             // Fetch violation types for selected category
-            fetch(`/educator/violation-types/${categoryId}`)
+            fetch(`/api/violation-types/${categoryId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -173,9 +202,9 @@
                         data.forEach(violation => {
                             const option = document.createElement('option');
                             option.value = violation.id;
-                            option.textContent = violation.name;
+                            option.textContent = violation.violation_name;
                             option.dataset.severity = violation.severity; // Store severity in data attribute
-                            console.log('Adding violation type:', violation.name, 'with severity:', violation.severity);
+                            console.log('Adding violation type:', violation.violation_name, 'with severity:', violation.severity);
                             violationTypeSelect.appendChild(option);
                         });
                         
@@ -204,6 +233,10 @@
                     option.disabled = true;
                     option.textContent = "Error loading violation types";
                     violationTypeSelect.appendChild(option);
+                    // Show toast notification
+                    if (typeof window.showCustomToast === 'function') {
+                        window.showCustomToast('Failed to load violation types. Please try again.', 'error');
+                    }
                 });
         }
     });
@@ -358,7 +391,16 @@ function setPenalty(severity, offense) {
     if (!studentId || !violationDate || !violationType || !severity || !offense || !penalty) {
         e.preventDefault();
         alert('Please fill in all required fields.');
+        return;
     }
+
+    // Optional validation for incident details - you can add more specific validation here if needed
+    const incidentDatetime = document.getElementById('incident-datetime').value;
+    const incidentPlace = document.getElementById('incident-place').value;
+    const incidentDetails = document.getElementById('incident-details').value;
+
+    // You can add validation logic here if any incident detail fields should be required
+    // For now, they are all optional as per the database schema
 });
     // =============================================
     // Helper Functions

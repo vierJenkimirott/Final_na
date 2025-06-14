@@ -5,7 +5,6 @@ body {
 }
 
 .content-wrapper {
-    padding: 10px 10px;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -13,6 +12,7 @@ body {
     width: 100%;
     max-width: 1000px;
     margin: 0 auto;
+    background: #f5f7fa;
 }
 
 h2 {
@@ -26,13 +26,13 @@ h2 {
 }
 
 .form-container {
-    background-color: white;
+    background: white;
     width: 100%;
-    max-width: 1000px;
     padding: 30px;
     border: 1px solid #4299e1;
     border-radius: 16px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
 }
 
 /* Two-column form layout */
@@ -43,8 +43,9 @@ h2 {
     width: 100%;
 }
 
-/* Make consequence group and form actions span both columns */
+/* Make consequence group, incident details section, and form actions span both columns */
 #consequence-group,
+.incident-details-section,
 .form-actions {
     grid-column: 1 / -1;
 }
@@ -114,6 +115,48 @@ input[type="date"].form-control::-webkit-calendar-picker-indicator {
 }
 
 input[type="date"].form-control:hover::-webkit-calendar-picker-indicator {
+    opacity: 1;
+}
+
+/* Incident Details Section */
+.incident-details-section {
+    margin-top: 32px;
+    padding: 24px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    border-left: 4px solid #4299e1;
+}
+
+.section-title {
+    color: #2d3748;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+/* Textarea styling */
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+    font-family: inherit;
+    line-height: 1.5;
+}
+
+/* Datetime input styling */
+input[type="datetime-local"].form-control {
+    cursor: pointer;
+}
+
+input[type="datetime-local"].form-control::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+input[type="datetime-local"].form-control:hover::-webkit-calendar-picker-indicator {
     opacity: 1;
 }
 
@@ -214,14 +257,58 @@ input[type="date"].form-control:hover::-webkit-calendar-picker-indicator {
     }
 }
 
-/* Hide SVG arrows in pagination */
+/* Aggressive SVG hiding in pagination */
+.pagination .page-item:first-child .page-link,
+.pagination .page-item:last-child .page-link {
+    color: transparent !important; /* Make text transparent */
+    font-size: 0 !important; /* Hide text content */
+    padding: 0.5rem 0.8rem; /* Keep padding for button shape */
+    overflow: hidden; /* Ensure content is hidden */
+    text-indent: -9999px; /* For accessibility, move text off-screen */
+}
+
+.pagination .page-item:first-child .page-link::before,
+.pagination .page-item:last-child .page-link::before,
+.pagination .page-item:first-child .page-link::after,
+.pagination .page-item:last-child .page-link::after {
+    content: "" !important; /* Remove any pseudo-element content */
+    display: none !important; /* Ensure pseudo-elements are not rendered */
+}
+
+/* Hide the SVG completely */
 .pagination .page-link svg {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Target and hide SVG elements specifically */
+svg.w-5.h-5 {
     display: none !important;
 }
 
-/* Ensure no SVG icons appear in pagination links */
-.pagination .page-item .page-link svg,
-.pagination .page-item:first-child .page-link svg,
-.pagination .page-item:last-child .page-link svg {
+/* Force text to be visible in pagination links */
+a[href*="educator/violation?page"] {
+    color: #4299e1 !important;
+    font-size: 0.9rem !important;
+    text-indent: 0 !important;
+    overflow: visible !important;
+}
+
+/* Hide duplicate pagination on small screens */
+div.hidden.sm\:flex-1 {
     display: none !important;
 }
+
+/* Ensure sm: responsive classes don't override our hiding */
+@media (min-width: 640px) {
+    div.hidden.sm\:flex-1,
+    div.sm\:flex-1.sm\:flex.sm\:items-center.sm\:justify-between {
+        display: none !important;
+    }
+}
+
+
+

@@ -33,23 +33,24 @@ class EducatorController extends Controller
     public function getStudentsByBatch(Request $request)
     {
         $batch = $request->query('batch', 'all');
-        
+
         try {
             if ($batch === 'all') {
                 $count = User::role('student')->count();
             } else {
+                // Filter based on the student_id prefix (e.g., 202501 for 2025, 202601 for 2026)
                 $count = User::role('student')
-                    ->join('student_details', 'users.id', '=', 'student_details.user_id')
-                    ->where('student_details.batch', $batch)
+                    ->where('student_id', 'like', $batch . '01%')
                     ->count();
             }
-            
+
             return response()->json([
                 'success' => true,
                 'count' => $count,
                 'batch' => $batch
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error in getStudentsByBatch: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error fetching students by batch: ' . $e->getMessage(),
@@ -72,17 +73,12 @@ class EducatorController extends Controller
             if ($batch === 'all') {
                 $count = Violation::where('status', 'active')->count();
             } else {
+                // Filter based on the student_id prefix (e.g., 202501 for 2025, 202601 for 2026)
                 $count = Violation::where('status', 'active')
-                    ->whereExists(function($query) use ($batch) {
-                        $query->select(DB::raw(1))
-                              ->from('users')
-                              ->join('student_details', 'users.id', '=', 'student_details.user_id')
-                              ->whereRaw('violations.student_id = users.student_id')
-                              ->where('student_details.batch', $batch);
-                    })
+                    ->where('student_id', 'like', $batch . '01%')
                     ->count();
             }
-            
+
             return response()->json([
                 'success' => true,
                 'count' => $count,
@@ -111,11 +107,11 @@ class EducatorController extends Controller
             
             // Get all students
             $studentsQuery = User::role('student');
-            
+
             // Apply batch filter
             if ($batch !== 'all') {
-                $studentsQuery->join('student_details', 'users.id', '=', 'student_details.user_id')
-                    ->where('student_details.batch', $batch);
+                // Filter based on the student_id prefix (e.g., 202501 for 2025, 202601 for 2026)
+                $studentsQuery->where('student_id', 'like', $batch . '01%');
             }
             
             // Get non-compliant students (with violations)
@@ -1169,7 +1165,7 @@ class EducatorController extends Controller
 
                             if (isset($categoryData['violationTypes'])) {
                                 foreach ($categoryData['violationTypes'] as $violationData) {
-                                    if (isset($violationData['id'])) {
+                                    if (isset($violationData['id']) && !empty($violationData['id'])) {
                                         // Existing violation
                                         $violation = ViolationType::find($violationData['id']);
                                         if ($violation) {
@@ -1177,15 +1173,13 @@ class EducatorController extends Controller
                                             $violation->default_penalty = $violationData['default_penalty'] ?? 'W';
                                             $violation->save();
                                         }
-                                    } else {
+                                    } else if (!empty($violationData['violation_name'])) {
                                         // New violation for existing category
-                                        if (!empty($violationData['violation_name'])) {
-                                            $newViolation = new ViolationType();
-                                            $newViolation->offense_category_id = $category->id;
-                                            $newViolation->violation_name = $violationData['violation_name'];
-                                            $newViolation->default_penalty = $violationData['default_penalty'] ?? 'W';
-                                            $newViolation->save();
-                                        }
+                                        $newViolation = new ViolationType();
+                                        $newViolation->offense_category_id = $category->id;
+                                        $newViolation->violation_name = $violationData['violation_name'];
+                                        $newViolation->default_penalty = $violationData['default_penalty'] ?? 'W';
+                                        $newViolation->save();
                                     }
                                 }
                             }
@@ -1201,10 +1195,19 @@ class EducatorController extends Controller
                             if (isset($categoryData['violationTypes'])) {
                                 foreach ($categoryData['violationTypes'] as $violationData) {
                                     if (!empty($violationData['violation_name'])) {
+                                        // Find the severity by name
+                                        $severity = \App\Models\Severity::where('severity_name', $violationData['severity'] ?? 'Medium')->first();
+                                        
+                                        if (!$severity) {
+                                            // Default to Medium severity if not found
+                                            $severity = \App\Models\Severity::where('severity_name', 'Medium')->first();
+                                        }
+                                        
                                         $newViolation = new ViolationType();
                                         $newViolation->offense_category_id = $newCategory->id;
                                         $newViolation->violation_name = $violationData['violation_name'];
                                         $newViolation->default_penalty = $violationData['default_penalty'] ?? 'W';
+                                        $newViolation->severity_id = $severity->id;
                                         $newViolation->save();
                                     }
                                 }

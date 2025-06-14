@@ -835,11 +835,7 @@ window.dashboardFilterByBatch = function(batch) {
         console.warn('Could not find batch-specific student sections');
     }
     
-    // Show toast notification
-    const toastElement = document.getElementById('toastContainer');
-    if (toastElement) {
-        showToast(`Filtered to ${batch === 'all' ? 'all batches' : 'batch ' + batch}`, 'info');
-    }
+    // Notification removed - no toast for batch filtering
 };
 
 // Function to filter data by batch range in the behavior monitoring page
@@ -894,8 +890,7 @@ window.filterDataByBatchRange = function(startYear, endYear) {
             chartTitle.textContent = `Student Violations by Month (Batches ${startYear}-${endYear})`;
         }
         
-        // Show notification
-        window.showNotification('info', `Showing behavior data for batches ${startYear} to ${endYear}`, 'Batch Range Filter Updated');
+        // Notification removed - no toast for batch range filtering
     })
     .catch(error => {
         console.error('Error fetching filtered behavior data for batch range:', error);
@@ -1027,8 +1022,7 @@ window.filterDataByBatch = function(batch) {
             chartTitle.textContent = `Student Violations by Month ${batch === 'all' ? '' : '(' + batch + ')'}`;
         }
         
-        // Show notification
-        window.showNotification('info', `Showing behavior data for ${batch === 'all' ? 'all batches' : 'batch ' + batch}`, 'Batch Filter Updated');
+        // Notification removed - no toast for batch filtering
     })
     .catch(error => {
         console.error('Error fetching filtered behavior data:', error);
@@ -1244,8 +1238,7 @@ window.updateDashboardData = function(batch) {
         console.error('Error filtering student data:', error);
     });
     
-    // Show notification about the filter change
-    window.showNotification('info', `Filtered to ${batch === 'all' ? 'all batches' : 'batch ' + batch}`, 'Filter Applied');
+    // Notification removed - no toast for filter changes
 };
 
 // Function to update violation report based on period and batch
@@ -1443,8 +1436,7 @@ window.updateStudentTabs = function(batch) {
         console.error('Error filtering student data:', error);
     });
     
-    // Show notification about the filter change
-    window.showNotification('info', `Filtered to ${batch === 'all' ? 'all batches' : 'batch ' + batch}`, 'Filter Applied');
+    // Notification removed - no toast for filter changes
 };
 
 // Function to filter data by y-axis scale

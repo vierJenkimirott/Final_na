@@ -41,7 +41,6 @@ function updateOffensesAndPenalties(selectElement) {
 function deleteCategory(button) {
     const categorySection = button.closest('.category-section');
     const categoryId = button.getAttribute('data-category-id');
-    const categoryName = categorySection.querySelector('.category-name-input').value;
     
     // Create and show a custom confirmation dialog
     const confirmDialog = document.createElement('div');
@@ -88,15 +87,15 @@ function deleteCategory(button) {
             if (data.success) {
                 // Remove the category section from the page
                 categorySection.remove();
-                // Optionally show a success message to the user
-                alert(data.message);
+                // Show success toast
+                showSuccessToast(data.message);
             } else {
-                alert('Error: ' + data.message);
+                showErrorToast(data.message || 'Failed to delete category');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while deleting the category.');
+            showErrorToast('An error occurred while deleting the category');
         })
         .finally(() => {
             // Hide and remove the modal
@@ -165,15 +164,15 @@ function deleteViolation(button) {
             if (data.success) {
                 // Remove the row from the table
                 row.remove();
-                // Optionally show a success message to the user
-                alert(data.message);
+                // Show success toast
+                showSuccessToast(data.message);
             } else {
-                alert('Error: ' + data.message);
+                showErrorToast(data.message || 'Failed to delete violation');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while deleting the violation.');
+            showErrorToast('An error occurred while deleting the violation');
         })
         .finally(() => {
             // Hide and remove the modal

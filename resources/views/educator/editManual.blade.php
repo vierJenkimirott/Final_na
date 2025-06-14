@@ -56,10 +56,10 @@
                 <table class="table table-bordered">
                     <thead>
                         <tr>
-                            <th style="width: 5%">#</th>
-                            <th style="width: 35%">Violation Name</th>
-                            <th style="width: 15%">Severity</th>
-                            <th style="width: 10%">Action</th>
+                            <th style="width: 5%; text-align: center;">#</th>
+                            <th style="width: 60%; text-align: left;">Violation Name</th>
+                            <th style="width: 20%; text-align: center;">Severity</th>
+                            <th style="width: 15%; text-align: center;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="violations-container-{{ $category->id }}">
@@ -67,15 +67,15 @@
                         @foreach ($category->violationTypes as $typeIndex => $type)
                             <tr>
                                 <input type="hidden" name="categories[{{ $loop->parent->index }}][violationTypes][{{ $loop->index }}][id]" value="{{ $type->id }}">
-                                <td>{{ $loop->iteration }}</td>
-                                <td class="editable-cell">
+                                <td style="text-align: center;">{{ $loop->iteration }}</td>
+                                <td class="editable-cell" style="text-align: left;">
                                     <textarea name="categories[{{ $loop->parent->index }}][violationTypes][{{ $loop->index }}][violation_name]"
                                               class="violation-textarea" maxlength="500" required>{{ $type->violation_name }}</textarea>
                                     <div class="char-counter small text-muted">
                                         <span class="current-count">{{ strlen($type->violation_name) }}</span>/500 characters
                                     </div>
                                 </td>
-                                <td>
+                                <td style="text-align: center;">
                                     <select class="penalty-select severity-select"
                                             name="categories[{{ $loop->parent->index }}][violationTypes][{{ $loop->index }}][default_penalty]"
                                             data-offenses-field="categories[{{ $loop->parent->index }}][violationTypes][{{ $loop->index }}][offenses]"
@@ -153,7 +153,7 @@
         </div>
 
         <div class="action-buttons d-flex justify-content-between">
-            <a href="{{ route('student-manual') }}" class="btn btn-secondary">
+            <a href="{{ route('educator.manual') }}" class="btn btn-secondary">
                 <i class="fas fa-times"></i> Cancel
             </a>
             <button type="submit" class="btn btn-success" id="saveButton">
@@ -164,6 +164,7 @@
 </div>
 
 @push('scripts')
+<script src="{{ asset('js/toast.js') }}"></script>
 <script src="{{ asset('js/edit-manual.js') }}"></script>
 <script src="{{ asset('js/edit-manual-init.js') }}"></script>
 @endpush
