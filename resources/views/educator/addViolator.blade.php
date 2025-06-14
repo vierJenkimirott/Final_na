@@ -159,7 +159,7 @@
         if (categoryId) {
             console.log('Fetching violation types for category:', categoryId);
             // Fetch violation types for selected category
-            fetch(`/educator/violation-types/${categoryId}`)
+            fetch(`/api/violation-types/${categoryId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -173,9 +173,9 @@
                         data.forEach(violation => {
                             const option = document.createElement('option');
                             option.value = violation.id;
-                            option.textContent = violation.name;
+                            option.textContent = violation.violation_name;
                             option.dataset.severity = violation.severity; // Store severity in data attribute
-                            console.log('Adding violation type:', violation.name, 'with severity:', violation.severity);
+                            console.log('Adding violation type:', violation.violation_name, 'with severity:', violation.severity);
                             violationTypeSelect.appendChild(option);
                         });
                         
@@ -204,6 +204,10 @@
                     option.disabled = true;
                     option.textContent = "Error loading violation types";
                     violationTypeSelect.appendChild(option);
+                    // Show toast notification
+                    if (typeof window.showCustomToast === 'function') {
+                        window.showCustomToast('Failed to load violation types. Please try again.', 'error');
+                    }
                 });
         }
     });

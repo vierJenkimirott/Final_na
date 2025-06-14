@@ -84,6 +84,8 @@
                                 ->select('violation_types.id', 'violation_types.violation_name', 'severities.severity_name')
                                 ->join('severities', 'violation_types.severity_id', '=', 'severities.id')
                                 ->where('violation_types.offense_category_id', $violation->offenseCategory->id)
+                                ->orderByRaw("FIELD(severities.severity_name, 'Low', 'Medium', 'High', 'Very High')")
+                                ->orderBy('violation_types.violation_name')
                                 ->get();
                         @endphp
                         
@@ -175,8 +177,8 @@
                         <i class="fas fa-lock me-2"></i>Update Violation
                     </button>
                 </div>
-            </form>
-        </div>
+            </div>
+        </form>
     </div>
 @endsection
 
@@ -365,6 +367,22 @@
             offenseCountSelect.value = initialOffenseCount; // Set initial offense count
             updatePenaltyField(severitySelect.value, initialOffenseCount);
 
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const severitySelect = document.getElementById('severity');
+            const violationTypeSelect = document.getElementById('violation_type_id');
+            
+            // Store the original severity when the page loads
+            const originalSeverity = severitySelect.value;
+            
+            // When violation type changes, don't automatically update severity
+            violationTypeSelect.addEventListener('change', function() {
+                // Keep the current severity selection
+                severitySelect.value = originalSeverity;
+            });
         });
     </script>
 @endpush 
