@@ -433,9 +433,6 @@
                 severitySelect.value = originalSeverity;
             });
         });
-    </script>
-@endpush 
-    });
 
     // Add event listeners for cancel and back buttons
     document.querySelector('.cancel-btn').addEventListener('click', function() {
@@ -445,5 +442,6 @@
     document.querySelector('.back-btn').addEventListener('click', function() {
         window.location.href = "{{ route('educator.violation') }}";
     });
-</script>
-@endpush
+    </script>
+@endpush 
+    
