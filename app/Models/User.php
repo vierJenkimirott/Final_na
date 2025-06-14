@@ -29,7 +29,6 @@ class User extends Authenticatable
         'password',
         'gender', // Keeping for backward compatibility
         'sex',
-        'last_manual_viewed_at',
     ];
 
     /**

@@ -240,43 +240,22 @@ class ViolationController extends Controller
      */
     public function getViolationTypesByCategory($categoryId)
     {
-        // Directly query the database to get violation types with their severity names
-        $violationTypes = DB::table('violation_types')
-            ->select('violation_types.id', 'violation_types.violation_name', 'severities.severity_name')
-            ->join('severities', 'violation_types.severity_id', '=', 'severities.id')
-            ->where('violation_types.offense_category_id', $categoryId)
-            ->get();
+        $violationTypes = ViolationType::where('offense_category_id', $categoryId)
+            ->with('severityRelation')
+            ->orderBy('violation_name')
+            ->get()
+            ->map(function ($type) {
+                return [
+                    'id' => $type->id,
+                    'violation_name' => $type->violation_name,
+                    'offense_category_id' => $type->offense_category_id,
+                    'default_penalty' => $type->default_penalty,
+                    'severity_id' => $type->severity_id,
+                    'severity' => $type->severity ?? 'Medium'
+                ];
+            });
         
-        // Log for debugging
-        \Log::info('Fetching violation types for category: ' . $categoryId, [
-            'count' => $violationTypes->count(),
-            'first_type' => $violationTypes->first()
-        ]);
-        
-        $formattedViolationTypes = $violationTypes->map(function ($violationType) {
-            // Get severity directly from the joined query
-            $severityName = $violationType->severity_name ?? 'Medium';
-            
-            // Log for debugging
-            \Log::info('Mapping violation type: ' . $violationType->id, [
-                'name' => $violationType->violation_name,
-                'severity_name' => $severityName
-            ]);
-            
-            return [
-                'id' => $violationType->id,
-                'name' => $violationType->violation_name,
-                'severity' => $severityName
-            ];
-        });
-        
-        // Log the final formatted data
-        \Log::info('Returning formatted violation types', [
-            'count' => $formattedViolationTypes->count(),
-            'data' => $formattedViolationTypes->toArray()
-        ]);
-        
-        return response()->json($formattedViolationTypes);
+        return response()->json($violationTypes);
     }
 
     /**
@@ -317,12 +296,20 @@ class ViolationController extends Controller
             // Find or create the offense category
             $offenseCategory = OffenseCategory::firstOrCreate(['category_name' => $validated['category']]);
             
+            // Find the severity by name
+            $severity = \App\Models\Severity::where('severity_name', $validated['severity'])->first();
+            
+            if (!$severity) {
+                throw new \Exception('Invalid severity level');
+            }
+            
             // Create the violation type
             $violationType = ViolationType::create([
                 'offense_category_id' => $offenseCategory->id,
                 'violation_name' => $validated['violation_name'],
                 'description' => $validated['offense'] ?? null,
-                'default_penalty' => $validated['penalty'] ?? null
+                'default_penalty' => $validated['penalty'] ?? null,
+                'severity_id' => $severity->id
             ]);
             
             // Return a nicer success message

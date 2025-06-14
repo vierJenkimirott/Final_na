@@ -2,25 +2,81 @@
  * Centralized toast notification system
  */
 
-// Toast types and their corresponding icons
-const TOAST_TYPES = {
-    success: {
-        icon: 'fas fa-check-circle',
-        title: 'Success'
-    },
-    error: {
-        icon: 'fas fa-exclamation-circle',
-        title: 'Error'
-    },
-    info: {
-        icon: 'fas fa-info-circle',
-        title: 'Information'
-    },
-    warning: {
-        icon: 'fas fa-exclamation-triangle',
-        title: 'Warning'
+// Toast container
+let toastContainer = null;
+
+// Initialize toast container if it doesn't exist
+function initToastContainer() {
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
     }
-};
+}
+
+// Show success toast
+function showSuccessToast(message) {
+    initToastContainer();
+    const toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-white bg-success border-0';
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-check-circle me-2"></i>
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast, {
+        autohide: true,
+        delay: 3000
+    });
+    bsToast.show();
+    
+    // Remove toast from DOM after it's hidden
+    toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+    });
+}
+
+// Show error toast
+function showErrorToast(message) {
+    initToastContainer();
+    const toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-white bg-danger border-0';
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast, {
+        autohide: true,
+        delay: 5000
+    });
+    bsToast.show();
+    
+    // Remove toast from DOM after it's hidden
+    toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+    });
+}
 
 /**
  * Show a toast notification
@@ -61,22 +117,6 @@ function showToast(message, type = 'info', duration = 3000) {
             }
         }, 300);
     }, duration);
-}
-
-/**
- * Show a success toast notification
- * @param {string} message - The success message
- */
-function showSuccessToast(message) {
-    showToast(message, 'success');
-}
-
-/**
- * Show an error toast notification
- * @param {string} message - The error message
- */
-function showErrorToast(message) {
-    showToast(message, 'error');
 }
 
 /**

@@ -1165,7 +1165,7 @@ class EducatorController extends Controller
 
                             if (isset($categoryData['violationTypes'])) {
                                 foreach ($categoryData['violationTypes'] as $violationData) {
-                                    if (isset($violationData['id'])) {
+                                    if (isset($violationData['id']) && !empty($violationData['id'])) {
                                         // Existing violation
                                         $violation = ViolationType::find($violationData['id']);
                                         if ($violation) {
@@ -1173,15 +1173,13 @@ class EducatorController extends Controller
                                             $violation->default_penalty = $violationData['default_penalty'] ?? 'W';
                                             $violation->save();
                                         }
-                                    } else {
+                                    } else if (!empty($violationData['violation_name'])) {
                                         // New violation for existing category
-                                        if (!empty($violationData['violation_name'])) {
-                                            $newViolation = new ViolationType();
-                                            $newViolation->offense_category_id = $category->id;
-                                            $newViolation->violation_name = $violationData['violation_name'];
-                                            $newViolation->default_penalty = $violationData['default_penalty'] ?? 'W';
-                                            $newViolation->save();
-                                        }
+                                        $newViolation = new ViolationType();
+                                        $newViolation->offense_category_id = $category->id;
+                                        $newViolation->violation_name = $violationData['violation_name'];
+                                        $newViolation->default_penalty = $violationData['default_penalty'] ?? 'W';
+                                        $newViolation->save();
                                     }
                                 }
                             }
@@ -1197,10 +1195,19 @@ class EducatorController extends Controller
                             if (isset($categoryData['violationTypes'])) {
                                 foreach ($categoryData['violationTypes'] as $violationData) {
                                     if (!empty($violationData['violation_name'])) {
+                                        // Find the severity by name
+                                        $severity = \App\Models\Severity::where('severity_name', $violationData['severity'] ?? 'Medium')->first();
+                                        
+                                        if (!$severity) {
+                                            // Default to Medium severity if not found
+                                            $severity = \App\Models\Severity::where('severity_name', 'Medium')->first();
+                                        }
+                                        
                                         $newViolation = new ViolationType();
                                         $newViolation->offense_category_id = $newCategory->id;
                                         $newViolation->violation_name = $violationData['violation_name'];
                                         $newViolation->default_penalty = $violationData['default_penalty'] ?? 'W';
+                                        $newViolation->severity_id = $severity->id;
                                         $newViolation->save();
                                     }
                                 }
