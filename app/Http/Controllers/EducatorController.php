@@ -33,23 +33,24 @@ class EducatorController extends Controller
     public function getStudentsByBatch(Request $request)
     {
         $batch = $request->query('batch', 'all');
-        
+
         try {
             if ($batch === 'all') {
                 $count = User::role('student')->count();
             } else {
+                // Filter based on the student_id prefix (e.g., 202501 for 2025, 202601 for 2026)
                 $count = User::role('student')
-                    ->join('student_details', 'users.id', '=', 'student_details.user_id')
-                    ->where('student_details.batch', $batch)
+                    ->where('student_id', 'like', $batch . '01%')
                     ->count();
             }
-            
+
             return response()->json([
                 'success' => true,
                 'count' => $count,
                 'batch' => $batch
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error in getStudentsByBatch: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error fetching students by batch: ' . $e->getMessage(),
@@ -72,17 +73,12 @@ class EducatorController extends Controller
             if ($batch === 'all') {
                 $count = Violation::where('status', 'active')->count();
             } else {
+                // Filter based on the student_id prefix (e.g., 202501 for 2025, 202601 for 2026)
                 $count = Violation::where('status', 'active')
-                    ->whereExists(function($query) use ($batch) {
-                        $query->select(DB::raw(1))
-                              ->from('users')
-                              ->join('student_details', 'users.id', '=', 'student_details.user_id')
-                              ->whereRaw('violations.student_id = users.student_id')
-                              ->where('student_details.batch', $batch);
-                    })
+                    ->where('student_id', 'like', $batch . '01%')
                     ->count();
             }
-            
+
             return response()->json([
                 'success' => true,
                 'count' => $count,
@@ -111,11 +107,11 @@ class EducatorController extends Controller
             
             // Get all students
             $studentsQuery = User::role('student');
-            
+
             // Apply batch filter
             if ($batch !== 'all') {
-                $studentsQuery->join('student_details', 'users.id', '=', 'student_details.user_id')
-                    ->where('student_details.batch', $batch);
+                // Filter based on the student_id prefix (e.g., 202501 for 2025, 202601 for 2026)
+                $studentsQuery->where('student_id', 'like', $batch . '01%');
             }
             
             // Get non-compliant students (with violations)

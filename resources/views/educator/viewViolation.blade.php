@@ -90,7 +90,42 @@
                 <div class="detail-label">Consequence:</div>
                 <div class="detail-value">{{ $violation->consequence }}</div>
             </div>
-            
+
+            <!-- Incident Details Section -->
+            @if($violation->incident_datetime || $violation->incident_place || $violation->incident_details || $violation->prepared_by)
+                <div class="incident-details-section">
+                    <h3 class="section-title">Incident Details</h3>
+
+                    @if($violation->incident_datetime)
+                        <div class="detail-row">
+                            <div class="detail-label">Date & Time of Incident:</div>
+                            <div class="detail-value">{{ \Carbon\Carbon::parse($violation->incident_datetime)->format('M d, Y g:i A') }}</div>
+                        </div>
+                    @endif
+
+                    @if($violation->incident_place)
+                        <div class="detail-row">
+                            <div class="detail-label">Place of Incident:</div>
+                            <div class="detail-value">{{ $violation->incident_place }}</div>
+                        </div>
+                    @endif
+
+                    @if($violation->incident_details)
+                        <div class="detail-row">
+                            <div class="detail-label">Incident Details:</div>
+                            <div class="detail-value incident-description">{{ $violation->incident_details }}</div>
+                        </div>
+                    @endif
+
+                    @if($violation->prepared_by)
+                        <div class="detail-row">
+                            <div class="detail-label">Prepared By:</div>
+                            <div class="detail-value">{{ $violation->prepared_by }}</div>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
             <!-- Violation Status -->
             <div class="detail-row">
                 <div class="detail-label">Status:</div>
@@ -148,7 +183,32 @@
         .detail-value {
             flex: 1;
         }
-        
+
+        /* Incident Details Section */
+        .incident-details-section {
+            margin: 25px 0;
+            padding: 20px;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            border-left: 4px solid #4299e1;
+        }
+
+        .section-title {
+            color: #2d3748;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .incident-description {
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
         /* Action Buttons Container */
         .action-buttons {
             display: flex;
