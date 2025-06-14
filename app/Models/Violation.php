@@ -20,6 +20,10 @@ class Violation extends Model
         'penalty',
         'consequence',
         'status',
+        'incident_datetime',
+        'incident_place',
+        'incident_details',
+        'prepared_by',
     ];
 
     // Define the relationship with the User model

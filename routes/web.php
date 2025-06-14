@@ -104,6 +104,8 @@ Route::prefix('api')->middleware(['auth'])->group(function () {
     Route::get('/violation-stats-by-batch', [BehaviorDataController::class, 'getViolationStatsByBatch'])->name('api.violation-stats-by-batch');
     Route::get('/violations/count', [ViolationController::class, 'countViolationsByBatchFilter'])->name('api.violations-count');
     Route::get('/students/compliance', [EducatorController::class, 'getStudentComplianceByBatch'])->name('api.students-compliance');
+    Route::get('/student-violations', [ViolationController::class, 'getStudentViolations'])->name('api.student-violations');
+    Route::get('/violation-students', [ViolationController::class, 'getViolationStudents'])->name('api.violation-students');
 });
 
 // Student routes

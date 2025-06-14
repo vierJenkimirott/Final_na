@@ -116,6 +116,10 @@ class ViolationController extends Controller
             'penalty' => 'required|string',
             'consequence' => 'nullable|string',
             'status' => 'required|in:active,resolved',
+            'incident_datetime' => 'nullable|date',
+            'incident_place' => 'nullable|string|max:255',
+            'incident_details' => 'nullable|string',
+            'prepared_by' => 'nullable|string|max:255',
         ]);
         
         // Get student sex for the record
@@ -361,6 +365,10 @@ class ViolationController extends Controller
                 'penalty' => 'required|string',
                 'consequence' => 'nullable|string',
                 'status' => 'required|in:active,resolved',
+                'incident_datetime' => 'nullable|date',
+                'incident_place' => 'nullable|string|max:255',
+                'incident_details' => 'nullable|string',
+                'prepared_by' => 'nullable|string|max:255',
             ]);
             
             // Start a database transaction for data consistency
@@ -554,6 +562,10 @@ class ViolationController extends Controller
             'penalty' => 'required|string',
             'consequence' => 'nullable|string',
             'status' => 'required|in:active,resolved',
+            'incident_datetime' => 'nullable|date',
+            'incident_place' => 'nullable|string|max:255',
+            'incident_details' => 'nullable|string',
+            'prepared_by' => 'nullable|string|max:255',
         ]);
         
         // Get student sex for the record
@@ -731,8 +743,167 @@ private function getHighestExistingPenalty($studentId)
     }
     
     /**
+     * Get students who committed a specific violation
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getViolationStudents(Request $request)
+    {
+        try {
+            $violationName = $request->query('violation_name');
+            $period = $request->query('period', 'month');
+            $batch = $request->query('batch', 'all');
+
+            if (!$violationName) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Violation name is required'
+                ], 400);
+            }
+
+            // Build the base query
+            $query = DB::table('violations')
+                ->join('violation_types', 'violations.violation_type_id', '=', 'violation_types.id')
+                ->join('users', 'violations.student_id', '=', 'users.student_id')
+                ->where('violation_types.violation_name', $violationName)
+                ->where('violations.status', 'active');
+
+            // Apply period filter
+            switch ($period) {
+                case 'week':
+                    $query->where('violations.violation_date', '>=', now()->subWeek());
+                    break;
+                case 'month':
+                    $query->where('violations.violation_date', '>=', now()->subMonth());
+                    break;
+                case 'last_month':
+                    $query->whereBetween('violations.violation_date', [
+                        now()->subMonth()->startOfMonth(),
+                        now()->subMonth()->endOfMonth()
+                    ]);
+                    break;
+                case 'year':
+                    $query->where('violations.violation_date', '>=', now()->subYear());
+                    break;
+            }
+
+            // Apply batch filter
+            if ($batch !== 'all') {
+                // Filter based on the student_id prefix (e.g., 202501 for 2025, 202601 for 2026)
+                $query->where('users.student_id', 'like', $batch . '01%');
+            }
+
+            // Get students with violation details
+            $students = $query->select(
+                'users.name',
+                'users.student_id',
+                'violations.violation_date',
+                'violations.penalty'
+            )
+            ->orderBy('violations.violation_date', 'desc')
+            ->get()
+            ->map(function($student) {
+                return [
+                    'name' => $student->name,
+                    'student_id' => $student->student_id,
+                    'violation_date' => $student->violation_date ? date('M d, Y', strtotime($student->violation_date)) : 'Unknown Date',
+                    'penalty' => $student->penalty ?? 'No penalty assigned'
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'students' => $students,
+                'count' => $students->count()
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error fetching violation students: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch violation students'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get detailed violations for a specific student
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getStudentViolations(Request $request)
+    {
+        try {
+            $studentId = $request->query('student_id');
+
+            if (!$studentId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Student ID is required'
+                ], 400);
+            }
+
+            // Get violations for the specific student with related data
+            $violations = Violation::with(['violationType', 'violationType.offenseCategory'])
+                ->where('student_id', $studentId)
+                ->where('status', 'active')
+                ->orderBy('violation_date', 'desc')
+                ->get()
+                ->map(function($violation) {
+                    return [
+                        'id' => $violation->id,
+                        'violation_name' => $violation->violationType->violation_name ?? 'Unknown Violation',
+                        'category_name' => $violation->violationType->offenseCategory->category_name ?? 'Unknown Category',
+                        'violation_date' => $violation->violation_date ? date('M d, Y', strtotime($violation->violation_date)) : 'Unknown Date',
+                        'severity' => $violation->severity ?? 'Unknown',
+                        'offense' => $violation->offense ?? 'Unknown',
+                        'penalty' => $this->formatPenalty($violation->penalty ?? 'Unknown'),
+                        'consequence' => $violation->consequence ?? 'No consequence specified',
+                        'status' => $violation->status
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'violations' => $violations,
+                'total_count' => $violations->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching student violations: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching student violations',
+                'violations' => [],
+                'total_count' => 0
+            ], 500);
+        }
+    }
+
+    /**
+     * Format penalty code to readable text
+     *
+     * @param string $penalty
+     * @return string
+     */
+    private function formatPenalty($penalty)
+    {
+        $penalties = [
+            'W' => 'Warning',
+            'VW' => 'Verbal Warning',
+            'WW' => 'Written Warning',
+            'Pro' => 'Probation',
+            'Exp' => 'Expulsion'
+        ];
+
+        return $penalties[$penalty] ?? $penalty;
+    }
+
+    /**
      * Count violations filtered by batch
-     * 
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -746,8 +917,8 @@ private function getHighestExistingPenalty($studentId)
             
             // Filter by batch if not 'all'
             if ($batch !== 'all') {
-                // Filter based on the student_id prefix (e.g., 2025 or 2026)
-                $query->where('student_id', 'like', $batch . '%');
+                // Filter based on the student_id prefix (e.g., 202501 for 2025, 202601 for 2026)
+                $query->where('student_id', 'like', $batch . '01%');
             }
             
             // Get the count
@@ -842,9 +1013,8 @@ private function getHighestExistingPenalty($studentId)
                 
             // Apply batch filter if specified
             if ($batch !== 'all') {
-                $query->join('users', 'violations.student_id', '=', 'users.student_id')
-                      ->join('student_details', 'users.id', '=', 'student_details.user_id')
-                      ->where('student_details.batch', $batch);
+                // Filter based on the student_id prefix (e.g., 202501 for 2025, 202601 for 2026)
+                $query->where('violations.student_id', 'like', $batch . '01%');
             }
             
             $stats = $query->groupBy('violation_types.id', 'violation_types.violation_name')

@@ -727,4 +727,45 @@ tbody tr:last-child td:last-child {
     }
 }
 
+/* Extremely aggressive SVG and duplicate pagination hiding */
+/* Target the exact structure */
+span.relative.inline-flex.items-center.px-4.py-2.text-sm.font-medium.text-gray-700.bg-white.border.border-gray-300.cursor-default.leading-5.rounded-md {
+    visibility: visible !important;
+    color: #4299e1 !important;
+}
+
+/* Hide all SVGs in the document that might be in pagination */
+svg {
+    display: none !important;
+}
+
+/* Target the second pagination div that should be hidden */
+nav > div > div.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    pointer-events: none !important;
+}
+
+/* Force all pagination links to show text */
+.pagination a, 
+nav a[href*="page="] {
+    color: #4299e1 !important;
+    font-size: 0.9rem !important;
+    text-indent: 0 !important;
+}
+
+/* Hide any flex containers that might be showing the duplicate pagination */
+nav > div.flex.items-center.justify-between,
+nav > div > div.flex.justify-between.flex-1,
+nav > div > div.sm\:flex-1 {
+    display: block !important;
+}
+
+nav > div > div.sm\:flex-1.sm\:flex.sm\:items-center.sm\:justify-between {
+    display: none !important;
+}
 

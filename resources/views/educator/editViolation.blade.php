@@ -6,11 +6,10 @@
 
 @section('content')
     <!-- Main Container -->
-    <div class="content-wrapper">
+    <div class="content-wrapper px-1">
         <div class="form-container">
             <h2>Edit Violation</h2>
-            <a href="{{ route('educator.violation') }}" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>Back to Violations</a>
-        </div>
+        
         
         @if(session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -164,7 +163,58 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
-                
+
+                <!-- Incident Details Section -->
+                <div class="incident-details-section">
+                    <h3 class="section-title">Incident Details</h3>
+
+                    <!-- Incident Date and Time -->
+                    <div class="form-group">
+                        <label for="incident_datetime">Date & Time of Incident</label>
+                        <input type="datetime-local" name="incident_datetime" id="incident_datetime"
+                               class="form-control @error('incident_datetime') is-invalid @enderror"
+                               value="{{ $violation->incident_datetime ? \Carbon\Carbon::parse($violation->incident_datetime)->format('Y-m-d\TH:i') : '' }}">
+                        @error('incident_datetime')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <!-- Incident Place -->
+                    <div class="form-group">
+                        <label for="incident_place">Place of Incident</label>
+                        <input type="text" name="incident_place" id="incident_place"
+                               class="form-control @error('incident_place') is-invalid @enderror"
+                               value="{{ $violation->incident_place }}"
+                               placeholder="Enter location where incident occurred">
+                        @error('incident_place')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <!-- Incident Details -->
+                    <div class="form-group">
+                        <label for="incident_details">Incident Details</label>
+                        <textarea name="incident_details" id="incident_details"
+                                  class="form-control @error('incident_details') is-invalid @enderror"
+                                  rows="4" placeholder="Describe what happened in detail...">{{ $violation->incident_details }}</textarea>
+                        @error('incident_details')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <!-- Prepared By -->
+                    <div class="form-group">
+                        <label for="prepared_by">Prepared By</label>
+                        <input type="text" name="prepared_by" id="prepared_by"
+                               class="form-control @error('prepared_by') is-invalid @enderror"
+                               value="{{ $violation->prepared_by ?: Auth::user()->name }}"
+                               placeholder="Name of the educator">
+                        @error('prepared_by')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
                 <!-- Submit Buttons -->
                 <div class="form-actions">
                     <button type="button" class="cancel-btn">
@@ -179,33 +229,34 @@
                 </div>
             </div>
         </form>
+</div>
     </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
     // Debug output to check violation types and their severities
     console.log('Debug: All violation types', @json($violationTypes));
-    
+
     document.addEventListener('DOMContentLoaded', function() {
         // Get form elements
         const severitySelect = document.getElementById('severity');
         const offenseCountSelect = document.getElementById('offense_count');
         const penaltySelect = document.getElementById('penalty');
-        
+
         // Set default offense count
         offenseCountSelect.value = '1st';
-        
+
         // Function to update penalty based on severity and offense count
         function updatePenalty() {
             const severity = severitySelect.value;
             const offenseCount = offenseCountSelect.value;
-            
+
             if (!severity || !offenseCount) return;
-            
+
             // Determine the appropriate penalty based on severity and offense count
             let penaltyValue = '';
-            
+
             if (severity === 'Low') {
                 if (offenseCount === '1st') penaltyValue = 'VW'; // Verbal Warning
                 else if (offenseCount === '2nd') penaltyValue = 'WW'; // Written Warning
@@ -221,44 +272,42 @@
             } else if (severity === 'Very High') {
                 penaltyValue = 'Exp'; // Always expulsion for very high severity
             }
-            
+
             // Set the penalty value
             penaltySelect.value = penaltyValue;
         }
-        
+
         // Add event listeners
         severitySelect.addEventListener('change', updatePenalty);
         offenseCountSelect.addEventListener('change', updatePenalty);
-        
+
         // Update penalty on page load
         updatePenalty();
-        
+
         // Update available offense counts based on severity
         severitySelect.addEventListener('change', function() {
             const severity = this.value;
             const offenseCountOptions = offenseCountSelect.options;
-            
+
             // Show/hide 4th offense option based on severity
             for (let i = 0; i < offenseCountOptions.length; i++) {
                 if (offenseCountOptions[i].value === '4th') {
                     offenseCountOptions[i].style.display = (severity === 'Low') ? '' : 'none';
                 }
             }
-            
+
             // If a non-Low severity is selected and 4th offense was selected, reset to 3rd
             if (severity !== 'Low' && offenseCountSelect.value === '4th') {
                 offenseCountSelect.value = '3rd';
             }
         });
-        
+
         // Trigger the severity change event to initialize the offense count options
         severitySelect.dispatchEvent(new Event('change'));
     });
-</script>
 
-    <!-- JavaScript -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
+    // Additional JavaScript for form functionality
+    document.addEventListener('DOMContentLoaded', function() {
             // Display session messages as custom toasts
             @if(session('success'))
                 window.showCustomToast('{{ session('success') }}', 'success');
@@ -386,3 +435,15 @@
         });
     </script>
 @endpush 
+    });
+
+    // Add event listeners for cancel and back buttons
+    document.querySelector('.cancel-btn').addEventListener('click', function() {
+        window.location.href = "{{ route('educator.violation') }}";
+    });
+
+    document.querySelector('.back-btn').addEventListener('click', function() {
+        window.location.href = "{{ route('educator.violation') }}";
+    });
+</script>
+@endpush
