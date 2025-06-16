@@ -57,7 +57,7 @@ ul {
 
 .container {
     max-width: 800px;
-    margin-left: 60px;
+    margin: 0 auto;
     padding: 20px;
     background: white;
     border-radius: 5px;
@@ -69,11 +69,13 @@ ul {
 }
 
 .violation-table {
-    margin: 2rem 0;
+    margin: 2rem auto;
+    width: 100%;
 }
 
 .category-section {
-    margin-bottom: 2rem;
+    margin: 2rem auto;
+    width: 100%;
     background-color: #f8f9fa;
     padding: 1.5rem;
     border-radius: 8px;
@@ -93,6 +95,9 @@ ul {
     border-bottom: 2px solid #3498db;
     transition: color 0.3s ease;
     position: relative;
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1.4;
 }
 
 .category-title {
@@ -115,8 +120,9 @@ ul {
     width: 100%;
     margin-bottom: 1rem;
     background-color: #fff;
-    border-collapse: separate;
+    border-collapse: collapse;
     border-spacing: 0;
+    table-layout: fixed;
 }
 
 .table th {
@@ -127,12 +133,17 @@ ul {
     position: sticky;
     top: 0;
     z-index: 1;
+    font-size: 1rem;
 }
 
 .table td {
     padding: 12px;
     border-bottom: 1px solid #dee2e6;
     transition: background-color 0.3s ease, transform 0.2s ease;
+    font-size: 1rem;
+    vertical-align: middle;
+    word-wrap: break-word;
+    white-space: normal;
 }
 
 .table tr:nth-child(even) {
@@ -174,196 +185,5 @@ ul {
 .violation-header h3 {
     margin: 0;
 }
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add these styles to position the edit button */
-.violation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.violation-header h3 {
-    margin: 0;
-}
-
-/* Add
 
 

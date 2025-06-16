@@ -35,6 +35,13 @@ class StudentManualController extends Controller
         // Get all offense categories with their violation types
         $categories = OffenseCategory::with(['violationTypes' => function($query) {
             $query->with('severityRelation')
+                  ->orderByRaw("CASE 
+                    WHEN severity_id = (SELECT id FROM severities WHERE severity_name = 'Low') THEN 1
+                    WHEN severity_id = (SELECT id FROM severities WHERE severity_name = 'Medium') THEN 2
+                    WHEN severity_id = (SELECT id FROM severities WHERE severity_name = 'High') THEN 3
+                    WHEN severity_id = (SELECT id FROM severities WHERE severity_name = 'Very High') THEN 4
+                    ELSE 5
+                  END")
                   ->orderBy('violation_name');
         }])->get();
 
