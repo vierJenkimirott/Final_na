@@ -4,6 +4,41 @@
 
 @section('css')
     <link rel="stylesheet" href="{{ asset('css/student/student-manual.css') }}">
+    <style>
+        .category-section table {
+            width: 100% !important;
+            table-layout: fixed !important;
+        }
+        .category-section h4 {
+            font-size: 1.2rem !important;
+            font-weight: 600 !important;
+            line-height: 1.4 !important;
+        }
+        .table th {
+            font-size: 1rem !important;
+        }
+        .table td {
+            font-size: 1rem !important;
+            vertical-align: middle !important;
+            word-wrap: break-word !important;
+            white-space: normal !important;
+        }
+        /* Specific styles for the numbering column */
+        .category-section table th:first-child,
+        .category-section table td:first-child {
+            width: 8% !important; /* Made slightly larger than 5% for better fit with 1.10+ numbers*/
+            text-align: center !important;
+        }
+        /* Adjusting other column widths accordingly */
+        .category-section table th:nth-child(2),
+        .category-section table td:nth-child(2) {
+            width: 62% !important;
+        }
+        .category-section table th:nth-child(3),
+        .category-section table td:nth-child(3) {
+            width: 30% !important;
+        }
+    </style>
 @endsection
 
 @section('content')
@@ -124,7 +159,15 @@
                         <tr>
                             <td>{{ $index + 1 }}.{{ $typeIndex + 1 }}</td>
                             <td>{{ $type->violation_name }}</td>
-                            <td>{{ $type->severity }}</td>
+                            <td class="penalty-cell">
+                                @if($type->severityRelation)
+                                    {{ $type->severityRelation->severity_name }}
+                                @elseif($type->severity)
+                                    {{ $type->severity }}
+                                @else
+                                    Medium
+                                @endif
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
