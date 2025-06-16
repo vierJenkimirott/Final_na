@@ -77,45 +77,81 @@ class BehaviorDataController extends Controller
         try {
             // Get year from request or use current year as default
             $currentYear = $request->input('year', date('Y'));
+            // Get specific month filter (0-11) or 'all' for all months
+            $monthFilter = $request->input('month', 'all');
+            // Get batch filter or use 'all' as default
+            $batchFilter = $request->input('batch', 'all');
             $months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-            
-            // Log the year we're filtering by
-            \Log::info('Filtering violations by year: ' . $currentYear);
-            
+
+            // Log the filters we're using
+            \Log::info('Filtering violations by year, month, and batch', [
+                'year' => $currentYear,
+                'month' => $monthFilter,
+                'batch' => $batchFilter
+            ]);
+
             // Initialize violation counts
             $maleViolationCounts = [];
             $femaleViolationCounts = [];
-            
+
+            // Determine which months to process
+            $monthsToProcess = [];
+            if ($monthFilter === 'all') {
+                $monthsToProcess = $months;
+            } else {
+                // Convert month filter to integer and validate
+                $monthIndex = intval($monthFilter);
+                if ($monthIndex >= 0 && $monthIndex < 12) {
+                    $monthsToProcess = [$months[$monthIndex]];
+                } else {
+                    // Invalid month, default to all months
+                    $monthsToProcess = $months;
+                }
+            }
+
             // Count violations by month for males and females
-            foreach ($months as $index => $month) {
+            foreach ($monthsToProcess as $month) {
+                $index = array_search($month, $months);
                 $monthNum = $index + 1;
                 
-                // Count male violations for this month
-                $maleCount = Violation::where(function($query) {
+                // Build base query for male violations
+                $maleQuery = Violation::where(function($query) {
                         $query->where('sex', 'male')
                               ->orWhere('sex', 'Male');
                     })
                     ->whereMonth('violation_date', $monthNum)
                     ->whereYear('violation_date', $currentYear)
-                    ->where('status', 'active')
-                    ->count();
-                
-                // Count female violations for this month
-                $femaleCount = Violation::where(function($query) {
+                    ->where('status', 'active');
+
+                // Apply batch filter if specified
+                if ($batchFilter !== 'all') {
+                    $maleQuery->where('student_id', 'like', $batchFilter . '01%');
+                }
+
+                $maleCount = $maleQuery->count();
+
+                // Build base query for female violations
+                $femaleQuery = Violation::where(function($query) {
                         $query->where('sex', 'female')
                               ->orWhere('sex', 'Female');
                     })
                     ->whereMonth('violation_date', $monthNum)
                     ->whereYear('violation_date', $currentYear)
-                    ->where('status', 'active')
-                    ->count();
+                    ->where('status', 'active');
+
+                // Apply batch filter if specified
+                if ($batchFilter !== 'all') {
+                    $femaleQuery->where('student_id', 'like', $batchFilter . '01%');
+                }
+
+                $femaleCount = $femaleQuery->count();
                 
                 $maleViolationCounts[$month] = $maleCount;
                 $femaleViolationCounts[$month] = $femaleCount;
                 
                 // Generate weekly data for this month
-                $maleWeeklyData = $this->getWeeklyViolationData($monthNum, $currentYear, 'male');
-                $femaleWeeklyData = $this->getWeeklyViolationData($monthNum, $currentYear, 'female');
+                $maleWeeklyData = $this->getWeeklyViolationData($monthNum, $currentYear, 'male', $batchFilter);
+                $femaleWeeklyData = $this->getWeeklyViolationData($monthNum, $currentYear, 'female', $batchFilter);
                 
                 // Add weekly data to the violation counts
                 $maleViolationCounts[$month . '_weekly'] = $maleWeeklyData;
@@ -126,9 +162,9 @@ class BehaviorDataController extends Controller
             $labels = [];
             $menData = [];
             $womenData = [];
-            
-            // Extract month labels and data
-            foreach ($months as $month) {
+
+            // Extract month labels and data for the processed months
+            foreach ($monthsToProcess as $month) {
                 $labels[] = ucfirst(substr($month, 0, 3)); // Jan, Feb, etc.
                 $menData[] = $maleViolationCounts[$month] ?? 0;
                 $womenData[] = $femaleViolationCounts[$month] ?? 0;
@@ -154,13 +190,14 @@ class BehaviorDataController extends Controller
     
     /**
      * Get weekly violation data for a specific month and gender
-     * 
+     *
      * @param int $monthNum The month number (1-12)
      * @param int $year The year
      * @param string $gender The gender ('male' or 'female')
+     * @param string $batchFilter The batch filter ('all' or specific batch)
      * @return array Array of violation data for each week
      */
-    private function getWeeklyViolationData($monthNum, $year, $gender)
+    private function getWeeklyViolationData($monthNum, $year, $gender, $batchFilter = 'all')
     {
         // Create a Carbon instance for the first day of the month
         $firstDay = Carbon::createFromDate($year, $monthNum, 1);
@@ -178,14 +215,20 @@ class BehaviorDataController extends Controller
         $weeklyViolators = array_fill(0, $numWeeks, []);
         
         // Get all violations for this month and gender
-        $violations = Violation::where(function($query) use ($gender) {
+        $violationsQuery = Violation::where(function($query) use ($gender) {
                 $query->where('sex', $gender)
                       ->orWhere('sex', ucfirst($gender));
             })
             ->whereMonth('violation_date', $monthNum)
             ->whereYear('violation_date', $year)
-            ->where('status', 'active')
-            ->get();
+            ->where('status', 'active');
+
+        // Apply batch filter if specified
+        if ($batchFilter !== 'all') {
+            $violationsQuery->where('student_id', 'like', $batchFilter . '01%');
+        }
+
+        $violations = $violationsQuery->get();
         
         // Eager load student information for all violations
         $studentIds = $violations->pluck('student_id')->filter()->unique()->toArray();

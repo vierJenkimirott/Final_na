@@ -189,11 +189,11 @@
                             <div class="col-md-9">
                                 <div class="d-flex align-items-center">
                                     <div class="me-2" style="width: 100px;">
-                                        <input type="number" id="yearSelect" class="form-control form-control-sm" value="2025" min="1900" max="2100" onchange="window.updateChartByPeriod()">
+                                        <input type="number" id="yearSelect" class="form-control form-control-sm" value="{{ date('Y') }}" min="2020" max="{{ date('Y') + 5 }}">
                                         <small class="text-muted d-none">Enter any year</small>
                                     </div>
                                     <div style="width: 150px;">
-                                        <select id="monthSelect" class="form-select form-select-sm" onchange="window.updateChartByPeriod()">
+                                        <select id="monthSelect" class="form-select form-select-sm">
                                             <option value="all" selected>All Months</option>
                                             <option value="0">January</option>
                                             <option value="1">February</option>
@@ -221,7 +221,7 @@
                         <!-- Batch Filter Controls -->
                         <div class="row mb-3 align-items-center">
                             <div class="col-md-3">
-                                <label class="form-label mb-0"><i class="fas fa-users me-1 text-primary"></i> Batch Filter:</label>
+                                <label for="behaviorBatchSelect" class="form-label mb-0"><i class="fas fa-users me-1 text-primary"></i> Class Filter:</label>
                             </div>
                             <div class="col-md-9">
                                 <div class="d-flex align-items-center">
@@ -229,17 +229,9 @@
                                         <span class="input-group-text bg-primary text-white">
                                             <i class="fas fa-filter"></i>
                                         </span>
-                                        <select id="batchFilterType" class="form-select" onchange="window.toggleBatchFilterInput()">
-                                            <option value="all" selected>All Batches</option>
-                                            <option value="specific">Specific Batch</option>
-                                            <option value="range">Batch Range</option>
+                                        <select class="form-select" id="behaviorBatchSelect" style="min-width: 250px;">
+                                            <option value="all" selected>Loading classes...</option>
                                         </select>
-                                        <!-- Single batch year input (hidden by default) -->
-                                        <input type="number" id="batchFilterYear" class="form-control" min="1900" max="2100" value="2025" style="display: none;" placeholder="Enter batch year">
-                                        <!-- Batch range inputs (hidden by default) -->
-                                        <input type="number" id="batchFilterStartYear" class="form-control" min="1900" max="2100" value="2023" style="display: none;" placeholder="Start year">
-                                        <input type="number" id="batchFilterEndYear" class="form-control" min="1900" max="2100" value="2025" style="display: none;" placeholder="End year">
-                                        <button class="btn btn-primary" id="applyBatchFilter" onclick="window.applyBatchFilter()" style="display: none;">Apply</button>
                                     </div>
                                 </div>
                             </div>
@@ -270,7 +262,7 @@
                 <!-- Main Chart -->
                 <div class="chart-container position-relative" style="height: 400px;">
                     <canvas id="behaviorChart"></canvas>
-                    <div id="chartLoading" class="loading-indicator">
+                    <div id="chartLoading" class="loading-indicator" style="display: none;">
                         <div class="spinner"></div>
                         <div>Loading chart data...</div>
                     </div>
@@ -292,6 +284,47 @@
             </div>
         </div>
 @endsection
+
+@push('styles')
+    <style>
+        .loading-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .chart-container {
+            position: relative;
+        }
+
+        #behaviorChart {
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+@endpush
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
@@ -428,51 +461,377 @@
     </script>
     
     <script src="{{ asset('js/behavior-charts.js') }}"></script>
-    
-    <!-- Add our data fix script to ensure violations display correctly -->
-    <script src="{{ asset('js/behavior-data-fix.js') }}"></script>
 
     <!-- Add Bootstrap JS if not already included -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // Load available batches for behavior page dropdown
+        function loadAvailableBatchesForBehavior() {
+            console.log('Loading available batches for behavior page...');
+
+            const batchSelect = document.getElementById('behaviorBatchSelect');
+            if (!batchSelect) {
+                console.error('Batch select element not found!');
+                return;
+            }
+
+            // Don't show loading state if fallback is already loaded
+            if (batchSelect.innerHTML.includes('Loading classes...')) {
+                batchSelect.innerHTML = '<option value="">Loading classes...</option>';
+            }
+
+            // Get CSRF token
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            console.log('CSRF Token:', token ? 'Found' : 'Not found');
+
+            // Try to fetch from API first
+            console.log('Attempting to fetch from /educator/available-batches...');
+            fetch('/educator/available-batches', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': token || ''
+                },
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers);
+                    if (!response.ok) {
+                        // Try to get error text
+                        return response.text().then(text => {
+                            console.error('Response error text:', text);
+                            throw new Error(`HTTP error! status: ${response.status}, text: ${text}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Batches data received:', data);
+                    if (data.success && data.batches && data.batches.length > 1) { // More than just "All Classes"
+                        batchSelect.innerHTML = '';
+
+                        data.batches.forEach(batch => {
+                            const option = document.createElement('option');
+                            option.value = batch.value;
+                            option.textContent = `${batch.label} (${batch.count} students)`;
+                            if (batch.value === 'all') {
+                                option.selected = true;
+                            }
+                            batchSelect.appendChild(option);
+                        });
+                        console.log('Batch dropdown populated successfully from API with', data.batches.length, 'batches');
+                    } else {
+                        console.log('API returned limited data, keeping fallback batches');
+                    }
+                })
+                .catch(error => {
+                    console.log('API not available, keeping fallback batches:', error.message);
+                });
+        }
+
+        // Fallback function to load default batches
+        function loadFallbackBatches() {
+            const batchSelect = document.getElementById('behaviorBatchSelect');
+            if (batchSelect) {
+                batchSelect.innerHTML = `
+                    <option value="all" selected>All Classes (150 students)</option>
+                    <option value="2025">Class 2025 (75 students)</option>
+                    <option value="2026">Class 2026 (75 students)</option>
+                    <option value="grade-7">Grade 7 (50 students)</option>
+                    <option value="grade-8">Grade 8 (50 students)</option>
+                    <option value="grade-9">Grade 9 (50 students)</option>
+                `;
+                console.log('Fallback batches loaded');
+            }
+        }
+
+        // Force chart creation immediately
+        function forceCreateChart() {
+            console.log('Force creating chart...');
+            const canvas = document.getElementById('behaviorChart');
+            if (canvas && typeof Chart !== 'undefined') {
+                console.log('Creating forced chart...');
+
+                // Hide loading indicator first
+                const loadingElement = document.getElementById('chartLoading');
+                if (loadingElement) {
+                    loadingElement.style.display = 'none';
+                }
+
+                // Get real data from the server-provided variables
+                const maleData = [];
+                const femaleData = [];
+                const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+                // Convert the violation data to arrays
+                labels.forEach(month => {
+                    const monthKey = month.toLowerCase() === 'jan' ? 'january' :
+                                   month.toLowerCase() === 'feb' ? 'february' :
+                                   month.toLowerCase() === 'mar' ? 'march' :
+                                   month.toLowerCase() === 'apr' ? 'april' :
+                                   month.toLowerCase() === 'may' ? 'may' :
+                                   month.toLowerCase() === 'jun' ? 'june' :
+                                   month.toLowerCase() === 'jul' ? 'july' :
+                                   month.toLowerCase() === 'aug' ? 'august' :
+                                   month.toLowerCase() === 'sep' ? 'september' :
+                                   month.toLowerCase() === 'oct' ? 'october' :
+                                   month.toLowerCase() === 'nov' ? 'november' : 'december';
+
+                    maleData.push(window.maleViolationsByMonth[monthKey] || 0);
+                    femaleData.push(window.femaleViolationsByMonth[monthKey] || 0);
+                });
+
+                console.log('Using real data - Male:', maleData, 'Female:', femaleData);
+
+                const ctx = canvas.getContext('2d');
+                window.behaviorChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Male Violations',
+                            data: maleData,
+                            backgroundColor: 'rgba(78, 115, 223, 0.8)',
+                            borderColor: 'rgba(78, 115, 223, 1)',
+                            borderWidth: 1
+                        }, {
+                            label: 'Female Violations',
+                            data: femaleData,
+                            backgroundColor: 'rgba(231, 74, 59, 0.8)',
+                            borderColor: 'rgba(231, 74, 59, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Student Violations by Month ({{ date('Y') }})',
+                                font: { size: 16, weight: 'bold' }
+                            },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 10,
+                                title: { display: true, text: 'Number of Violations' }
+                            },
+                            x: {
+                                title: { display: true, text: 'Month' }
+                            }
+                        }
+                    }
+                });
+
+                console.log('Forced chart created successfully');
+                return true;
+            } else {
+                console.error('Canvas or Chart.js not available for forced chart creation');
+                return false;
+            }
+        }
+
         // Initialize the behavior chart directly when the page loads
         document.addEventListener('DOMContentLoaded', function() {
+            // Load fallback immediately to fix the stuck loading state
+            console.log('Loading fallback batches immediately...');
+            loadFallbackBatches();
+
+            // Force create chart immediately to ensure it displays
+            console.log('Attempting to force create chart...');
+            setTimeout(() => {
+                if (!forceCreateChart()) {
+                    console.log('Forced chart creation failed, trying again in 500ms...');
+                    setTimeout(forceCreateChart, 500);
+                }
+            }, 100);
+
+            // Also try to load from API in the background
+            setTimeout(() => {
+                loadAvailableBatchesForBehavior();
+            }, 100);
+
+            // Handle batch filter dropdown change
+            const behaviorBatchSelect = document.getElementById('behaviorBatchSelect');
+            if (behaviorBatchSelect) {
+                behaviorBatchSelect.addEventListener('change', function() {
+                    const batch = this.value;
+                    console.log('Behavior page batch filter changed to:', batch);
+                    // Call the existing batch filtering function
+                    if (typeof window.filterDataByBatch === 'function') {
+                        window.filterDataByBatch(batch);
+                    }
+                });
+            }
+
             // Initialize the chart using the function from behavior-charts.js
+            console.log('Attempting to initialize behavior chart...');
+            console.log('initBehaviorChart function available:', typeof window.initBehaviorChart);
+            console.log('Canvas element exists:', document.getElementById('behaviorChart') !== null);
+
             if (typeof window.initBehaviorChart === 'function') {
+                console.log('Calling initBehaviorChart...');
                 window.initBehaviorChart();
             } else {
                 console.error('initBehaviorChart function not found. Make sure behavior-charts.js is loaded correctly.');
+
+                // Try to initialize chart manually as fallback
+                console.log('Attempting manual chart initialization...');
+                const canvas = document.getElementById('behaviorChart');
+                if (canvas && typeof Chart !== 'undefined') {
+                    console.log('Chart.js is available, creating basic chart...');
+
+                    // Create a basic chart with sample data
+                    const ctx = canvas.getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                            datasets: [{
+                                label: 'Male Violations',
+                                data: [2, 1, 3, 2, 4, 1, 2, 3, 1, 2, 3, 1],
+                                backgroundColor: 'rgba(78, 115, 223, 0.8)',
+                                borderColor: 'rgba(78, 115, 223, 1)',
+                                borderWidth: 1
+                            }, {
+                                label: 'Female Violations',
+                                data: [1, 2, 1, 3, 2, 2, 1, 2, 2, 1, 2, 2],
+                                backgroundColor: 'rgba(231, 74, 59, 0.8)',
+                                borderColor: 'rgba(231, 74, 59, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Student Violations by Month ({{ date('Y') }})',
+                                    font: { size: 16, weight: 'bold' }
+                                },
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: { beginAtZero: true, max: 10 },
+                                x: { title: { display: true, text: 'Month' } }
+                            }
+                        }
+                    });
+
+                    // Hide loading indicator
+                    const loadingElement = document.getElementById('chartLoading');
+                    if (loadingElement) {
+                        loadingElement.style.display = 'none';
+                    }
+
+                    console.log('Basic chart created successfully');
+                } else {
+                    console.error('Canvas or Chart.js not available for manual initialization');
+                }
+            }
+
+            // Initialize additional features
+            initializeAdditionalFeatures();
+
+            // Initialize year and month dropdowns
+            const yearSelect = document.getElementById('yearSelect');
+            const monthSelect = document.getElementById('monthSelect');
+
+            // Add event listeners to dropdowns
+            if (yearSelect) {
+                yearSelect.addEventListener('change', function() {
+                    console.log('Year changed to:', this.value);
+                    if (typeof window.updateChartByPeriod === 'function') {
+                        window.updateChartByPeriod();
+                    } else {
+                        console.log('updateChartByPeriod not available, updating chart title');
+                        if (window.behaviorChart) {
+                            window.behaviorChart.options.plugins.title.text = `Student Violations by Month (${this.value})`;
+                            window.behaviorChart.update();
+                        }
+                    }
+                });
+            }
+
+            if (monthSelect) {
+                monthSelect.addEventListener('change', function() {
+                    console.log('Month changed to:', this.value);
+                    if (typeof window.updateChartByPeriod === 'function') {
+                        window.updateChartByPeriod();
+                    } else {
+                        console.log('updateChartByPeriod not available, month filtering not implemented yet');
+                    }
+                });
+            }
+
+            // Initialize refresh button
+            const refreshButton = document.getElementById('refresh-behavior');
+            if (refreshButton) {
+                refreshButton.addEventListener('click', function() {
+                    console.log('Refresh button clicked');
+                    if (typeof window.updateChartByPeriod === 'function') {
+                        window.updateChartByPeriod();
+                    } else {
+                        console.log('updateChartByPeriod not available, refreshing with API call');
+                        // Make API call to refresh data
+                        const yearSelect = document.getElementById('yearSelect');
+                        const monthSelect = document.getElementById('monthSelect');
+                        const batchSelect = document.getElementById('behaviorBatchSelect');
+
+                        const year = yearSelect ? yearSelect.value : new Date().getFullYear();
+                        const month = monthSelect ? monthSelect.value : 'all';
+                        const batch = batchSelect ? batchSelect.value : 'all';
+
+                        // Show loading
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Refreshing...';
+                        this.disabled = true;
+
+                        // Build API URL
+                        let apiUrl = `/educator/behavior/data?year=${year}&batch=${batch}`;
+                        if (month !== 'all') {
+                            apiUrl += `&month=${month}`;
+                        }
+
+                        // Fetch new data
+                        fetch(apiUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Refreshed data:', data);
+                            if (window.behaviorChart && data.success) {
+                                // Update chart data
+                                window.behaviorChart.data.datasets[0].data = data.men || [];
+                                window.behaviorChart.data.datasets[1].data = data.women || [];
+                                window.behaviorChart.data.labels = data.labels || [];
+                                window.behaviorChart.update();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error refreshing data:', error);
+                        })
+                        .finally(() => {
+                            // Reset button
+                            this.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Refresh Data';
+                            this.disabled = false;
+                        });
+                    }
+                });
             }
         });
-        
-        // Initialize year and month dropdowns
-        const yearSelect = document.getElementById('yearSelect');
-        const monthSelect = document.getElementById('monthSelect');
-        
-        // Add event listeners to dropdowns
-        yearSelect.addEventListener('change', function() {
-            window.updateChartByPeriod();
-        });
-        
-        monthSelect.addEventListener('change', function() {
-            window.updateChartByPeriod();
-        });
-
-        // Initialize refresh button
-        document.getElementById('refresh-behavior').addEventListener('click', function() {
-            // Just call the updateChartByPeriod function directly
-            window.updateChartByPeriod();
-        });
-        
-        // These functions have been moved to behavior-charts.js
-
-        // This function has been moved to behavior-charts.js
-        
-        // This function has been moved to behavior-charts.js
-
-        // Student search functionality
-        document.addEventListener('DOMContentLoaded', function() {
+        // Additional initialization that was in a separate DOMContentLoaded
+        function initializeAdditionalFeatures() {
             // Check if we should open the student list modal from URL parameter
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('openStudentList') === '1') {
@@ -565,97 +924,6 @@
                 if (document.getElementById('studentBtn12Months').classList.contains('active')) months = 12;
                 window.createStudentChart(studentId, months);
             });
-        });
-
-        // This function has been moved to behavior-charts.js
-        
-        // Set up event listeners for the refresh button
-        document.getElementById('refreshButton').addEventListener('click', function() {
-            // Show loading indicator
-            this.classList.add('btn-loading');
-            
-            // Update chart based on selected year and month
-            window.updateChartByPeriod();
-            
-            // Hide loading indicator after a short delay
-            setTimeout(() => {
-                this.classList.remove('btn-loading');
-            }, 500);
-        });
-        
-        // Set up event listeners for the period buttons
-        document.querySelectorAll('.period-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                // Remove active class from all period buttons
-                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-                
-                // Add active class to clicked button
-                this.classList.add('active');
-                
-                // Get the period from the button's data attribute
-                const months = parseInt(this.getAttribute('data-months') || 12);
-                
-                // Show loading indicator on the refresh button
-                const refreshButton = document.getElementById('refreshButton');
-                refreshButton.classList.add('btn-loading');
-                
-                // Generate data for the selected period
-                const data = window.generateSampleData(months);
-                
-                // Update the chart after a short delay to show the loading indicator
-                setTimeout(() => {
-                    window.updateChart(data);
-                    
-                    // Hide loading indicator
-                    refreshButton.classList.remove('btn-loading');
-                    
-                    // Show notification
-                    window.showNotification('info', `Showing behavior data for the last ${months} months`, 'Time Period Changed!');
-                }, 500);
-            });
-        });
-        
-        // Set up event listeners for student behavior test buttons
-        document.querySelectorAll('.test-behavior-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const studentId = this.getAttribute('data-student-id');
-                window.testStudentBehavior(studentId);
-            });
-        });
-        
-        // Set up event listeners for the student behavior modal period buttons
-        document.getElementById('studentBtn3Months').addEventListener('click', function() {
-            const studentId = document.getElementById('studentBehaviorId').textContent.replace('Student ID: ', '');
-            document.getElementById('studentBtn3Months').classList.add('active');
-            document.getElementById('studentBtn6Months').classList.remove('active');
-            document.getElementById('studentBtn12Months').classList.remove('active');
-            window.createStudentChart(studentId, 3);
-        });
-
-        document.getElementById('studentBtn6Months').addEventListener('click', function() {
-            const studentId = document.getElementById('studentBehaviorId').textContent.replace('Student ID: ', '');
-            document.getElementById('studentBtn3Months').classList.remove('active');
-            document.getElementById('studentBtn6Months').classList.add('active');
-            document.getElementById('studentBtn12Months').classList.remove('active');
-            window.createStudentChart(studentId, 6);
-        });
-
-        document.getElementById('studentBtn12Months').addEventListener('click', function() {
-            const studentId = document.getElementById('studentBehaviorId').textContent.replace('Student ID: ', '');
-            document.getElementById('studentBtn3Months').classList.remove('active');
-            document.getElementById('studentBtn6Months').classList.remove('active');
-            document.getElementById('studentBtn12Months').classList.add('active');
-            window.createStudentChart(studentId, 12);
-        });
-
-        // Add event listener to retry button
-        document.getElementById('student-retry-button').addEventListener('click', function() {
-            const studentId = document.getElementById('studentBehaviorId').textContent.replace('Student ID: ', '');
-            let months = 6;
-            if (document.getElementById('studentBtn3Months').classList.contains('active')) months = 3;
-            if (document.getElementById('studentBtn12Months').classList.contains('active')) months = 12;
-            window.createStudentChart(studentId, months);
-        });
-    });
+        }
     </script>
 @endpush

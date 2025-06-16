@@ -321,11 +321,14 @@
 </div>
 
 <div class="batch-filter mt-3 mb-3">
-        <div class="btn-group" role="group" aria-label="Batch filter buttons">
-            <button type="button" class="btn btn-outline-primary batch-filter active" data-batch="all">All Class</button>
-            <button type="button" class="btn btn-outline-primary batch-filter" data-batch="2025">Class 2025</button>
-            <button type="button" class="btn btn-outline-primary batch-filter" data-batch="2026">Class 2026</button>
+    <div class="d-flex align-items-center">
+        <label for="batchSelect" class="form-label me-3 mb-0 fw-semibold">Filter by Class:</label>
+        <div class="dropdown">
+            <select class="form-select" id="batchSelect" style="min-width: 200px;">
+                <option value="all" selected>Loading classes...</option>
+            </select>
         </div>
+    </div>
 </div>
 
 <!-- Stats Row -->
@@ -666,10 +669,13 @@
 <script src="{{ asset('js/behavior-charts.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Load available batches for dropdown
+        loadAvailableBatches();
+
         // Initialize clock
         function updateClock() {
             const now = new Date();
-            document.getElementById('current-time').textContent = now.toLocaleString('en-US', { 
+            document.getElementById('current-time').textContent = now.toLocaleString('en-US', {
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
                 hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
             });
@@ -723,38 +729,62 @@
             }
         );
         
-        // Handle batch filter buttons
-        document.querySelectorAll('.batch-filter').forEach(button => {
-            button.addEventListener('click', function() {
-                // Remove active class from all buttons in the same group
-                const parentGroup = this.closest('.btn-group');
-                parentGroup.querySelectorAll('.btn').forEach(btn => {
-                    btn.classList.remove('active');
+        // Load available batches and populate dropdown
+        function loadAvailableBatches() {
+            fetch('/educator/available-batches')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const batchSelect = document.getElementById('batchSelect');
+                        batchSelect.innerHTML = '';
+
+                        data.batches.forEach(batch => {
+                            const option = document.createElement('option');
+                            option.value = batch.value;
+                            option.textContent = `${batch.label} (${batch.count} students)`;
+                            if (batch.value === 'all') {
+                                option.selected = true;
+                            }
+                            batchSelect.appendChild(option);
+                        });
+                    } else {
+                        console.error('Failed to load batches:', data.message);
+                        // Fallback to default options
+                        const batchSelect = document.getElementById('batchSelect');
+                        batchSelect.innerHTML = `
+                            <option value="all" selected>All Classes</option>
+                            <option value="2025">Class 2025</option>
+                            <option value="2026">Class 2026</option>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading batches:', error);
+                    // Fallback to default options
+                    const batchSelect = document.getElementById('batchSelect');
+                    batchSelect.innerHTML = `
+                        <option value="all" selected>All Classes</option>
+                        <option value="2025">Class 2025</option>
+                        <option value="2026">Class 2026</option>
+                    `;
                 });
+        }
 
-                // Add active class to clicked button
-                this.classList.add('active');
-
-                // Get selected batch
-                const batch = this.getAttribute('data-batch');
-
-                // Filter data by batch
-                dashboardFilterByBatch(batch);
-            });
+        // Handle batch filter dropdown change
+        document.getElementById('batchSelect').addEventListener('change', function() {
+            const batch = this.value;
+            dashboardFilterByBatch(batch);
         });
 
         // Global function to filter data by batch (dashboard-specific)
         window.dashboardFilterByBatch = function(batch) {
             console.log('Dashboard filterDataByBatch called with batch:', batch);
 
-            // Update active state of batch filter buttons
-            document.querySelectorAll('.batch-filter').forEach(button => {
-                if (button.getAttribute('data-batch') === batch) {
-                    button.classList.add('active');
-                } else {
-                    button.classList.remove('active');
-                }
-            });
+            // Update dropdown selection
+            const batchSelect = document.getElementById('batchSelect');
+            if (batchSelect) {
+                batchSelect.value = batch;
+            }
 
             // Update violation status chart with batch-specific data
             updateViolationStatusByBatch(batch);
@@ -943,9 +973,9 @@
         function updateViolationReport(period, batch) {
             // If batch is not provided, use the current batch filter
             if (batch === undefined) {
-                // Find the active batch filter button
-                const activeBatchButton = document.querySelector('.batch-filter.active');
-                batch = activeBatchButton ? activeBatchButton.getAttribute('data-batch') : 'all';
+                // Get the selected batch from dropdown
+                const batchSelect = document.getElementById('batchSelect');
+                batch = batchSelect ? batchSelect.value : 'all';
             }
             
             const violationList = document.getElementById('violation-list');
@@ -1259,8 +1289,8 @@
 
                 // Get current filter values
                 const currentPeriod = document.getElementById('violation-filter').value;
-                const activeBatchButton = document.querySelector('.batch-filter.active');
-                const currentBatch = activeBatchButton ? activeBatchButton.getAttribute('data-batch') : 'all';
+                const batchSelect = document.getElementById('batchSelect');
+                const currentBatch = batchSelect ? batchSelect.value : 'all';
 
                 // Fetch violation students data
                 const controller = new AbortController();

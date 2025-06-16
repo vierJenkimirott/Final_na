@@ -42,6 +42,7 @@ Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMidd
     // Dashboard
     Route::get('/dashboard', [EducatorController::class, 'dashboard'])->name('educator.dashboard');
     Route::get('/students-by-batch', [EducatorController::class, 'getStudentsByBatch'])->name('educator.students-by-batch');
+    Route::get('/available-batches', [EducatorController::class, 'getAvailableBatches'])->name('educator.available-batches');
     Route::get('/violations/count', [ViolationController::class, 'countViolationsByBatchFilter'])->name('educator.violations-count');
 
     // Violations Listing
@@ -104,6 +105,7 @@ Route::prefix('api')->middleware(['auth'])->group(function () {
     Route::get('/violation-stats-by-batch', [BehaviorDataController::class, 'getViolationStatsByBatch'])->name('api.violation-stats-by-batch');
     Route::get('/violations/count', [ViolationController::class, 'countViolationsByBatchFilter'])->name('api.violations-count');
     Route::get('/students/compliance', [EducatorController::class, 'getStudentComplianceByBatch'])->name('api.students-compliance');
+    Route::get('/available-batches', [EducatorController::class, 'getAvailableBatches'])->name('api.available-batches');
     Route::get('/student-violations', [ViolationController::class, 'getStudentViolations'])->name('api.student-violations');
     Route::get('/violation-students', [ViolationController::class, 'getViolationStudents'])->name('api.violation-students');
 });

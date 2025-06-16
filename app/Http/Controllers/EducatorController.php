@@ -95,6 +95,71 @@ class EducatorController extends Controller
     }
     
     /**
+     * Get available batches dynamically from the database
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAvailableBatches()
+    {
+        try {
+            // Get distinct batches from student_id patterns
+            $batches = User::role('student')
+                ->whereNotNull('student_id')
+                ->get()
+                ->map(function ($user) {
+                    // Extract year from student_id (e.g., 202501001 -> 2025)
+                    if (preg_match('/^(\d{4})/', $user->student_id, $matches)) {
+                        return $matches[1];
+                    }
+                    return null;
+                })
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values()
+                ->map(function ($year) {
+                    return [
+                        'value' => $year,
+                        'label' => "Class {$year}",
+                        'count' => User::role('student')
+                            ->where('student_id', 'like', $year . '%')
+                            ->count()
+                    ];
+                })
+                ->filter(function ($batch) {
+                    return $batch['count'] > 0;
+                });
+
+            // Add "All Classes" option at the beginning
+            $allBatches = collect([
+                [
+                    'value' => 'all',
+                    'label' => 'All Classes',
+                    'count' => User::role('student')->count()
+                ]
+            ])->concat($batches);
+
+            return response()->json([
+                'success' => true,
+                'batches' => $allBatches
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in getAvailableBatches: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching available batches: ' . $e->getMessage(),
+                'batches' => [
+                    [
+                        'value' => 'all',
+                        'label' => 'All Classes',
+                        'count' => 0
+                    ]
+                ]
+            ]);
+        }
+    }
+
+    /**
      * Get students compliance status (violators and non-violators) by batch
      *
      * @param Request $request

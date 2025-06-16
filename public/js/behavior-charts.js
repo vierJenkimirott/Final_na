@@ -573,7 +573,7 @@ window.updateChartByPeriod = function() {
     // Get the selected values
     var selectedYear = parseInt(yearSelect.value);
     var selectedMonth = monthSelect.value;
-    var currentBatch = window.currentBatchFilter;
+    var currentBatch = window.currentBatchFilter || window.getCurrentBatchFilter() || 'all';
     
     console.log('Selected year: ' + selectedYear + ', Selected month: ' + selectedMonth + ', Batch: ' + currentBatch);
     
@@ -617,24 +617,30 @@ window.updateChartByPeriod = function() {
                 window.showNotification('success', `Showing ${batchText} monthly data for ${selectedYear}`, 'Data Updated');
             }
         } else {
-            // Show weekly data for the selected month
+            // Show data for the selected month
             var monthIndex = parseInt(selectedMonth);
             var date = new Date(selectedYear, monthIndex, 1);
             var monthName = date.toLocaleString('en-US', { month: 'long' });
-            
-            // Generate weekly data
-            var weeklyData = window.generateMonthData(monthIndex, selectedYear, currentBatch);
-            console.log('Generated weekly data for ' + monthName + ':', weeklyData);
-            
-            // Update the chart with weekly data
-            window.updateChart(weeklyData);
-            
-            // Hide loading indicator
-            if (loadingElement) {
-                loadingElement.style.display = 'none';
+
+            // Fetch actual data from the server for the specific month
+            if (typeof window.fetchBehaviorData === 'function') {
+                // This will handle loading indicator and fetch real data
+                window.fetchBehaviorData(1, true, currentBatch, selectedYear, selectedMonth);
+            } else {
+                // Fallback to generated weekly data if fetch function not available
+                var weeklyData = window.generateMonthData(monthIndex, selectedYear, currentBatch);
+                console.log('Generated weekly data for ' + monthName + ':', weeklyData);
+
+                // Update the chart with weekly data
+                window.updateChart(weeklyData);
+
+                // Hide loading indicator
+                if (loadingElement) {
+                    loadingElement.style.display = 'none';
+                }
+
+                window.showNotification('success', 'Showing data for ' + monthName + ' ' + selectedYear, 'Data Updated');
             }
-            
-            window.showNotification('success', 'Showing weekly data for ' + monthName + ' ' + selectedYear, 'Data Updated');
         }
     } catch (error) {
         console.error('Error updating chart:', error);
@@ -672,7 +678,7 @@ window.filterDataByBatch = function(batch) {
     // Store the current batch filter
     window.currentBatchFilter = batch;
     
-    // Update active state of batch filter buttons
+    // Update active state of batch filter buttons (if they exist)
     document.querySelectorAll('.batch-filter').forEach(button => {
         if (button.getAttribute('data-batch') === batch) {
             button.classList.add('active');
@@ -680,6 +686,9 @@ window.filterDataByBatch = function(batch) {
             button.classList.remove('active');
         }
     });
+
+    // Update dropdown selections (both dashboard and behavior page)
+    window.updateBatchFilterSelection(batch);
     
     // Show loading indicator
     const loadingElement = document.getElementById('chartLoading');
@@ -905,68 +914,36 @@ window.filterDataByBatchRange = function(startYear, endYear) {
     });
 };
 
-// Function to toggle the batch filter input field visibility
-window.toggleBatchFilterInput = function() {
-    const filterType = document.getElementById('batchFilterType').value;
-    const yearInput = document.getElementById('batchFilterYear');
-    const startYearInput = document.getElementById('batchFilterStartYear');
-    const endYearInput = document.getElementById('batchFilterEndYear');
-    const applyButton = document.getElementById('applyBatchFilter');
-    
-    // Hide all inputs first
-    yearInput.style.display = 'none';
-    startYearInput.style.display = 'none';
-    endYearInput.style.display = 'none';
-    applyButton.style.display = 'none';
-    
-    if (filterType === 'specific') {
-        // Show single year input
-        yearInput.style.display = 'block';
-        applyButton.style.display = 'block';
-        yearInput.focus();
-    } else if (filterType === 'range') {
-        // Show range inputs
-        startYearInput.style.display = 'block';
-        endYearInput.style.display = 'block';
-        applyButton.style.display = 'block';
-        startYearInput.focus();
-    } else {
-        // If 'All Batches' is selected, apply the filter immediately
-        window.filterDataByBatch('all');
+// Function to get current batch filter value from either dashboard or behavior page
+window.getCurrentBatchFilter = function() {
+    // Try behavior page dropdown first
+    const behaviorBatchSelect = document.getElementById('behaviorBatchSelect');
+    if (behaviorBatchSelect) {
+        return behaviorBatchSelect.value;
     }
+
+    // Try dashboard dropdown
+    const dashboardBatchSelect = document.getElementById('batchSelect');
+    if (dashboardBatchSelect) {
+        return dashboardBatchSelect.value;
+    }
+
+    // Fallback to 'all'
+    return 'all';
 };
 
-// Function to apply the batch filter
-window.applyBatchFilter = function() {
-    const filterType = document.getElementById('batchFilterType').value;
-    
-    if (filterType === 'all') {
-        window.filterDataByBatch('all');
-    } else if (filterType === 'specific') {
-        const yearInput = document.getElementById('batchFilterYear');
-        const year = yearInput.value.trim();
-        
-        if (year && !isNaN(year)) {
-            window.filterDataByBatch(year);
-        } else {
-            window.showNotification('error', 'Please enter a valid year', 'Invalid Input');
-        }
-    } else if (filterType === 'range') {
-        const startYearInput = document.getElementById('batchFilterStartYear');
-        const endYearInput = document.getElementById('batchFilterEndYear');
-        const startYear = startYearInput.value.trim();
-        const endYear = endYearInput.value.trim();
-        
-        if (startYear && endYear && !isNaN(startYear) && !isNaN(endYear)) {
-            // Validate that start year is less than or equal to end year
-            if (parseInt(startYear) <= parseInt(endYear)) {
-                window.filterDataByBatchRange(startYear, endYear);
-            } else {
-                window.showNotification('error', 'Start year must be less than or equal to end year', 'Invalid Range');
-            }
-        } else {
-            window.showNotification('error', 'Please enter valid years for the range', 'Invalid Input');
-        }
+// Function to update batch filter dropdown selection (for both pages)
+window.updateBatchFilterSelection = function(batch) {
+    // Update behavior page dropdown if it exists
+    const behaviorBatchSelect = document.getElementById('behaviorBatchSelect');
+    if (behaviorBatchSelect) {
+        behaviorBatchSelect.value = batch;
+    }
+
+    // Update dashboard dropdown if it exists
+    const dashboardBatchSelect = document.getElementById('batchSelect');
+    if (dashboardBatchSelect) {
+        dashboardBatchSelect.value = batch;
     }
 };
 
@@ -1248,9 +1225,7 @@ window.updateViolationReport = function(period, batch) {
     
     // If batch is not provided, use the current batch filter
     if (batch === undefined) {
-        // Find the active batch filter button
-        const activeBatchButton = document.querySelector('.batch-filter.active');
-        batch = activeBatchButton ? activeBatchButton.getAttribute('data-batch') : 'all';
+        batch = window.getCurrentBatchFilter();
     }
     
     fetch(`/api/violation-stats?period=${period}&batch=${batch}`, {
@@ -1479,7 +1454,7 @@ window.filterDataByYScale = function(scale) {
 };
 
 // Function to fetch behavior data from server
-window.fetchBehaviorData = function(months = 12, showLoading = true, batchFilter = 'all', year = null) {
+window.fetchBehaviorData = function(months = 12, showLoading = true, batchFilter = 'all', year = null, month = 'all') {
     // If year is not provided, use the currently selected year
     if (year === null) {
         const yearSelect = document.getElementById('yearSelect');
@@ -1489,24 +1464,28 @@ window.fetchBehaviorData = function(months = 12, showLoading = true, batchFilter
             year = new Date().getFullYear(); // Default to current year
         }
     }
-    
-    console.log('Fetching behavior data for year:', year);
+
+    console.log('Fetching behavior data for year:', year, 'month:', month);
     if (months === undefined) months = 12;
     if (batchFilter === undefined) batchFilter = window.currentBatchFilter;
-    
+
     console.log('Fetching behavior data for', months, 'months with batch filter:', batchFilter);
-    
+
     // Show loading indicator
     const loadingElement = document.getElementById('chartLoading');
     if (loadingElement) {
         loadingElement.style.display = 'flex';
     }
-    
+
     // Get CSRF token for secure request
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
-    // Add cache-busting parameter to prevent caching
-    const url = '/educator/behavior/data?months=' + months + '&batch=' + batchFilter + '&year=' + year + '&_=' + Date.now();
+
+    // Build URL with parameters
+    let url = '/educator/behavior/data?batch=' + batchFilter + '&year=' + year;
+    if (month !== 'all') {
+        url += '&month=' + month;
+    }
+    url += '&_=' + Date.now(); // Add cache-busting parameter
     
     // Make AJAX request to get behavior data
     fetch(url, {
@@ -1753,7 +1732,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up event listeners
     window.setupBehaviorChartEventListeners();
     
-    // Initialize batch filter buttons
+    // Initialize batch filter buttons (for behavior page)
     const batchFilterButtons = document.querySelectorAll('.batch-filter');
     batchFilterButtons.forEach(button => {
         button.addEventListener('click', function() {
@@ -1761,6 +1740,26 @@ document.addEventListener('DOMContentLoaded', function() {
             window.filterDataByBatch(batch);
         });
     });
+
+    // Initialize batch filter dropdown (for dashboard page)
+    const batchSelect = document.getElementById('batchSelect');
+    if (batchSelect && !batchSelect.hasAttribute('data-listener-added')) {
+        batchSelect.addEventListener('change', function() {
+            const batch = this.value;
+            window.filterDataByBatch(batch);
+        });
+        batchSelect.setAttribute('data-listener-added', 'true');
+    }
+
+    // Initialize batch filter dropdown (for behavior page)
+    const behaviorBatchSelect = document.getElementById('behaviorBatchSelect');
+    if (behaviorBatchSelect && !behaviorBatchSelect.hasAttribute('data-listener-added')) {
+        behaviorBatchSelect.addEventListener('change', function() {
+            const batch = this.value;
+            window.filterDataByBatch(batch);
+        });
+        behaviorBatchSelect.setAttribute('data-listener-added', 'true');
+    }
     
     // Initialize y-axis scale filter buttons
     const yScaleFilterButtons = document.querySelectorAll('.y-scale-filter');
@@ -1822,7 +1821,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up event listeners
     window.setupBehaviorChartEventListeners();
     
-    // Initialize batch filter buttons
+    // Initialize batch filter buttons (for behavior page)
     const batchFilterButtons = document.querySelectorAll('.batch-filter');
     batchFilterButtons.forEach(button => {
         button.addEventListener('click', function() {
@@ -1830,6 +1829,26 @@ document.addEventListener('DOMContentLoaded', function() {
             window.filterDataByBatch(batch);
         });
     });
+
+    // Initialize batch filter dropdown (for dashboard page)
+    const batchSelect = document.getElementById('batchSelect');
+    if (batchSelect && !batchSelect.hasAttribute('data-listener-added')) {
+        batchSelect.addEventListener('change', function() {
+            const batch = this.value;
+            window.filterDataByBatch(batch);
+        });
+        batchSelect.setAttribute('data-listener-added', 'true');
+    }
+
+    // Initialize batch filter dropdown (for behavior page)
+    const behaviorBatchSelect = document.getElementById('behaviorBatchSelect');
+    if (behaviorBatchSelect && !behaviorBatchSelect.hasAttribute('data-listener-added')) {
+        behaviorBatchSelect.addEventListener('change', function() {
+            const batch = this.value;
+            window.filterDataByBatch(batch);
+        });
+        behaviorBatchSelect.setAttribute('data-listener-added', 'true');
+    }
     
     // Initialize y-axis scale filter buttons
     const yScaleFilterButtons = document.querySelectorAll('.y-scale-filter');
