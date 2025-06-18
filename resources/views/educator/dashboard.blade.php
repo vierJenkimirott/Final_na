@@ -741,7 +741,7 @@
                         data.batches.forEach(batch => {
                             const option = document.createElement('option');
                             option.value = batch.value;
-                            option.textContent = `${batch.label} (${batch.count} students)`;
+                            option.textContent = `${batch.label}`;
                             if (batch.value === 'all') {
                                 option.selected = true;
                             }
@@ -752,10 +752,10 @@
                         // Fallback to default options
                         const batchSelect = document.getElementById('batchSelect');
                         batchSelect.innerHTML = `
-                            <option value="all" selected>All Classes</option>
-                            <option value="2025">Class 2025</option>
-                            <option value="2026">Class 2026</option>
-                        `;
+    <option value="all" selected>All Classes</option>
+    <option value="2025">Class 2025</option>
+    <option value="2026">Class 2026</option>
+`;
                     }
                 })
                 .catch(error => {
@@ -763,10 +763,10 @@
                     // Fallback to default options
                     const batchSelect = document.getElementById('batchSelect');
                     batchSelect.innerHTML = `
-                        <option value="all" selected>All Classes</option>
-                        <option value="2025">Class 2025</option>
-                        <option value="2026">Class 2026</option>
-                    `;
+    <option value="all" selected>All Classes</option>
+    <option value="2025">Class 2025</option>
+    <option value="2026">Class 2026</option>
+`;
                 });
         }
 

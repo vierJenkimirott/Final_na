@@ -20,9 +20,75 @@ use Exception;
  */
 class EducatorController extends Controller
 {
+    /**
+     * Show a student's profile by student_id
+     */
+    public function showStudentProfile($student_id)
+    {
+        $student = \App\Models\User::where('student_id', $student_id)->first();
+        if (!$student) {
+            $student = \App\Models\User::find($student_id);
+        }
+        if (!$student) {
+            abort(404, 'Student not found');
+        }
+        $violations = \App\Models\Violation::where('student_id', $student->student_id ?? $student->id)
+            ->with('violationType')
+            ->orderByDesc('violation_date')
+            ->get();
+        return view('educator.student_violation_history', compact('student', 'violations'));
+    }
+
     // =============================================
     // DASHBOARD METHODS
     // =============================================
+
+    /**
+     * Show all students page
+     */
+    public function studentsPage()
+    {
+        $students = \App\Models\User::role('student')->get();
+        // Example batch extraction, adjust as needed for your batch logic
+        $batches = \App\Models\User::role('student')
+            ->selectRaw('LEFT(student_id, 4) as id, LEFT(student_id, 4) as name')
+            ->distinct()->get();
+        return view('educator.students', compact('students', 'batches'));
+    }
+
+    /**
+     * Show all active violation cases
+     */
+    public function activeViolations(Request $request)
+    {
+        $query = \App\Models\Violation::with(['student', 'violationType'])
+            ->where('status', 'active');
+
+        // Search by student name
+        if ($request->filled('name')) {
+            $query->whereHas('student', function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->name . '%');
+            });
+        }
+        // Filter by batch
+        if ($request->filled('batch') && $request->batch !== 'all') {
+            $query->whereHas('student', function ($q) use ($request) {
+                $q->where('student_id', 'like', $request->batch . '01%');
+            });
+        }
+        $violations = $query->orderByDesc('violation_date')->get();
+        // Get available batches for filter dropdown
+        $batches = \App\Models\User::role('student')
+            ->selectRaw('LEFT(student_id, 4) as batch')
+            ->distinct()
+            ->pluck('batch');
+        return view('educator.activeViolations', [
+            'violations' => $violations,
+            'batches' => $batches,
+            'currentBatch' => $request->batch ?? 'all',
+            'currentName' => $request->name ?? ''
+        ]);
+    }
     
     /**
      * Get students count by batch
@@ -617,7 +683,7 @@ class EducatorController extends Controller
      * @param string $penalty The penalty code (W, VW, WW, Pro, Exp)
      * @return \Illuminate\View\View
      */
-    public function studentsByPenalty($penalty)
+    public function studentsByPenalty(Request $request, $penalty)
     {
         try {
             // Validate the penalty type
@@ -627,17 +693,19 @@ class EducatorController extends Controller
                     ->with('error', 'Invalid penalty type specified.');
             }
 
-            // Get all active violations with the specified penalty
-            $violations = \App\Models\Violation::where('penalty', $penalty)
-                ->where('status', 'active')
-                ->with(['student', 'violationType'])
-                ->orderBy('violation_date', 'desc')
-                ->get();
+            $batch = $request->query('batch', 'all');
+            $violationsQuery = Violation::with(['student', 'violationType'])
+                ->where('penalty', $penalty)
+                ->where('status', 'active');
+            if ($batch !== 'all') {
+                $violationsQuery->whereHas('student', function($query) use ($batch) {
+                    $query->where('student_id', 'like', $batch . '%');
+                });
+            }
+            $violations = $violationsQuery->orderBy('violation_date', 'desc')->get();
 
-            return view('educator.studentsByPenalty', [
-                'violations' => $violations,
-                'penalty' => $penalty
-            ]);
+            return view('educator.studentsByPenalty', compact('violations', 'penalty', 'batch'));
+
         } catch (\Exception $e) {
             Log::error('Error in studentsByPenalty: ' . $e->getMessage());
             return redirect()->route('educator.dashboard')
@@ -653,18 +721,19 @@ class EducatorController extends Controller
         // Get total students count from the database
         $totalStudents = User::role('student')->count();
 
-        // Get count of students with more than 2 violations
-        $studentsWithMultipleViolations = User::role('student')
-            ->select('users.id')
-            ->join('violations', 'users.student_id', '=', 'violations.student_id')
-            ->where('violations.status', 'active')
-            ->groupBy('users.id')
-            ->havingRaw('COUNT(violations.id) > 2')
-            ->count();
+        // Get count of active violation cases
+        $activeViolationCases = \App\Models\Violation::where('status', 'active')->count();
+        // $studentsWithMultipleViolations = User::role('student')
+        //     ->select('users.id')
+        //     ->join('violations', 'users.student_id', '=', 'violations.student_id')
+        //     ->where('violations.status', 'active')
+        //     ->groupBy('users.id')
+        //     ->havingRaw('COUNT(violations.id) > 2')
+        //     ->count();
 
         return view('educator.behavior', [
             'totalStudents' => $totalStudents,
-            'studentsWithMultipleViolations' => $studentsWithMultipleViolations
+            'activeViolationCases' => $activeViolationCases
         ]);
     }
 

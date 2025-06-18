@@ -75,15 +75,47 @@ class ViolationController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            // Eager load relationships and paginate for better performance
-            $violations = Violation::with(['student', 'violationType'])
-                ->orderBy('created_at', 'desc')
-                ->paginate(5); // Changed to 5 items per page
-                
-            return view('educator.violation', ['violations' => $violations]);
+            $batch = $request->query('batch', 'all');
+            $severity = $request->query('severity', '');
+            $search = $request->query('search', '');
+            $violationsQuery = Violation::with(['student', 'violationType'])
+                ->orderBy('created_at', 'desc');
+            if ($batch !== 'all') {
+                $violationsQuery->whereHas('student', function($query) use ($batch) {
+                    $query->where('student_id', 'like', $batch . '%');
+                });
+            }
+            if ($severity !== '') {
+                $violationsQuery->where('severity', $severity);
+            }
+            if ($search !== '') {
+                $violationsQuery->where(function($query) use ($search) {
+                    $query->whereHas('student', function($q) use ($search) {
+                        $q->where(DB::raw("CONCAT(fname, ' ', lname)"), 'like', "%$search%")
+                          ->orWhere('fname', 'like', "%$search%")
+                          ->orWhere('lname', 'like', "%$search%")
+                          ->orWhere('student_id', 'like', "%$search%") ;
+                    })
+                    ->orWhereHas('violationType', function($q) use ($search) {
+                        $q->where('violation_name', 'like', "%$search%") ;
+                    })
+                    ->orWhere('offense', 'like', "%$search%") ;
+                });
+            }
+            $violations = $violationsQuery->paginate(10)->appends([
+                'batch' => $batch,
+                'severity' => $severity,
+                'search' => $search
+            ]);
+            return view('educator.violation', [
+                'violations' => $violations,
+                'batch' => $batch,
+                'severity' => $severity,
+                'search' => $search
+            ]);
         } catch (Exception $e) {
             Log::error('Error fetching violations: ' . $e->getMessage());
             return view('educator.violation', ['violations' => collect()])

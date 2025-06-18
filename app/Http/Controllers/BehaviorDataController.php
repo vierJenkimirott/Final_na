@@ -310,4 +310,32 @@ class BehaviorDataController extends Controller
             'violators' => $weeklyViolators
         ];
     }
+    /**
+     * Get all violations for a student (AJAX for modal)
+     */
+    public function getStudentViolationHistory($student_id)
+    {
+        try {
+            $violations = 
+                \App\Models\Violation::with('violationType')
+                ->where('student_id', $student_id)
+                ->orderBy('violation_date', 'desc')
+                ->get();
+            $result = $violations->map(function($v) {
+                return [
+                    'violation_date' => \Carbon\Carbon::parse($v->violation_date)->format('M d, Y'),
+                    'violation_type' => $v->violationType->violation_name ?? 'N/A',
+                    'penalty' => $v->penalty,
+                    'status' => ucfirst($v->status),
+                ];
+            });
+            return response()->json([
+                'success' => true,
+                'violations' => $result
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching student violation history: ' . $e->getMessage());
+            return response()->json(['success' => false, 'violations' => []], 500);
+        }
+    }
 }

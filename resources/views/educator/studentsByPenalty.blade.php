@@ -169,8 +169,14 @@
             <a href="{{ route('educator.violation') }}" class="back-button">Back to Violations</a>
         </div>
         
-        <div class="search-container">
-            <input type="text" id="searchInput" class="search-input" placeholder="Search students...">
+        <div class="search-container d-flex align-items-center" style="gap: 1rem;">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search students..." style="flex:1;">
+            <div class="batch-filter" style="min-width:200px;">
+                <label for="batchSelect" class="form-label me-2 mb-0 fw-semibold visually-hidden">Batch</label>
+                <select class="form-select" id="batchSelect">
+                    <option value="all" selected>Loading classes...</option>
+                </select>
+            </div>
         </div>
         
         @if(isset($violations) && count($violations) > 0)
@@ -234,18 +240,57 @@
     // =============================================
     // Search Functionality
     // =============================================
-    /**
-     * Filter table rows based on search input
-     * Matches student information against search text
-     */
     document.getElementById('searchInput').addEventListener('input', function() {
         const searchText = this.value.toLowerCase();
         const rows = document.querySelectorAll('.students-table tbody tr');
-        
         rows.forEach(row => {
             const text = row.textContent.toLowerCase();
             row.style.display = text.includes(searchText) ? '' : 'none';
         });
+    });
+
+    // =============================================
+    // Batch Filter Functionality
+    // =============================================
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAvailableBatches();
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedBatch = urlParams.get('batch') || 'all';
+        document.getElementById('batchSelect').addEventListener('change', function() {
+            const batch = this.value;
+            const params = new URLSearchParams(window.location.search);
+            if (batch === 'all') {
+                params.delete('batch');
+            } else {
+                params.set('batch', batch);
+            }
+            window.location.search = params.toString();
+        });
+        function loadAvailableBatches() {
+            fetch('/educator/available-batches')
+                .then(response => response.json())
+                .then(data => {
+                    const batchSelect = document.getElementById('batchSelect');
+                    batchSelect.innerHTML = '';
+                    if (data.success) {
+                        data.batches.forEach(batch => {
+                            const option = document.createElement('option');
+                            option.value = batch.value;
+                            option.textContent = `${batch.label}`;
+                            if (batch.value === selectedBatch) {
+                                option.selected = true;
+                            }
+                            batchSelect.appendChild(option);
+                        });
+                    } else {
+                        batchSelect.innerHTML = '<option value="all">All Classes</option>';
+                    }
+                })
+                .catch(() => {
+                    const batchSelect = document.getElementById('batchSelect');
+                    batchSelect.innerHTML = '<option value="all">All Classes</option>';
+                });
+        }
     });
 </script>
 @endsection

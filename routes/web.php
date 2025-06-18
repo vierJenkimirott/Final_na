@@ -9,7 +9,7 @@ use App\Http\Controllers\Student\StudentController;
 use App\Http\Controllers\StudentManualController;
 use App\Http\Controllers\EducatorManualController;
 Route::get('/', function () {
-    return redirect('/login');
+    return view('main_menu');
 });
 
 // Auth routes
@@ -55,6 +55,12 @@ Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMidd
     // View students by penalty type
     Route::get('/students-by-penalty/{penalty}', [EducatorController::class, 'studentsByPenalty'])->name('educator.students-by-penalty');
 
+    // Students Page (All Students)
+    Route::get('/students', [App\Http\Controllers\EducatorController::class, 'studentsPage'])->name('educator.students');
+
+    // View Student Profile
+    Route::get('/student-profile/{student_id}', [App\Http\Controllers\EducatorController::class, 'showStudentProfile'])->name('educator.student-profile');
+
     // Edit and Update Violation
     Route::get('/edit-violation/{id}', [ViolationController::class, 'editViolation'])->name('educator.edit-violation');
     Route::put('/update-violation/{id}', [ViolationController::class, 'updateViolation'])->name('educator.update-violation');
@@ -83,6 +89,7 @@ Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMidd
 
     // Behavior routes
     Route::get('/behavior', [EducatorController::class, 'behavior'])->name('educator.behavior');
+    Route::get('/active-violations', [EducatorController::class, 'activeViolations'])->name('educator.active-violations');
     Route::get('/behavior-data', [BehaviorDataController::class, 'getBehaviorData'])->name('educator.behavior-data');
     Route::get('/behavior/data', [BehaviorDataController::class, 'getBehaviorData'])->name('educator.behavior-data-alt');
     Route::get('/student-behavior-data/{student_id}', [EducatorController::class, 'getStudentBehaviorData'])->name('educator.student-behavior-data');

@@ -9,65 +9,7 @@
 
 @section('content')
     <div class="container-fluid px-1">
-        <!-- Students List Modal -->
-        <div class="modal fade" id="studentsListModal" tabindex="-1" aria-labelledby="studentsListModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title" id="studentsListModalLabel"><i class="fas fa-users me-2"></i>All Students</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                <input type="text" id="studentSearch" class="form-control" placeholder="Search by name or ID...">
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover" id="studentsTable">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Student ID</th>
-                                        <th>Sex</th>
-                                        <th>Violations</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="studentsList">
-                                    <!-- Student rows will be populated here -->
-                                    @foreach(\App\Models\User::whereHas('roles', function($q) { $q->where('name', 'student'); })->get() as $student)
-                                    <tr>
-                                        <td>{{ $student->name }}</td>
-                                        <td>{{ $student->student_id ?? 'ID-' . $student->id }}</td>
-                                        <td>{{ $student->sex ?? 'Not specified' }}</td>
-                                        <td>
-                                            @php
-                                                $studentIdForViolations = $student->student_id ?? $student->id;
-                                                $violationCount = \App\Models\Violation::where('student_id', $studentIdForViolations)->count();
-                                            @endphp
-                                            <span class="badge {{ $violationCount > 0 ? 'bg-danger' : 'bg-success' }}">
-                                                {{ $violationCount }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <a href="{{ route('educator.student-violations', ['student_id' => $student->student_id ?? $student->id]) }}" class="btn btn-sm btn-primary">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+
 
         <!-- Student Behavior Modal -->
         <div class="modal fade" id="studentBehaviorModal" tabindex="-1" aria-labelledby="studentBehaviorModalLabel" aria-hidden="true">
@@ -133,7 +75,7 @@
         <div class="row mb-4">
             <!-- Total Students Card -->
             <div class="col-md-6">
-                <button type="button" class="stat-box-link btn btn-link p-0 border-0 w-100 text-start" id="total-students-btn" data-bs-toggle="modal" data-bs-target="#studentsListModal">
+                <a href="{{ route('educator.students') }}" class="stat-box-link btn btn-link p-0 border-0 w-100 text-start" id="total-students-btn">
                     <div class="stat-box">
                         <div class="stat-icon primary">
                             <i class="fas fa-users"></i>
@@ -143,20 +85,20 @@
                             <h2 class="total-students">{{ $totalStudents }}</h2>
                         </div>
                     </div>
-                </button>
+                </a>
             </div>
 
             <!-- Students Needing Attention Card -->
             <div class="col-md-6">
-                <a href="{{ route('educator.students-by-penalty', ['penalty' => 'WW']) }}" class="stat-box-link">
+                <a href="{{ route('educator.active-violations') }}" class="stat-box-link">
                     <div class="stat-box">
                         <div class="stat-icon danger">
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
                         <div class="stat-content">
-                            <h6>Students Needing Attention</h6>
-                            <h2 class="attention-students">{{ $studentsWithMultipleViolations }}</h2>
-                            <!-- <div class="small text-muted mt-1">With more than 2 violations</div> -->
+                            <h6>Active Violation Cases</h6>
+                            <h2 class="attention-students">{{ $activeViolationCases }}</h2>
+                            <!-- <div class="small text-muted mt-1">Currently active violations in the system</div> -->
                         </div>
                     </div>
                 </a>
@@ -209,11 +151,7 @@
                                             <option value="11">December</option>
                                         </select>
                                     </div>
-                                    <div class="ms-auto">
-                                        <button id="refresh-behavior" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-sync-alt me-1"></i> Refresh Data
-                                        </button>
-                                    </div>
+                                    
                                 </div>
                             </div>
                         </div>
@@ -328,7 +266,52 @@
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+
+
     
+    <script>
+    // Batch Filter for Students Modal
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAvailableBatchesForStudentsModal();
+        document.getElementById('batchSelect').addEventListener('change', filterStudentList);
+        document.getElementById('studentSearch').addEventListener('input', filterStudentList);
+        function loadAvailableBatchesForStudentsModal() {
+            fetch('/educator/available-batches')
+                .then(response => response.json())
+                .then(data => {
+                    const batchSelect = document.getElementById('batchSelect');
+                    batchSelect.innerHTML = '';
+                    if (data.success) {
+                        data.batches.forEach(batch => {
+                            const option = document.createElement('option');
+                            option.value = batch.value;
+                            option.textContent = batch.label;
+                            batchSelect.appendChild(option);
+                        });
+                    } else {
+                        batchSelect.innerHTML = '<option value="all">All Classes</option>';
+                    }
+                })
+                .catch(() => {
+                    const batchSelect = document.getElementById('batchSelect');
+                    batchSelect.innerHTML = '<option value="all">All Classes</option>';
+                });
+        }
+        function filterStudentList() {
+            const batch = document.getElementById('batchSelect').value;
+            const searchText = document.getElementById('studentSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#studentsTable tbody tr');
+            rows.forEach(row => {
+                const studentId = row.children[1]?.textContent || '';
+                const matchBatch = (batch === 'all') || studentId.startsWith(batch);
+                const matchSearch = row.textContent.toLowerCase().includes(searchText);
+                row.style.display = (matchBatch && matchSearch) ? '' : 'none';
+            });
+        }
+    });
+    </script>
+
     <!-- Pass student counts and violation data to JavaScript -->
     <script>
         // Set global variables for student counts that will be used by behavior-charts.js
@@ -468,25 +451,16 @@
     <script>
         // Load available batches for behavior page dropdown
         function loadAvailableBatchesForBehavior() {
-            console.log('Loading available batches for behavior page...');
-
             const batchSelect = document.getElementById('behaviorBatchSelect');
             if (!batchSelect) {
                 console.error('Batch select element not found!');
                 return;
             }
-
-            // Don't show loading state if fallback is already loaded
-            if (batchSelect.innerHTML.includes('Loading classes...')) {
-                batchSelect.innerHTML = '<option value="">Loading classes...</option>';
-            }
+            // Always show loading state initially
+            batchSelect.innerHTML = '<option value="">Loading classes...</option>';
 
             // Get CSRF token
             const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            console.log('CSRF Token:', token ? 'Found' : 'Not found');
-
-            // Try to fetch from API first
-            console.log('Attempting to fetch from /educator/available-batches...');
             fetch('/educator/available-batches', {
                 method: 'GET',
                 headers: {
@@ -497,165 +471,46 @@
                 credentials: 'same-origin'
             })
                 .then(response => {
-                    console.log('Response status:', response.status);
-                    console.log('Response headers:', response.headers);
                     if (!response.ok) {
-                        // Try to get error text
                         return response.text().then(text => {
-                            console.error('Response error text:', text);
                             throw new Error(`HTTP error! status: ${response.status}, text: ${text}`);
                         });
                     }
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Batches data received:', data);
-                    if (data.success && data.batches && data.batches.length > 1) { // More than just "All Classes"
+                    if (data.success && data.batches && data.batches.length > 0) {
                         batchSelect.innerHTML = '';
-
                         data.batches.forEach(batch => {
                             const option = document.createElement('option');
                             option.value = batch.value;
-                            option.textContent = `${batch.label} (${batch.count} students)`;
+                            option.textContent = batch.label;
                             if (batch.value === 'all') {
                                 option.selected = true;
                             }
                             batchSelect.appendChild(option);
                         });
-                        console.log('Batch dropdown populated successfully from API with', data.batches.length, 'batches');
                     } else {
-                        console.log('API returned limited data, keeping fallback batches');
+                        // If API returns no batches, show fallback
+                        loadFallbackBatches();
                     }
                 })
                 .catch(error => {
-                    console.log('API not available, keeping fallback batches:', error.message);
+                    // On API/network error, show fallback
+                    loadFallbackBatches();
                 });
         }
 
-        // Fallback function to load default batches
-        function loadFallbackBatches() {
-            const batchSelect = document.getElementById('behaviorBatchSelect');
-            if (batchSelect) {
-                batchSelect.innerHTML = `
-                    <option value="all" selected>All Classes (150 students)</option>
-                    <option value="2025">Class 2025 (75 students)</option>
-                    <option value="2026">Class 2026 (75 students)</option>
-                    <option value="grade-7">Grade 7 (50 students)</option>
-                    <option value="grade-8">Grade 8 (50 students)</option>
-                    <option value="grade-9">Grade 9 (50 students)</option>
-                `;
-                console.log('Fallback batches loaded');
-            }
-        }
+    
 
         // Force chart creation immediately
-        function forceCreateChart() {
-            console.log('Force creating chart...');
-            const canvas = document.getElementById('behaviorChart');
-            if (canvas && typeof Chart !== 'undefined') {
-                console.log('Creating forced chart...');
 
-                // Hide loading indicator first
-                const loadingElement = document.getElementById('chartLoading');
-                if (loadingElement) {
-                    loadingElement.style.display = 'none';
-                }
-
-                // Get real data from the server-provided variables
-                const maleData = [];
-                const femaleData = [];
-                const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-                // Convert the violation data to arrays
-                labels.forEach(month => {
-                    const monthKey = month.toLowerCase() === 'jan' ? 'january' :
-                                   month.toLowerCase() === 'feb' ? 'february' :
-                                   month.toLowerCase() === 'mar' ? 'march' :
-                                   month.toLowerCase() === 'apr' ? 'april' :
-                                   month.toLowerCase() === 'may' ? 'may' :
-                                   month.toLowerCase() === 'jun' ? 'june' :
-                                   month.toLowerCase() === 'jul' ? 'july' :
-                                   month.toLowerCase() === 'aug' ? 'august' :
-                                   month.toLowerCase() === 'sep' ? 'september' :
-                                   month.toLowerCase() === 'oct' ? 'october' :
-                                   month.toLowerCase() === 'nov' ? 'november' : 'december';
-
-                    maleData.push(window.maleViolationsByMonth[monthKey] || 0);
-                    femaleData.push(window.femaleViolationsByMonth[monthKey] || 0);
-                });
-
-                console.log('Using real data - Male:', maleData, 'Female:', femaleData);
-
-                const ctx = canvas.getContext('2d');
-                window.behaviorChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Male Violations',
-                            data: maleData,
-                            backgroundColor: 'rgba(78, 115, 223, 0.8)',
-                            borderColor: 'rgba(78, 115, 223, 1)',
-                            borderWidth: 1
-                        }, {
-                            label: 'Female Violations',
-                            data: femaleData,
-                            backgroundColor: 'rgba(231, 74, 59, 0.8)',
-                            borderColor: 'rgba(231, 74, 59, 1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: 'Student Violations by Month ({{ date('Y') }})',
-                                font: { size: 16, weight: 'bold' }
-                            },
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 10,
-                                title: { display: true, text: 'Number of Violations' }
-                            },
-                            x: {
-                                title: { display: true, text: 'Month' }
-                            }
-                        }
-                    }
-                });
-
-                console.log('Forced chart created successfully');
-                return true;
-            } else {
-                console.error('Canvas or Chart.js not available for forced chart creation');
-                return false;
-            }
-        }
 
         // Initialize the behavior chart directly when the page loads
         document.addEventListener('DOMContentLoaded', function() {
-            // Load fallback immediately to fix the stuck loading state
-            console.log('Loading fallback batches immediately...');
-            loadFallbackBatches();
-
-            // Force create chart immediately to ensure it displays
-            console.log('Attempting to force create chart...');
-            setTimeout(() => {
-                if (!forceCreateChart()) {
-                    console.log('Forced chart creation failed, trying again in 500ms...');
-                    setTimeout(forceCreateChart, 500);
-                }
-            }, 100);
-
-            // Also try to load from API in the background
-            setTimeout(() => {
-                loadAvailableBatchesForBehavior();
-            }, 100);
+          
+            // Load available batches for behavior page dropdown
+            loadAvailableBatchesForBehavior();
 
             // Handle batch filter dropdown change
             const behaviorBatchSelect = document.getElementById('behaviorBatchSelect');
@@ -687,43 +542,31 @@
                 if (canvas && typeof Chart !== 'undefined') {
                     console.log('Chart.js is available, creating basic chart...');
 
-                    // Create a basic chart with sample data
-                    const ctx = canvas.getContext('2d');
-                    new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                            datasets: [{
-                                label: 'Male Violations',
-                                data: [2, 1, 3, 2, 4, 1, 2, 3, 1, 2, 3, 1],
-                                backgroundColor: 'rgba(78, 115, 223, 0.8)',
-                                borderColor: 'rgba(78, 115, 223, 1)',
-                                borderWidth: 1
-                            }, {
-                                label: 'Female Violations',
-                                data: [1, 2, 1, 3, 2, 2, 1, 2, 2, 1, 2, 2],
-                                backgroundColor: 'rgba(231, 74, 59, 0.8)',
-                                borderColor: 'rgba(231, 74, 59, 1)',
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                title: {
-                                    display: true,
-                                    text: 'Student Violations by Month ({{ date('Y') }})',
-                                    font: { size: 16, weight: 'bold' }
-                                },
-                                legend: { display: false }
-                            },
-                            scales: {
-                                y: { beginAtZero: true, max: 10 },
-                                x: { title: { display: true, text: 'Month' } }
-                            }
-                        }
-                    });
+                    // Create a basic chart with empty data as fallback
+const ctx = canvas.getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: [],
+        datasets: []
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Student Violations by Month',
+                font: { size: 16, weight: 'bold' }
+            },
+            legend: { display: false }
+        },
+        scales: {
+            y: { beginAtZero: true },
+            x: { title: { display: true, text: 'Month' } }
+        }
+    }
+});
 
                     // Hide loading indicator
                     const loadingElement = document.getElementById('chartLoading');

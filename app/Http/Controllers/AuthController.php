@@ -88,7 +88,7 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect('/login');
+        return redirect('/');
     }
 
     protected function redirectBasedOnRole($user)
@@ -96,6 +96,7 @@ class AuthController extends Controller
         $role = $user->roles->first();
         if (!$role) {
             Auth::logout();
+            return redirect('/')->withErrors(['email' => 'No role assigned to this account.']);
             return redirect('/login')->withErrors(['email' => 'No role assigned to this account.']);
         }
 

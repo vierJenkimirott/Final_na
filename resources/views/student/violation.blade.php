@@ -63,18 +63,48 @@
 @endsection
 
 @section('content')
-<!-- Student Header with Name and Clock -->
-<header class="student-header">
-    <div class="container header-container">
-        <div class="student-info">
-            <h1 class="student-name">{{ auth()->user()->name }}</h1>
-            <span class="student-id">ID: {{ auth()->user()->student_id ?? 'N/A' }}</span>
-        </div>
-        <div class="real-time-display">
-            <i class="fas fa-clock"></i> <span id="current-time"></span>
-        </div>
+<!-- Student Header (Educator Style) -->
+<div class="d-flex justify-content-between align-items-center mb-4" style="background: linear-gradient(135deg, #1e3c72, #2a5298); padding: 18px 32px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.10); color: #fff;">
+    <div style="display: flex; flex-direction: column;">
+        <span class="fw-bold" style="font-size: 1.5rem;">{{ auth()->user()->name }}</span>
+        <span style="font-size: 1rem; opacity: 0.9;">ID: {{ auth()->user()->student_id ?? 'N/A' }}</span>
+        @php
+            $penaltyPriority = ['Exp' => 4, 'Pro' => 3, 'WW' => 2, 'VW' => 1, 'W' => 0];
+            $penaltyLabels = [
+                'Exp' => 'Expulsion',
+                'Pro' => 'Probation',
+                'WW' => 'Written Warning',
+                'VW' => 'Verbal Warning',
+                'W' => 'Warning',
+            ];
+            $penaltyColors = [
+                'Exp' => '#e74c3c',
+                'Pro' => '#e67e22',
+                'WW' => '#f1c40f',
+                'VW' => '#3498db',
+                'W' => '#2ecc71',
+            ];
+            $maxPenalty = null;
+            foreach ($violations as $violation) {
+                if (!$maxPenalty || ($penaltyPriority[$violation->penalty] ?? -1) > ($penaltyPriority[$maxPenalty] ?? -1)) {
+                    $maxPenalty = $violation->penalty;
+                }
+            }
+        @endphp
+        @if($maxPenalty)
+            <span style="font-size: 1rem; margin-top: 2px; color: {{ $penaltyColors[$maxPenalty] ?? '#fff' }}; font-weight: 600;">
+                Status: {{ $penaltyLabels[$maxPenalty] ?? $maxPenalty }}
+            </span>
+        @else
+            <span style="font-size: 1rem; margin-top: 2px; color: #2ecc71; font-weight: 600;">
+                Status: Good Standing
+            </span>
+        @endif
     </div>
-</header>
+    <div class="real-time-display" style="font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-clock"></i> <span id="current-time"></span>
+    </div>
+</div>
 
 <div class="container">
     <div class="page-content">

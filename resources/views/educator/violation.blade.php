@@ -22,46 +22,61 @@
 
             <!-- Warning Statistics Section -->
             @php
-                // Get unique students with Verbal Warning penalty
-                $verbalWarningStudents = DB::table('violations')
-                    ->join('users', 'violations.student_id', '=', 'users.student_id')
-                    ->select('users.fname', 'users.lname', 'users.student_id')
-                    ->where('violations.penalty', 'VW')
-                    ->where('violations.status', 'active')
-                    ->groupBy('users.student_id', 'users.fname', 'users.lname')
-                    ->get();
-                $verbalWarningCount = count($verbalWarningStudents);
-                
-                // Get unique students with Written Warning penalty
-                $writtenWarningStudents = DB::table('violations')
-                    ->join('users', 'violations.student_id', '=', 'users.student_id')
-                    ->select('users.fname', 'users.lname', 'users.student_id')
-                    ->where('violations.penalty', 'WW')
-                    ->where('violations.status', 'active')
-                    ->groupBy('users.student_id', 'users.fname', 'users.lname')
-                    ->get();
-                $writtenWarningCount = count($writtenWarningStudents);
-                
-                // Get unique students with Probation penalty
-                $probationStudents = DB::table('violations')
-                    ->join('users', 'violations.student_id', '=', 'users.student_id')
-                    ->select('users.fname', 'users.lname', 'users.student_id')
-                    ->where('violations.penalty', 'Pro')
-                    ->where('violations.status', 'active')
-                    ->groupBy('users.student_id', 'users.fname', 'users.lname')
-                    ->get();
-                $probationCount = count($probationStudents);
-                
-                // Get unique students with Expulsion penalty
-                $expulsionStudents = DB::table('violations')
-                    ->join('users', 'violations.student_id', '=', 'users.student_id')
-                    ->select('users.fname', 'users.lname', 'users.student_id')
-                    ->where('violations.penalty', 'Exp')
-                    ->where('violations.status', 'active')
-                    ->groupBy('users.student_id', 'users.fname', 'users.lname')
-                    ->get();
-                $expulsionCount = count($expulsionStudents);
-            @endphp
+    $batch = request('batch', 'all');
+    $batchFilter = function($query) use ($batch) {
+        if ($batch !== 'all') {
+            $query->where('users.student_id', 'like', $batch . '%');
+        }
+    };
+    // Get unique students with Verbal Warning penalty
+    $verbalWarningStudents = DB::table('violations')
+        ->join('users', 'violations.student_id', '=', 'users.student_id')
+        ->select('users.fname', 'users.lname', 'users.student_id')
+        ->where('violations.penalty', 'VW')
+        ->where('violations.status', 'active')
+        ->when($batch !== 'all', function($query) use ($batch) {
+            $query->where('users.student_id', 'like', $batch . '%');
+        })
+        ->groupBy('users.student_id', 'users.fname', 'users.lname')
+        ->get();
+    $verbalWarningCount = count($verbalWarningStudents);
+    // Written Warning
+    $writtenWarningStudents = DB::table('violations')
+        ->join('users', 'violations.student_id', '=', 'users.student_id')
+        ->select('users.fname', 'users.lname', 'users.student_id')
+        ->where('violations.penalty', 'WW')
+        ->where('violations.status', 'active')
+        ->when($batch !== 'all', function($query) use ($batch) {
+            $query->where('users.student_id', 'like', $batch . '%');
+        })
+        ->groupBy('users.student_id', 'users.fname', 'users.lname')
+        ->get();
+    $writtenWarningCount = count($writtenWarningStudents);
+    // Probation
+    $probationStudents = DB::table('violations')
+        ->join('users', 'violations.student_id', '=', 'users.student_id')
+        ->select('users.fname', 'users.lname', 'users.student_id')
+        ->where('violations.penalty', 'Pro')
+        ->where('violations.status', 'active')
+        ->when($batch !== 'all', function($query) use ($batch) {
+            $query->where('users.student_id', 'like', $batch . '%');
+        })
+        ->groupBy('users.student_id', 'users.fname', 'users.lname')
+        ->get();
+    $probationCount = count($probationStudents);
+    // Expulsion
+    $expulsionStudents = DB::table('violations')
+        ->join('users', 'violations.student_id', '=', 'users.student_id')
+        ->select('users.fname', 'users.lname', 'users.student_id')
+        ->where('violations.penalty', 'Exp')
+        ->where('violations.status', 'active')
+        ->when($batch !== 'all', function($query) use ($batch) {
+            $query->where('users.student_id', 'like', $batch . '%');
+        })
+        ->groupBy('users.student_id', 'users.fname', 'users.lname')
+        ->get();
+    $expulsionCount = count($expulsionStudents);
+@endphp
             <section class="warning-section" style="padding: 20px; display: flex; justify-content: space-between; flex-wrap: nowrap;">
                 <!-- Penalty Statistics Boxes -->
                 <a href="{{ route('educator.students-by-penalty', ['penalty' => 'VW']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
@@ -93,28 +108,30 @@
                 </a>
             </section>
 
-            <div class="top-buttons">
-                <a href="{{route('educator.add-violator-form')}}" class="btn">
-                    <i class="fas fa-user-plus me-1"></i> Add Violator
-                </a>
-                <!-- <a href="{{route('educator.add-violation')}}" class="btn">
-                    <i class="fas fa-exclamation-triangle me-1"></i> Add Violation
-                </a> -->
-            </div>
+            <div class="top-buttons d-flex align-items-center mb-3">
+    <a href="{{route('educator.add-violator-form')}}" class="btn me-3">
+        <i class="fas fa-user-plus me-1"></i> Add Violator
+    </a>
+</div>
+
+            
 
             <!-- Violations Table Section -->
             <section class="violation-table">
                 <!-- Search and Filter Controls -->
-                <div class="search-bar">
-                    <input type="text" id="searchInput" placeholder="Search by student or violation..." class="form-control" />
-                    <select id="severityFilter" class="form-select">
-                        <option value="">All Severity</option>
-                        <option value="Low">Low</option>
-                        <option value="Medium">Medium</option>
-                        <option value="High">High</option>
-                        <option value="Very High">Very High</option>
-                    </select>
-                </div>
+                <div class="search-bar d-flex align-items-center" style="gap: 1rem;">
+    <input type="text" id="searchInput" placeholder="Search by student or violation..." class="form-control" value="{{ request('search', '') }}" />
+    <select id="severityFilter" class="form-select" style="max-width: 180px;">
+        <option value="">All Severity</option>
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+        <option value="Very High">Very High</option>
+    </select>
+    <select class="form-select" id="batchSelect" style="max-width: 200px;">
+        <option value="all" selected>Loading classes...</option>
+    </select>
+</div>
 
                 <!-- Violations Data Table -->
                 <div class="table-responsive">
@@ -131,8 +148,8 @@
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody class="violation-list">
-                            @foreach ($violations as $violation)
+                        <tbody id="violation-table-body">
+                            @forelse ($violations as $violation)
                                 <tr>
                                     <td>{{ $violation->violationType->violation_name ?? 'N/A' }}</td>
                                     <td>{{ $violation->violationType->offenseCategory->category_name ?? 'N/A' }}</td>
@@ -161,7 +178,9 @@
                                         <a href="{{ route('educator.view-violation', ['id' => $violation->id]) }}" class="action-btn" title="View"><i class="fas fa-eye"></i></a>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr><td colspan="8" class="text-center">No violations found.</td></tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -173,69 +192,101 @@
 
 @section('scripts')
 <script>
-$(document).ready(function() {
-    // Initialize search timer variable for debouncing
-    let searchTimer;
-    
-    /**
-     * Filter table rows based on search query and severity filter
-     * Matches student name and violation name against search query
-     * Filters by selected severity level
-     */
-    function filterTable() {
-        const searchQuery = $('#searchInput').val().toLowerCase();
-        const severity = $('#severityFilter').val();
-        
-        // Show loading indicator
-        if ($('.table-loading-indicator').length === 0) {
-            $('.violation-table').append('<div class="table-loading-indicator text-center py-3"><i class="fas fa-spinner fa-spin me-2"></i>Filtering results...</div>');
-        }
-        
-        // Process each row in the table
-        $('table tbody tr').each(function() {
-            const $row = $(this);
-            const studentName = $row.find('td:nth-child(3)').text().toLowerCase();
-            const violationName = $row.find('td:nth-child(1)').text().toLowerCase();
-            const rowSeverity = $row.find('td:nth-child(4)').text().trim();
-            
-            // Check if row matches both search query and severity filter
-            const matchesSearch = searchQuery === '' || 
-                                studentName.includes(searchQuery) || 
-                                violationName.includes(searchQuery);
-            const matchesSeverity = severity === '' || rowSeverity.includes(severity);
-            
-            // Show or hide row based on filter results
-            $row.toggle(matchesSearch && matchesSeverity);
-        });
-        
-        // Remove loading indicator
-        setTimeout(function() {
-            $('.table-loading-indicator').remove();
-            
-            // Show no results message if needed
-            const visibleRows = $('table tbody tr:visible').length;
-            if (visibleRows === 0) {
-                if ($('.no-results-message').length === 0) {
-                    $('table').after('<div class="no-results-message alert alert-info mt-3">No violations match your search criteria.</div>');
-                }
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAvailableBatches();
+        // Set batch filter from query if present
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedBatch = urlParams.get('batch') || 'all';
+        const selectedSeverity = urlParams.get('severity') || '';
+        const searchInput = document.getElementById('searchInput');
+        const severityFilter = document.getElementById('severityFilter');
+        const batchSelect = document.getElementById('batchSelect');
+
+        // Set severity filter from query if present
+        if (selectedSeverity) severityFilter.value = selectedSeverity;
+
+        batchSelect.addEventListener('change', function() {
+            const batch = this.value;
+            const params = new URLSearchParams(window.location.search);
+            if (batch === 'all') {
+                params.delete('batch');
             } else {
-                $('.no-results-message').remove();
+                params.set('batch', batch);
             }
-        }, 300);
-    }
-    
-    // Add debounced search input handler
-    $('#searchInput').on('input', function() {
-        clearTimeout(searchTimer);
-        $('.no-results-message').remove();
-        searchTimer = setTimeout(filterTable, 300);
+            window.location.search = params.toString();
+        });
+        severityFilter.addEventListener('change', function() {
+            const severity = this.value;
+            const params = new URLSearchParams(window.location.search);
+            if (severity === '') {
+                params.delete('severity');
+            } else {
+                params.set('severity', severity);
+            }
+            // Also preserve batch and search
+            const batch = batchSelect.value;
+            if (batch === 'all') {
+                params.delete('batch');
+            } else {
+                params.set('batch', batch);
+            }
+            const search = searchInput.value.trim();
+            if (search) {
+                params.set('search', search);
+            } else {
+                params.delete('search');
+            }
+            window.location.search = params.toString();
+        });
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const search = this.value.trim();
+                const params = new URLSearchParams(window.location.search);
+                if (search) {
+                    params.set('search', search);
+                } else {
+                    params.delete('search');
+                }
+                // Also preserve severity and batch
+                const severity = severityFilter.value;
+                if (severity === '') {
+                    params.delete('severity');
+                } else {
+                    params.set('severity', severity);
+                }
+                const batch = batchSelect.value;
+                if (batch === 'all') {
+                    params.delete('batch');
+                } else {
+                    params.set('batch', batch);
+                }
+                window.location.search = params.toString();
+            }
+        });
+
+        function loadAvailableBatches() {
+            fetch('/educator/available-batches')
+                .then(response => response.json())
+                .then(data => {
+                    batchSelect.innerHTML = '';
+                    if (data.success) {
+                        data.batches.forEach(batch => {
+                            const option = document.createElement('option');
+                            option.value = batch.value;
+                            option.textContent = `${batch.label}`;
+                            if (batch.value === selectedBatch) {
+                                option.selected = true;
+                            }
+                            batchSelect.appendChild(option);
+                        });
+                    } else {
+                        batchSelect.innerHTML = '<option value="all">All Classes</option>';
+                    }
+                })
+                .catch(() => {
+                    batchSelect.innerHTML = '<option value="all">All Classes</option>';
+                });
+        }
     });
-    
-    // Add severity filter change handler
-    $('#severityFilter').on('change', filterTable);
-    
-    // Initialize tooltips for action icons
-    $('[title]').tooltip();
-});
 </script>
 @endsection

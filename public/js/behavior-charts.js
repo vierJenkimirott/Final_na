@@ -674,10 +674,10 @@ window.updateCustomLegend = function() {
 // Function to filter data by batch year
 window.filterDataByBatch = function(batch) {
     console.log('Filtering data by batch:', batch);
-    
+
     // Store the current batch filter
     window.currentBatchFilter = batch;
-    
+
     // Update active state of batch filter buttons (if they exist)
     document.querySelectorAll('.batch-filter').forEach(button => {
         if (button.getAttribute('data-batch') === batch) {
@@ -687,18 +687,7 @@ window.filterDataByBatch = function(batch) {
         }
     });
 
-    // Update dropdown selections (both dashboard and behavior page)
     window.updateBatchFilterSelection(batch);
-    
-    // Show loading indicator
-    const loadingElement = document.getElementById('chartLoading');
-    if (loadingElement) {
-        loadingElement.style.display = 'flex';
-    }
-    
-    // Get CSRF token for secure request
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
     // Refresh the behavior chart with the new filter - only if we're on the behavior page
     // Check if necessary elements exist before calling updateChartByPeriod
     const yearSelect = document.getElementById('yearSelect');
@@ -1726,7 +1715,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize behavior chart if the canvas exists
     const behaviorChartCanvas = document.getElementById('behaviorChart');
     if (behaviorChartCanvas) {
-        window.initBehaviorChart();
+        // Automatically fetch and display real behavior data on page load
+        window.fetchBehaviorData();
     }
     
     // Set up event listeners
@@ -1815,7 +1805,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize behavior chart if the canvas exists
     const behaviorChartCanvas = document.getElementById('behaviorChart');
     if (behaviorChartCanvas) {
-        window.initBehaviorChart();
+        // Automatically fetch and display real behavior data on page load
+        window.fetchBehaviorData();
     }
     
     // Set up event listeners

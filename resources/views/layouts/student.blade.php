@@ -50,7 +50,7 @@
             <ul class="list-unstyled">
                 <li class="p-3 {{ request()->routeIs('student.violation') ? 'active' : ''}}"><a href="{{ route('student.violation') }}" class="text-decoration-none"><img src="{{ asset('images/warning (1).png') }}" alt=""> My Violations</a></li>
                 <!-- <li class="p-3 {{ request()->routeIs('student.behavior') ? 'active' : '' }}"><a href="{{ route('student.behavior') }}" class="text-decoration-none"><img src="{{ asset('images/online-report.png') }}" alt=""> My Behavior</a></li> -->
-                <li class="p-3 {{ request()->routeIs('student.manual') ? 'active' : ''}}"><a href="{{ route('student.manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt=""> Student Violation Manual</a></li>
+                <li class="p-3 {{ request()->routeIs('student.manual') ? 'active' : ''}}"><a href="{{ route('student.manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt=""> Student Code of Conduct</a></li>
             </ul>
         </div>
     </div>
