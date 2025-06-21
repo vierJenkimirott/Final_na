@@ -556,7 +556,7 @@ class EducatorController extends Controller
      * @param string $penalty The penalty code (W, VW, WW, Pro, Exp)
      * @return \Illuminate\View\View
      */
-    public function studentsByPenalty($penalty)
+    public function studentsByPenalty(Request $request, $penalty)
     {
         try {
             // Validate the penalty type
@@ -565,17 +565,47 @@ class EducatorController extends Controller
                 return redirect()->route('educator.violation')
                     ->with('error', 'Invalid penalty type specified.');
             }
+            
+            // Get batch filter parameters
+            $batchFilter = $request->query('batch', 'all');
+            $batchYear = $request->query('batchYear');
+            $startYear = $request->query('startYear');
+            $endYear = $request->query('endYear');
 
-            // Get all active violations with the specified penalty
-            $violations = \App\Models\Violation::where('penalty', $penalty)
-                ->where('status', 'active')
-                ->with(['student', 'violationType'])
+            // Base query
+            $query = \App\Models\Violation::where('status', 'active');
+            
+            // Apply penalty filter
+            if ($penalty !== 'WW') {
+                // For specific penalty types
+                $query->where('penalty', $penalty);
+            }
+            
+            // Apply batch filter
+            if ($batchFilter === 'specific' && $batchYear) {
+                // Filter for specific batch year
+                $query->where('student_id', 'like', $batchYear . '%');
+            } elseif ($batchFilter === 'range' && $startYear && $endYear) {
+                // Filter for batch range
+                $query->where(function($q) use ($startYear, $endYear) {
+                    for ($year = $startYear; $year <= $endYear; $year++) {
+                        $q->orWhere('student_id', 'like', $year . '%');
+                    }
+                });
+            }
+            
+            // Get violations with related data
+            $violations = $query->with(['student', 'violationType'])
                 ->orderBy('violation_date', 'desc')
                 ->get();
 
             return view('educator.studentsByPenalty', [
                 'violations' => $violations,
-                'penalty' => $penalty
+                'penalty' => $penalty,
+                'batchFilter' => $batchFilter,
+                'batchYear' => $batchYear,
+                'startYear' => $startYear,
+                'endYear' => $endYear
             ]);
         } catch (\Exception $e) {
             Log::error('Error in studentsByPenalty: ' . $e->getMessage());
@@ -587,23 +617,48 @@ class EducatorController extends Controller
     /**
      * Display the behavior monitoring page
      */
-    public function behavior()
+    public function behavior(Request $request)
     {
-        // Get total students count from the database
-        $totalStudents = User::role('student')->count();
-
-        // Get count of students with more than 2 violations
-        $studentsWithMultipleViolations = User::role('student')
-            ->select('users.id')
-            ->join('violations', 'users.student_id', '=', 'violations.student_id')
-            ->where('violations.status', 'active')
-            ->groupBy('users.id')
-            ->havingRaw('COUNT(violations.id) > 2')
+        // Get batch filter parameters
+        $batchFilter = $request->query('batch', 'all');
+        $batchYear = $request->query('batchYear');
+        $startYear = $request->query('startYear');
+        $endYear = $request->query('endYear');
+        
+        // Base query to get students
+        $studentsQuery = User::role('student');
+        
+        // Apply batch filter
+        if ($batchFilter === 'range' && $startYear && $endYear) {
+            // Filter for batch range
+            $studentsQuery->where(function($query) use ($startYear, $endYear) {
+                for ($year = $startYear; $year <= $endYear; $year++) {
+                    $query->orWhere('student_id', 'like', $year . '%');
+                }
+            });
+        } elseif ($batchFilter === 'specific' && $batchYear) {
+            // Filter for specific batch year
+            $studentsQuery->where('student_id', 'like', $batchYear . '%');
+        }
+        
+        // Get total students count
+        $totalStudents = $studentsQuery->count();
+        
+        // Get count of students with violations
+        $violationsQuery = clone $studentsQuery;
+        $studentsWithViolations = $violationsQuery
+            ->whereHas('violations', function($query) {
+                $query->where('status', 'active');
+            })
             ->count();
 
         return view('educator.behavior', [
             'totalStudents' => $totalStudents,
-            'studentsWithMultipleViolations' => $studentsWithMultipleViolations
+            'studentsWithMultipleViolations' => $studentsWithViolations,
+            'batchFilter' => $batchFilter,
+            'batchYear' => $batchYear,
+            'startYear' => $startYear,
+            'endYear' => $endYear
         ]);
     }
 
@@ -1143,49 +1198,72 @@ class EducatorController extends Controller
         // Log the incoming request data
         Log::info('Manual update request received', ['data' => $request->all()]);
         
+        DB::beginTransaction();
         try {
-            // Update existing categories
+            $submittedCategoryIds = collect($request->input('categories', []))->pluck('id')->filter()->values();
+            $existingCategoryIds = OffenseCategory::pluck('id');
+
+            // Delete categories not in the submitted data
+            OffenseCategory::whereIn('id', $existingCategoryIds->diff($submittedCategoryIds))->delete();
+
+            // Update existing categories and their violations, and add new violations
             if ($request->has('categories')) {
-                foreach ($request->categories as $categoryIndex => $categoryData) {
+                foreach ($request->categories as $categoryData) {
                     if (isset($categoryData['id'])) {
+                        // Existing category
                         $category = OffenseCategory::find($categoryData['id']);
                         if ($category) {
                             $category->category_name = $categoryData['category_name'];
                             $category->save();
-                            
-                            // Update existing violations
+
+                            $submittedViolationIds = collect($categoryData['violationTypes'] ?? [])->pluck('id')->filter()->values();
+                            $existingViolationIds = $category->violationTypes()->pluck('id');
+
+                            // Delete violations not in the submitted data for this category
+                            $category->violationTypes()->whereIn('id', $existingViolationIds->diff($submittedViolationIds))->delete();
+
                             if (isset($categoryData['violationTypes'])) {
                                 foreach ($categoryData['violationTypes'] as $violationData) {
                                     if (isset($violationData['id'])) {
+                                        // Existing violation
                                         $violation = ViolationType::find($violationData['id']);
                                         if ($violation) {
                                             $violation->violation_name = $violationData['violation_name'];
                                             $violation->default_penalty = $violationData['default_penalty'] ?? 'W';
                                             $violation->save();
                                         }
+                                    } else {
+                                        // New violation for existing category
+                                        if (!empty($violationData['violation_name'])) {
+                                            $newViolation = new ViolationType();
+                                            $newViolation->offense_category_id = $category->id;
+                                            $newViolation->violation_name = $violationData['violation_name'];
+                                            $newViolation->default_penalty = $violationData['default_penalty'] ?? 'W';
+                                            $newViolation->save();
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                }
-            }
-            
-            // Keep the code for adding new categories
-            if ($request->has('new_category') && !empty($request->input('new_category.name'))) {
-                $newCategory = new OffenseCategory();
-                $newCategory->category_name = $request->input('new_category.name');
-                $newCategory->save();
-                
-                // Add violations to new category
-                if (isset($request->new_category['violations'])) {
-                    foreach ($request->new_category['violations'] as $violationData) {
-                        if (!empty($violationData['name'])) {
-                            $newViolation = new ViolationType();
-                            $newViolation->offense_category_id = $newCategory->id;
-                            $newViolation->violation_name = $violationData['name'];
-                            $newViolation->default_penalty = $violationData['default_penalty'] ?? 'W';
-                            $newViolation->save();
+                    } else {
+                        // New category
+                        if (!empty($categoryData['category_name'])) {
+                            $newCategory = new OffenseCategory();
+                            $newCategory->category_name = $categoryData['category_name'];
+                            $newCategory->save();
+
+                            // Add violations to new category
+                            if (isset($categoryData['violationTypes'])) {
+                                foreach ($categoryData['violationTypes'] as $violationData) {
+                                    if (!empty($violationData['violation_name'])) {
+                                        $newViolation = new ViolationType();
+                                        $newViolation->offense_category_id = $newCategory->id;
+                                        $newViolation->violation_name = $violationData['violation_name'];
+                                        $newViolation->default_penalty = $violationData['default_penalty'] ?? 'W';
+                                        $newViolation->save();
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1196,15 +1274,69 @@ class EducatorController extends Controller
                 \Cache::forget('student_manual_categories');
             }
             
+            DB::commit();
             Log::info('Manual updated successfully');
-            return redirect()->route('student.manual')->with('success', 'Manual updated successfully.');
+            return response()->json([
+                'success' => true, 
+                'message' => 'Manual updated successfully.',
+                'redirect_url' => route('educator.manual')
+            ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Error updating manual: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to update manual: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to update manual: ' . $e->getMessage()], 500);
         }
     }
-    
 
+    /**
+     * Handles the deletion of a violation type.
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteViolationType(Request $request)
+    {
+        $violationTypeId = $request->input('violation_type_id');
+
+        try {
+            $violationType = ViolationType::findOrFail($violationTypeId);
+            $violationType->delete();
+
+            if (method_exists(\Cache::class, 'forget')) {
+                \Cache::forget('student_manual_categories');
+            }
+
+            return response()->json(['success' => true, 'message' => 'Violation deleted successfully.']);
+        } catch (\Exception $e) {
+            Log::error('Error deleting violation type: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to delete violation: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Handles the deletion of an offense category.
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteOffenseCategory(Request $request)
+    {
+        $categoryId = $request->input('category_id');
+
+        try {
+            $category = OffenseCategory::findOrFail($categoryId);
+            $category->delete();
+
+            if (method_exists(\Cache::class, 'forget')) {
+                \Cache::forget('student_manual_categories');
+            }
+
+            return response()->json(['success' => true, 'message' => 'Category deleted successfully.']);
+        } catch (\Exception $e) {
+            Log::error('Error deleting category: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to delete category: ' . $e->getMessage()], 500);
+        }
+    }
 }
 
 

@@ -5,7 +5,7 @@
     <title>@yield('title', 'Staff Dashboard')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="stylesheet" href="{{ asset('css/educator.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/educator/educator.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,10 +26,131 @@
             display: flex;
             align-items: center;
         }
+        /* Toast Notification Styles */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease-out;
+            min-width: 300px;
+            max-width: 400px;
+        }
+
+        .toast.success {
+            border-left: 4px solid #28a745;
+        }
+
+        .toast.error {
+            border-left: 4px solid #dc3545;
+            background-color: #fff5f5;
+        }
+
+        .toast.info {
+            border-left: 4px solid #17a2b8;
+        }
+
+        .toast.warning {
+            border-left: 4px solid #ffc107;
+        }
+
+        .toast i {
+            font-size: 1.25rem;
+        }
+
+        .toast.success i {
+            color: #28a745;
+        }
+
+        .toast.error i {
+            color: #dc3545;
+        }
+
+        .toast.info i {
+            color: #17a2b8;
+        }
+
+        .toast.warning i {
+            color: #ffc107;
+        }
+
+        .toast-message {
+            flex: 1;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .toast.success .toast-message {
+            color: #1e7e34;
+        }
+
+        .toast.error .toast-message {
+            color: #dc3545;
+        }
+
+        .toast.info .toast-message {
+            color: #17a2b8;
+        }
+
+        .toast.warning .toast-message {
+            color: #856404;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            font-size: 1rem;
+            line-height: 1;
+            opacity: 0.7;
+        }
+
+        .toast-close:hover {
+            opacity: 1;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
     </style>
     @yield('css')
 </head>
 <body>
+    <!-- Add toast container at the top of the body -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Include toast.js -->
+    <script src="{{ asset('js/toast.js') }}"></script>
 
     <!-- Topbar -->
     <div class="nav-topbar">
@@ -55,7 +176,7 @@
                 <li class="p-3 {{ request()->routeIs('educator.violation') ? 'active' : ''}}"><a href="{{ route('educator.violation') }}" class="text-decoration-none"><img src="{{ asset('images/warning (1).png') }}" alt=""> Violations</a></li>
                 <li class="p-3 {{ request()->routeIs('educator.behavior') ? 'active' : '' }}"><a href="{{ route('educator.behavior') }}" class="text-decoration-none"><img src="{{ asset('images/online-report.png') }}" alt=""> Behavior Monitoring</a></li>
 
-                <li class="p-3 {{ request()->routeIs('educator.manual') ? 'active' : ''}}"><a href="{{ route('educator.manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt=""> Student Violation Manual</a></li>
+                <li class="p-3 {{ request()->routeIs('educator.manual') ? 'active' : ''}}"><a href="{{ route('educator.manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt="">Student Code of Conduct</a></li>
 
                 <!-- <div class="dropdown-container">
                     <a href="page2.html">General Behavior</a>
@@ -73,7 +194,6 @@
         @yield('content')
     </div>
     
-
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>

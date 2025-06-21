@@ -255,7 +255,7 @@ window.generateMonthData = function(monthIndex, year, batchFilter) {
 // Function to update the chart with new data
 window.updateChart = function(data) {
     try {
-        console.log('Updating chart with data and scale:', window.currentYAxisScale);
+        console.log('Updating chart with data and scale:', window.currentYAxisScale || 'auto');
         
         // Get the selected year
         let selectedYear = new Date().getFullYear(); // Default to current year
@@ -286,11 +286,27 @@ window.updateChart = function(data) {
         console.log('Updating chart with data:', data);
     
         // Validate that we have the required data properties
-        if (!data || !data.labels || !data.men || !data.women) {
-            console.error('Invalid chart data format:', data);
-            window.showNotification('danger', 'Invalid chart data format', 'Error');
-            window.showChartError(canvas, 'Invalid chart data format');
+        if (!data) {
+            console.error('No chart data provided');
+            window.showNotification('danger', 'No chart data provided', 'Error');
+            window.showChartError(canvas, 'No chart data provided');
             return;
+        }
+        
+        // Ensure data is in the correct format
+        if (!data.labels || !Array.isArray(data.labels)) {
+            console.warn('Labels missing or not an array, creating default labels');
+            data.labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        }
+        
+        if (!data.men || !Array.isArray(data.men)) {
+            console.warn('Men data missing or not an array, creating empty array');
+            data.men = Array(data.labels.length).fill(0);
+        }
+        
+        if (!data.women || !Array.isArray(data.women)) {
+            console.warn('Women data missing or not an array, creating empty array');
+            data.women = Array(data.labels.length).fill(0);
         }
     
         // Check if this is weekly data
@@ -341,7 +357,9 @@ window.updateChart = function(data) {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Student Violations by Month (' + selectedYear + ')',
+                        text: data.chartTitle || (isWeeklyView ? 
+                            'Weekly Violations - ' + selectedYear : 
+                            'Student Violations by Month (' + selectedYear + ')'),
                         font: {
                             size: 16,
                             weight: 'bold'
@@ -540,6 +558,22 @@ window.initBehaviorChart = function(data) {
         if (!data) {
             console.log('No data provided, generating sample data');
             data = window.generateSampleData(12);
+        }
+        
+        // Ensure data is in the correct format
+        if (!data.labels || !Array.isArray(data.labels)) {
+            console.warn('Labels missing or not an array, creating default labels');
+            data.labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        }
+        
+        if (!data.men || !Array.isArray(data.men)) {
+            console.warn('Men data missing or not an array, creating empty array');
+            data.men = Array(data.labels.length).fill(0);
+        }
+        
+        if (!data.women || !Array.isArray(data.women)) {
+            console.warn('Women data missing or not an array, creating empty array');
+            data.women = Array(data.labels.length).fill(0);
         }
         
         console.log('Data for chart:', data);
@@ -937,7 +971,11 @@ window.toggleBatchFilterInput = function() {
         startYearInput.focus();
     } else {
         // If 'All Batches' is selected, apply the filter immediately
-        window.filterDataByBatch('all');
+        window.currentBatchFilter = 'all';
+        window.updateChartByPeriod();
+        
+        // Update total students and students needing attention counts
+        updateTotalStudentsCount('all');
     }
 };
 
@@ -946,13 +984,17 @@ window.applyBatchFilter = function() {
     const filterType = document.getElementById('batchFilterType').value;
     
     if (filterType === 'all') {
-        window.filterDataByBatch('all');
+        // Reload the page with batch=all parameter
+        window.location.href = updateQueryStringParameter(window.location.href, 'batch', 'all');
     } else if (filterType === 'specific') {
         const yearInput = document.getElementById('batchFilterYear');
         const year = yearInput.value.trim();
         
         if (year && !isNaN(year)) {
-            window.filterDataByBatch(year);
+            // Reload the page with specific batch parameter
+            let url = updateQueryStringParameter(window.location.href, 'batch', 'specific');
+            url = updateQueryStringParameter(url, 'batchYear', year);
+            window.location.href = url;
         } else {
             window.showNotification('error', 'Please enter a valid year', 'Invalid Input');
         }
@@ -965,7 +1007,11 @@ window.applyBatchFilter = function() {
         if (startYear && endYear && !isNaN(startYear) && !isNaN(endYear)) {
             // Validate that start year is less than or equal to end year
             if (parseInt(startYear) <= parseInt(endYear)) {
-                window.filterDataByBatchRange(startYear, endYear);
+                // Reload the page with batch range parameters
+                let url = updateQueryStringParameter(window.location.href, 'batch', 'range');
+                url = updateQueryStringParameter(url, 'startYear', startYear);
+                url = updateQueryStringParameter(url, 'endYear', endYear);
+                window.location.href = url;
             } else {
                 window.showNotification('error', 'Start year must be less than or equal to end year', 'Invalid Range');
             }
@@ -974,6 +1020,18 @@ window.applyBatchFilter = function() {
         }
     }
 };
+
+// Helper function to update URL query parameters
+function updateQueryStringParameter(uri, key, value) {
+    const re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
+    const separator = uri.indexOf('?') !== -1 ? "&" : "?";
+    
+    if (uri.match(re)) {
+        return uri.replace(re, '$1' + key + "=" + value + '$2');
+    } else {
+        return uri + separator + key + "=" + value;
+    }
+}
 
 // Function to filter data by batch in the behavior monitoring page
 window.filterDataByBatch = function(batch) {
@@ -1249,13 +1307,16 @@ window.updateDashboardData = function(batch) {
 };
 
 // Function to update violation report based on period and batch
-window.updateViolationReport = function(batch) {
+window.updateViolationReport = function(period, batch) {
     // Get CSRF token for secure request
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     
-    // Get the selected period from the filter
-    const violationFilter = document.getElementById('violation-filter');
-    const period = violationFilter ? violationFilter.value : 'month';
+    // If batch is not provided, use the current batch filter
+    if (batch === undefined) {
+        // Find the active batch filter button
+        const activeBatchButton = document.querySelector('.batch-filter.active');
+        batch = activeBatchButton ? activeBatchButton.getAttribute('data-batch') : 'all';
+    }
     
     fetch(`/api/violation-stats?period=${period}&batch=${batch}`, {
         method: 'GET',
@@ -1294,6 +1355,12 @@ window.updateViolationReport = function(batch) {
                         `;
                         violationList.appendChild(violationItem);
                     });
+                    
+                    // Ensure the container is scrollable
+                    const reportList = document.querySelector('.violation-report-list');
+                    if (reportList) {
+                        reportList.style.overflowY = 'auto';
+                    }
                 } else {
                     violationList.innerHTML = `
                         <div class="empty-state">
@@ -1311,7 +1378,8 @@ window.updateViolationReport = function(batch) {
         if (violationList) {
             violationList.innerHTML = `
                 <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-circle"></i> Error loading violation data.
+                    <i class="fas fa-exclamation-circle"></i>
+                    Error loading violation data
                 </div>
             `;
         }
@@ -1460,11 +1528,16 @@ window.filterDataByYScale = function(scale) {
             const currentData = {
                 labels: window.behaviorChart.data.labels,
                 men: window.behaviorChart.data.datasets[0].data,
-                women: window.behaviorChart.data.datasets[1].data
+                women: window.behaviorChart.data.datasets[1].data,
+                isWeeklyView: window.behaviorChart.options.plugins.title.text.includes('Weekly')
             };
             
             // Update the chart with the current data but new scale
             window.updateChart(currentData);
+            
+            // Show notification
+            window.showNotification('success', 'Chart scale updated to ' + 
+                (scale === 'auto' ? 'automatic' : '0-' + scale), 'Scale Updated');
         } else {
             console.log('Chart not initialized yet, refreshing data');
             // If no chart exists yet, refresh the data
@@ -1477,6 +1550,53 @@ window.filterDataByYScale = function(scale) {
 };
 
 // Function to fetch behavior data from server
+// Function to update total students and students needing attention counts
+function updateTotalStudentsCount(batchFilter, startYear = null, endYear = null) {
+    // Get CSRF token for secure request
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
+    // Build the URL based on the batch filter
+    let url = '/educator/students-by-batch?batch=';
+    if (batchFilter === 'all') {
+        url += 'all';
+    } else if (batchFilter === 'range' && startYear && endYear) {
+        url += 'range&startYear=' + startYear + '&endYear=' + endYear;
+    } else {
+        url += batchFilter;
+    }
+    
+    // Make AJAX request to get student counts
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to load student counts');
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Update total students count
+        const totalStudentsElement = document.querySelector('.total-students');
+        if (totalStudentsElement) {
+            totalStudentsElement.textContent = data.count || 0;
+        }
+        
+        // Update students needing attention count
+        const attentionStudentsElement = document.querySelector('.attention-students');
+        if (attentionStudentsElement && data.violatorCount !== undefined) {
+            attentionStudentsElement.textContent = data.violatorCount || 0;
+        }
+    })
+    .catch(error => {
+        console.error('Error updating student counts:', error);
+    });
+}
+
 window.fetchBehaviorData = function(months = 12, showLoading = true, batchFilter = 'all', year = null) {
     // If year is not provided, use the currently selected year
     if (year === null) {
@@ -1490,9 +1610,18 @@ window.fetchBehaviorData = function(months = 12, showLoading = true, batchFilter
     
     console.log('Fetching behavior data for year:', year);
     if (months === undefined) months = 12;
-    if (batchFilter === undefined) batchFilter = window.currentBatchFilter;
     
-    console.log('Fetching behavior data for', months, 'months with batch filter:', batchFilter);
+    // Get batch filter from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlBatch = urlParams.get('batch');
+    const urlBatchYear = urlParams.get('batchYear');
+    const urlStartYear = urlParams.get('startYear');
+    const urlEndYear = urlParams.get('endYear');
+    
+    // Use URL parameters if available, otherwise use the provided batchFilter
+    const effectiveBatchFilter = urlBatch || batchFilter || 'all';
+    
+    console.log('Fetching behavior data for', months, 'months with batch filter:', effectiveBatchFilter);
     
     // Show loading indicator
     const loadingElement = document.getElementById('chartLoading');
@@ -1503,8 +1632,40 @@ window.fetchBehaviorData = function(months = 12, showLoading = true, batchFilter
     // Get CSRF token for secure request
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     
-    // Add cache-busting parameter to prevent caching
-    const url = '/educator/behavior/data?months=' + months + '&batch=' + batchFilter + '&year=' + year + '&_=' + Date.now();
+    // Build the URL with all necessary parameters
+    let url = '/educator/behavior/data?months=' + months + '&year=' + year;
+    
+    // Add batch filter parameters from URL if available
+    if (urlBatch) {
+        url += '&batch=' + urlBatch;
+        if (urlBatch === 'specific' && urlBatchYear) {
+            url += '&batchYear=' + urlBatchYear;
+        } else if (urlBatch === 'range' && urlStartYear && urlEndYear) {
+            url += '&startYear=' + urlStartYear + '&endYear=' + urlEndYear;
+        }
+    }
+    // Otherwise use the current filter settings
+    else if (window.currentBatchFilter === 'specific' && window.batchYear) {
+        url += '&batch=specific&batchYear=' + window.batchYear;
+    } else if (window.currentBatchFilter === 'range' && window.batchStartYear && window.batchEndYear) {
+        url += '&batch=range&startYear=' + window.batchStartYear + '&endYear=' + window.batchEndYear;
+    } else {
+        url += '&batch=all';
+    }
+    
+    // Add scale parameter
+    url += '&scale=' + (window.currentYAxisScale || 'auto');
+    
+    // Add month parameter if specific month is selected
+    const monthSelect = document.getElementById('monthSelect');
+    if (monthSelect && monthSelect.value !== 'all') {
+        url += '&month=' + monthSelect.value;
+    }
+    
+    // Add cache-busting parameter
+    url += '&_=' + Date.now();
+    
+    console.log('Fetching data from URL:', url);
     
     // Make AJAX request to get behavior data
     fetch(url, {
@@ -1542,6 +1703,22 @@ window.fetchBehaviorData = function(months = 12, showLoading = true, batchFilter
                 maleViolationCounts: window.maleViolationCounts, 
                 femaleViolationCounts: window.femaleViolationCounts 
             });
+            
+            // Make sure the data is in the expected format
+            if (!Array.isArray(data.men)) {
+                console.warn('Men data is not an array, fixing:', data.men);
+                data.men = Object.values(data.men || {});
+            }
+            
+            if (!Array.isArray(data.women)) {
+                console.warn('Women data is not an array, fixing:', data.women);
+                data.women = Object.values(data.women || {});
+            }
+            
+            if (!Array.isArray(data.labels)) {
+                console.warn('Labels are not an array, fixing:', data.labels);
+                data.labels = Object.keys(data.men || {}).map(key => key.substring(0, 3));
+            }
         }
         
         // Process the data and update the chart
@@ -1838,3 +2015,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Check if violation stats is scrollable and add indicator
+function checkScrollable() {
+    const violationStats = document.querySelector('.violation-stats');
+    if (violationStats) {
+        // Check if content is scrollable
+        if (violationStats.scrollHeight > violationStats.clientHeight) {
+            violationStats.classList.add('scrollable');
+        } else {
+            violationStats.classList.remove('scrollable');
+        }
+    }
+}
+
+// Call this function after the violation list is populated
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if scrollable after the violation list is loaded
+    setTimeout(checkScrollable, 1000);
+    
+    // Add event listener to the violation filter to check again after filtering
+    const violationFilter = document.getElementById('violation-filter');
+    if (violationFilter) {
+        violationFilter.addEventListener('change', function() {
+            setTimeout(checkScrollable, 1000);
+        });
+    }
+});
+
+
+
+
+

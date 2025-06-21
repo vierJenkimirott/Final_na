@@ -4,150 +4,21 @@
 
 @section('css')
     <!-- External CSS and Script Dependencies -->
-    <link rel="stylesheet" href="{{ asset('css/violation.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/educator/violation.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <style>
-        .main-content {
-            margin-left: 250px;
-            width: calc(100% - 250px);
-            padding: 1.5rem;
-            margin-top: 60px;
-            background: #f8f9fa;
-            min-height: calc(100vh - 60px);
-}
-        /* Warning Section Layout */
-        .warning-section {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 30px;
-            gap: 15px;
-        }
-        
-        .column {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            flex: 1;
-        }
-        
-        .column.center {
-            justify-content: center;
-        }
-        
-        /* Warning Box Styling */
-        .warning-box {
-            background-color: white;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            text-decoration: none;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            transition: transform 0.2s, box-shadow 0.2s;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .warning-box:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        
-        .warning-box.tall {
-            height: 150px;
-        }
-        
-        .warning-box.wide {
-            height: 150px;
-            width: 100%;
-        }
-        
-        /* Penalty Header Styling */
-        .penalty-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-        
-        .count-badge {
-            background-color: #f0f0f0;
-            color: #2c7be5;
-            border-radius: 200px;
-            width: 28px;
-            height: auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        
-        /* Student List Styling */
-        .student-list {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            font-size: 0.85rem;
-            margin-top: 5px;
-            width: 100%;
-            overflow: hidden;
-            max-height: 80px;
-        }
-        
-        .student-item {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding: 2px 0;
-            color: #555;
-            font-size: 12px;
-        }
-        
-        .more-link {
-            font-size: 0.8rem;
-            font-style: italic;
-            text-align: right;
-            margin-top: 2px;
-            color: #2c7be5;
-        }
-        
-        .warning-box.wide .student-list {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 5px 10px;
-            max-height: 100px;
-        }
-        
-        /* Icon styling */
-        .warning-box i {
-            margin-bottom: 10px;
-        }
-    </style>
 @endsection
 
 @section('content')
     <div class="container-fluid px-1">
         <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center">
             <h2 class="fw-bold">Manage Student Violations</h2>
         </div>
 
         <main>
             <!-- Action Buttons Section -->
-            <div class="top-buttons">
-                <a href="{{route('educator.add-violator-form')}}" class="btn">
-                    <i class="fas fa-user-plus me-1"></i> Add Violator
-                </a>
-                <a href="{{route('educator.add-violation')}}" class="btn">
-                    <i class="fas fa-exclamation-triangle me-1"></i> Add Violation
-                </a>
-            </div>
+        
 
             <!-- Warning Statistics Section -->
             @php
@@ -222,6 +93,15 @@
                 </a>
             </section>
 
+            <div class="top-buttons">
+                <a href="{{route('educator.add-violator-form')}}" class="btn">
+                    <i class="fas fa-user-plus me-1"></i> Add Violator
+                </a>
+                <!-- <a href="{{route('educator.add-violation')}}" class="btn">
+                    <i class="fas fa-exclamation-triangle me-1"></i> Add Violation
+                </a> -->
+            </div>
+
             <!-- Violations Table Section -->
             <section class="violation-table">
                 <!-- Search and Filter Controls -->
@@ -286,6 +166,7 @@
                     </table>
                 </div>
             </section>
+            {{ $violations->links() }}
         </main>
     </div>
 @endsection

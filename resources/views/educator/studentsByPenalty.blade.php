@@ -2,6 +2,10 @@
 
 @section('css')
     <style>
+
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
         /* Main Container */
         .container {
             max-width: 1200px;
@@ -19,7 +23,7 @@
         
         .page-header h2 {
             margin: 0;
-            color: #333;
+            color: #3498db;
         }
         
         /* Search Bar */
@@ -104,17 +108,21 @@
         
         /* Back Button */
         .back-button {
-            display: inline-block;
+            display: inline-flex;
             padding: 8px 16px;
-            background-color: #6c757d;
+            background-color: #3498db;
             color: white;
             text-decoration: none;
             border-radius: 4px;
-            transition: background-color 0.3s;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
         
         .back-button:hover {
-            background-color: #5a6268;
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: white;
         }
         
         /* Empty State */
@@ -146,7 +154,7 @@
                         Verbal Warning Students
                         @break
                     @case('WW')
-                        Written Warning Students
+                        Students Needing Attention
                         @break
                     @case('Pro')
                         Probation Students
@@ -157,8 +165,14 @@
                     @default
                         Students by Penalty
                 @endswitch
+                
+                @if(isset($batchFilter) && $batchFilter === 'specific' && isset($batchYear))
+                    (Batch {{ $batchYear }})
+                @elseif(isset($batchFilter) && $batchFilter === 'range' && isset($startYear) && isset($endYear))
+                    (Batches {{ $startYear }}-{{ $endYear }})
+                @endif
             </h2>
-            <a href="{{ route('educator.violation') }}" class="back-button">Back to Violations</a>
+            <a href="{{ route('educator.behavior') }}{{ isset($batchFilter) && $batchFilter !== 'all' ? '?batch=' . $batchFilter . (isset($batchYear) ? '&batchYear=' . $batchYear : '') . (isset($startYear) && isset($endYear) ? '&startYear=' . $startYear . '&endYear=' . $endYear : '') : '' }}" class="back-button">Back to Behavior Monitoring</a>
         </div>
         
         <div class="search-container">
@@ -215,7 +229,7 @@
         @else
             <div class="empty-state">
                 <p>No students found with this penalty type.</p>
-                <a href="{{ route('educator.violation') }}" class="back-button">Back to Violations</a>
+                <a href="{{ route('educator.behavior') }}{{ isset($batchFilter) && $batchFilter !== 'all' ? '?batch=' . $batchFilter . (isset($batchYear) ? '&batchYear=' . $batchYear : '') . (isset($startYear) && isset($endYear) ? '&startYear=' . $startYear . '&endYear=' . $endYear : '') : '' }}" class="back-button">Back to Behavior Monitoring</a>
             </div>
         @endif
     </div>
