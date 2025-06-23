@@ -31,8 +31,9 @@ class EducatorManualController extends Controller
     public function index()
     {
         $categories = OffenseCategory::with(['violationTypes' => function($query) {
-            $query->orderByRaw("FIELD(default_penalty, 'W', 'VW', 'WW', 'Pro', 'Exp')");
-            $query->orderBy('violation_name');
+            $query->with('severityRelation')
+                  ->orderByRaw("FIELD(severity_id, 1, 2, 3, 4)")
+                  ->orderBy('violation_name');
         }])->get();
 
         return view('educator.educator-manual', compact('categories'));

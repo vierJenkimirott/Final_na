@@ -213,11 +213,11 @@ function addViolationToCategory(button) {
         </td>
         <td>
             <select class="penalty-select severity-select"
-                    name="categories[${categoryIndex}][violationTypes][${newViolationIndex}][default_penalty]" required>
-                <option value="W">Low</option>
-                <option value="VW">Medium</option>
-                <option value="WW">High</option>
-                <option value="Exp">Very High</option>
+                    name="categories[${categoryIndex}][violationTypes][${newViolationIndex}][severity_id]" required>
+                <option value="1">Low</option>
+                <option value="2">Medium</option>
+                <option value="3">High</option>
+                <option value="4">Very High</option>
             </select>
         </td>
         <td class="text-center">
