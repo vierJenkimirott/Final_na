@@ -122,37 +122,34 @@
             <div class="category-section">
                 <h4>{{ $index + 1 }}. {{ $category->category_name }}</h4>
                 <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Violation Name</th>
-                            <th>Severity</th>
-                        </tr>
-                    </thead>
+                <thead>
+    <tr>
+        <th style="width: 8%; text-align: center;">#</th>
+        <th style="width: 65%; text-align: left;">Violation Name</th>
+        <th style="width: 25%; text-align: center;">Severity</th>
+    </tr>
+</thead>
                     <tbody>
                         @foreach($category->violationTypes as $typeIndex => $type)
                         <tr>
                             <td>{{ $index + 1 }}.{{ $typeIndex + 1 }}</td>
                             <td>{{ $type->violation_name }}</td>
                             <td>
-                                @switch($type->default_penalty)
-                                    @case('W')
+                                @switch(strtolower($type->severityRelation->severity_name ?? ''))
+                                    @case('low')
                                         Low
                                         @break
-                                    @case('VW')
+                                    @case('medium')
                                         Medium
                                         @break
-                                    @case('WW')
+                                    @case('high')
                                         High
                                         @break
-                                    @case('Pro')
-                                        High
-                                        @break
-                                    @case('Exp')
+                                    @case('very high')
                                         Very High
                                         @break
                                     @default
-                                        Medium
+                                        {{ $type->severityRelation->severity_name ?? 'Unknown' }}
                                 @endswitch
                             </td>
                         </tr>

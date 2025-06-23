@@ -53,13 +53,13 @@
                     </div>
                 </div>
 
-                <table class="table table-bordered">
+                <table class="table table-bordered w-100" style="table-layout: fixed;">
                     <thead>
                         <tr>
                             <th style="width: 5%; text-align: center;">#</th>
-                            <th style="width: 60%; text-align: left;">Violation Name</th>
-                            <th style="width: 20%; text-align: center;">Severity</th>
-                            <th style="width: 15%; text-align: center;">Action</th>
+                            <th style="width: 40%; text-align: left;">Violation Name</th>
+                            <th style="width: 10%; text-align: center;">Severity</th>
+                            <th style="width: 10%; text-align: center;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="violations-container-{{ $category->id }}">
@@ -76,16 +76,23 @@
                                     </div>
                                 </td>
                                 <td style="text-align: center;">
-                                    <select class="penalty-select severity-select"
-                                            name="categories[{{ $loop->parent->index }}][violationTypes][{{ $loop->index }}][default_penalty]"
-                                            data-offenses-field="categories[{{ $loop->parent->index }}][violationTypes][{{ $loop->index }}][offenses]"
-                                            data-penalties-field="categories[{{ $loop->parent->index }}][violationTypes][{{ $loop->index }}][penalties_text]"
-                                            onchange="updateOffensesAndPenalties(this)" required>
-                                        <option value="W" {{ $type->default_penalty == 'W' ? 'selected' : '' }}>Low</option>
-                                        <option value="VW" {{ $type->default_penalty == 'VW' ? 'selected' : '' }}>Medium</option>
-                                        <option value="WW" {{ $type->default_penalty == 'WW' ? 'selected' : '' }}>High</option>
-                                        <option value="Exp" {{ $type->default_penalty == 'Exp' ? 'selected' : '' }}>Very High</option>
-                                    </select>
+                                    @switch(strtolower($type->severityRelation->severity_name ?? ''))
+                                        @case('low')
+                                            <span class="severity-text severity-low">Low</span>
+                                            @break
+                                        @case('medium')
+                                            <span class="severity-text severity-medium">Medium</span>
+                                            @break
+                                        @case('high')
+                                            <span class="severity-text severity-high">High</span>
+                                            @break
+                                        @case('very high')
+                                            <span class="severity-text severity-very-high">Very High</span>
+                                            @break
+                                        @default
+                                            <span class="severity-text severity-unknown">{{ $type->severityRelation->severity_name ?? 'Unknown' }}</span>
+                                    @endswitch
+                                    <input type="hidden" name="categories[{{ $loop->parent->index }}][violationTypes][{{ $loop->index }}][severity_id]" value="{{ $type->severity_id }}">
                                 </td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-danger btn-sm delete-violation"
@@ -135,14 +142,14 @@
                 <div class="form-group mb-3">
                     <label for="new_violation_severity" class="form-label">Severity:</label>
                     <select id="new_violation_severity" class="form-control severity-select"
-                            name="new_category[violations][0][default_penalty]"
+                            name="new_category[violations][0][severity_id]"
                             data-offenses-field="new_category[violations][0][offenses]"
                             data-penalties-field="new_category[violations][0][penalties_text]"
                             onchange="updateOffensesAndPenalties(this)">
-                        <option value="W">Low</option>
-                        <option value="VW">Medium</option>
-                        <option value="WW">High</option>
-                        <option value="Exp">Very High</option>
+                        <option value="1">Low</option>
+                        <option value="2">Medium</option>
+                        <option value="3">High</option>
+                        <option value="4">Very High</option>
                     </select>
                 </div>
 
