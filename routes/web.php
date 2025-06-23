@@ -104,6 +104,7 @@ Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMidd
     Route::post('/manual/delete-category', [EducatorController::class, 'deleteOffenseCategory'])->name('educator.manual.delete-category');
     Route::post('/manual/delete-violation-type', [EducatorController::class, 'deleteViolationType'])->name('educator.manual.delete-violation-type');
     Route::get('/student-manual', [StudentManualController::class, 'index'])->name('student-manual')->middleware('auth');
+    Route::get('/check-infraction-count', [EducatorController::class, 'checkInfractionCount'])->name('check-infraction-count');
 });
 
 // API Routes

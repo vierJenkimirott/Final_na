@@ -174,7 +174,7 @@
         <ul class="list-unstyled mb-0">
                 <li class="p-3 {{ request()->routeIs('educator.dashboard') ? 'active' : ''}}"><a href="{{ route('educator.dashboard') }}" class="text-decoration-none"><img src="{{asset('images/dashboard.png')}}" alt=""> Dashboard</a></li>
                 <li class="p-3 {{ request()->routeIs('educator.violation') ? 'active' : ''}}"><a href="{{ route('educator.violation') }}" class="text-decoration-none"><img src="{{ asset('images/warning (1).png') }}" alt=""> Violations</a></li>
-                <li class="p-3 {{ request()->routeIs('educator.behavior') ? 'active' : '' }}"><a href="{{ route('educator.behavior') }}" class="text-decoration-none"><img src="{{ asset('images/online-report.png') }}" alt=""> Behavior Monitoring</a></li>
+                <li class="p-3 {{ request()->routeIs('educator.behavior') ? 'active' : '' }}"><a href="{{ route('educator.behavior') }}" class="text-decoration-none"><img src="{{ asset('images/online-report.png') }}" alt=""> Violation Analytics</a></li>
 
                 <li class="p-3 {{ request()->routeIs('educator.manual') ? 'active' : ''}}"><a href="{{ route('educator.manual') }}" class="text-decoration-none"><img src="{{ asset('images/manual.png') }}" alt="">Student Code of Conduct</a></li>
 

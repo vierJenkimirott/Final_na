@@ -65,7 +65,7 @@
                 <tr>
                     <td>{{ $student->name }}</td>
                     <td>{{ $student->student_id ?? 'ID-' . $student->id }}</td>
-                    <td>{{ $student->sex ?? 'Not specified' }}</td>
+                    <td>{{ $student->sex ? ucfirst(strtolower($student->sex)) : 'Not specified' }}</td>
                     <td>
                         @php
                             $studentIdForViolations = $student->student_id ?? $student->id;
