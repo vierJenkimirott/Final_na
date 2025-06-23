@@ -7,6 +7,42 @@
     <link rel="stylesheet" href="{{ asset('css/educator/violation.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+    .custom-pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 1.5rem;
+    }
+    .custom-pagination ul {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        align-items: center;
+    }
+    .custom-pagination li {
+        margin: 0 5px;
+    }
+    .custom-pagination a, .custom-pagination span {
+        color: #0d6efd;
+        text-decoration: none;
+        padding: 8px 15px;
+        display: block;
+        border-radius: 5px;
+        font-weight: 500;
+    }
+    .custom-pagination a:hover {
+        background-color: #f0f0f0;
+        text-decoration: none;
+    }
+    .custom-pagination .active span {
+        font-weight: 700;
+        color: #333;
+    }
+    .custom-pagination .disabled span {
+        color: #6c757d;
+        pointer-events: none;
+    }
+    </style>
 @endsection
 
 @section('content')
@@ -160,12 +196,22 @@
                                     <td>
                                         @php
                                             $penaltyLabels = [
-                                                'VW' => ['label' => 'Verbal Warning', 'class' => 'bg-info text-dark'],
-                                                'WW' => ['label' => 'Written Warning', 'class' => 'bg-primary'],
-                                                'Pro' => ['label' => 'Probation', 'class' => 'bg-warning text-dark'],
-                                                'Exp' => ['label' => 'Expulsion', 'class' => 'bg-danger']
+                                                'VW' => ['label' => 'VW', 'class' => 'bg-info text-dark'],
+                                                'WW' => ['label' => 'WW', 'class' => 'bg-primary'],
+                                                'P'  => ['label' => 'P',  'class' => 'bg-warning text-dark'],
+                                                'T'  => ['label' => 'T',  'class' => 'bg-danger']
                                             ];
-                                            $penaltyInfo = $penaltyLabels[$violation->penalty] ?? ['label' => $violation->penalty, 'class' => 'bg-secondary'];
+                                            // Map old codes to new abbreviations for display
+                                            $penaltyMap = [
+                                                'Pro' => 'P',
+                                                'Exp' => 'T',
+                                                'VW'  => 'VW',
+                                                'WW'  => 'WW',
+                                                'P'   => 'P',
+                                                'T'   => 'T',
+                                            ];
+                                            $penaltyKey = $penaltyMap[$violation->penalty] ?? $violation->penalty;
+                                            $penaltyInfo = $penaltyLabels[$penaltyKey] ?? ['label' => $penaltyKey, 'class' => 'bg-secondary'];
                                         @endphp
                                         <span class="badge {{ $penaltyInfo['class'] }}">{{ $penaltyInfo['label'] }}</span>
                                     </td>
@@ -184,8 +230,47 @@
                         </tbody>
                     </table>
                 </div>
+
+                {{-- Clean, Text-based Pagination --}}
+                @if ($violations->hasPages())
+                <nav class="custom-pagination">
+                    <ul>
+                        {{-- Previous Page Link --}}
+                        @if ($violations->onFirstPage())
+                            <li class="disabled"><span>&laquo; Previous</span></li>
+                        @else
+                            <li><a href="{{ $violations->previousPageUrl() }}" rel="prev">&laquo; Previous</a></li>
+                        @endif
+
+                        {{-- Pagination Elements --}}
+                        @foreach ($violations->links()->elements as $element)
+                            {{-- "Three Dots" Separator --}}
+                            @if (is_string($element))
+                                <li class="disabled"><span>{{ $element }}</span></li>
+                            @endif
+
+                            {{-- Array Of Links --}}
+                            @if (is_array($element))
+                                @foreach ($element as $page => $url)
+                                    @if ($page == $violations->currentPage())
+                                        <li class="active"><span>{{ $page }}</span></li>
+                                    @else
+                                        <li><a href="{{ $url }}">{{ $page }}</a></li>
+                                    @endif
+                                @endforeach
+                            @endif
+                        @endforeach
+
+                        {{-- Next Page Link --}}
+                        @if ($violations->hasMorePages())
+                            <li><a href="{{ $violations->nextPageUrl() }}" rel="next">Next &raquo;</a></li>
+                        @else
+                            <li class="disabled"><span>Next &raquo;</span></li>
+                        @endif
+                    </ul>
+                </nav>
+                @endif
             </section>
-            {{ $violations->links() }}
         </main>
     </div>
 @endsection

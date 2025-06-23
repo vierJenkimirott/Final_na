@@ -69,7 +69,7 @@
                 </div>
             </div>
         </div>
-        <h2 class="mb-4">Student Behavior Monitoring</h2>
+        <h2 class="mb-4">Student Violation Analytics</h2>
 
         <!-- Stat Cards Section -->
         <div class="row mb-4">
@@ -109,7 +109,7 @@
         <div class="card mb-4 shadow-sm">
             <div class="card-header">
                 <div class="d-flex align-items-center justify-content-between">
-                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Behavior Status Overview</h5>
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Violation Overview</h5>
                     <div class="d-flex align-items-center">
                         <div class="text-white last-updated small me-3">
                             <i class="fas fa-clock me-1"></i> Last updated: {{ date('M d, Y H:i:s') }}
@@ -210,11 +210,11 @@
                 <div class="d-flex justify-content-center mt-4">
                     <div class="d-flex align-items-center me-4">
                         <div class="legend-dot" style="background-color: rgba(78, 115, 223, 0.8);"></div>
-                        <span class="ms-1 fw-bold">Men</span>
+                        <span class="ms-1 fw-bold">Male</span>
                     </div>
                     <div class="d-flex align-items-center">
                         <div class="legend-dot" style="background-color: rgba(231, 74, 59, 0.8);"></div>
-                        <span class="ms-1 fw-bold">Women</span>
+                        <span class="ms-1 fw-bold">Female</span>
                     </div>
                 </div>
 

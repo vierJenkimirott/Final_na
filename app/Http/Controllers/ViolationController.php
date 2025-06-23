@@ -140,11 +140,47 @@ class ViolationController extends Controller
      */
     public function store(Request $request)
     {
+        // --- Backend Validation for Termination Policy ---
+
+        // 1. Check if student already has a termination penalty
+        $studentId = $request->input('student_id');
+        $hasTermination = Violation::where('student_id', $studentId)
+            ->where('status', 'active')
+            ->where(function($q) {
+                $q->where('penalty', 'T')
+                  ->orWhere('penalty', 'Exp');
+            })
+            ->exists();
+
+        if ($hasTermination) {
+            return back()->withInput()->with('error', 'Action failed: This student already has a termination/expulsion penalty. No further violations can be recorded.');
+        }
+
+        // 2. Get violation type and calculate penalty
+        $violationType = ViolationType::find($request->input('violation_type_id'));
+        $severity = $violationType ? $violationType->severity : null;
+        $infractionCount = Violation::where('student_id', $studentId)
+            ->where('status', 'active')
+            ->count();
+        $nextInfractionNum = $infractionCount + 1;
+
+        // Calculate penalty using the matrix
+        $penaltyMatrix = [
+            'Low'       => ['VW', 'WW', 'P', 'T'],
+            'Medium'    => ['WW', 'P', 'T', null],
+            'High'      => ['P', 'T', null, null],
+            'Very High' => ['T', null, null, null]
+        ];
+
+        $penalties = $penaltyMatrix[$severity] ?? [];
+        $newPenalty = $penalties[$nextInfractionNum - 1] ?? null;
+
+        // --- End of Validation ---
+
         $validated = $request->validate([
             'student_id' => 'required|exists:users,student_id',
             'violation_type_id' => 'required|exists:violation_types,id',
             'violation_date' => 'required|date',
-            'offense' => 'required|string',
             'penalty' => 'required|string',
             'consequence' => 'nullable|string',
             'status' => 'required|in:active,resolved',
@@ -163,22 +199,19 @@ class ViolationController extends Controller
         } else {
             // Default to a placeholder value if student not found
             $validated['sex'] = 'unknown';
-            Log::warning('Student not found when updating violation', ['student_id' => $request->student_id]);
+            Log::warning('Student not found when creating violation', ['student_id' => $request->student_id]);
         }
         
         // Get severity from the violation type
-        $violationType = ViolationType::find($request->violation_type_id);
-        
-        // Handle case where violation type might not have a valid severity
         if ($violationType && $violationType->severity_id) {
-            $severity = Severity::find($violationType->severity_id);
+            $severityModel = Severity::find($violationType->severity_id);
             
-            if ($severity) {
-                $validated['severity'] = $severity->severity_name;
+            if ($severityModel) {
+                $validated['severity'] = $severityModel->severity_name;
             } else {
                 // Default to a placeholder value if severity not found
                 $validated['severity'] = 'Medium';
-                Log::warning('Severity not found when updating violation', [
+                Log::warning('Severity not found when creating violation', [
                     'violation_type_id' => $request->violation_type_id,
                     'severity_id' => $violationType->severity_id
                 ]);
@@ -186,14 +219,27 @@ class ViolationController extends Controller
         } else {
             // Default to a placeholder value if violation type or severity_id not found
             $validated['severity'] = 'Medium';
-            Log::warning('Violation type not found or missing severity_id when updating violation', [
+            Log::warning('Violation type not found or missing severity_id when creating violation', [
                 'violation_type_id' => $request->violation_type_id
             ]);
         }
         
-        Violation::create($validated);
+        // Create a new violation record
+        $violation = new Violation($validated);
         
-        return redirect()->route('educator.violation')->with('success', 'Violation created successfully.');
+        // Set infraction count and calculated penalty
+        $violation->infraction_count = $nextInfractionNum;
+        $violation->penalty = $newPenalty ?? $request->input('penalty');
+
+        $violation->save();
+        
+        // Show appropriate success message
+        $message = $violation->penalty === 'T' 
+            ? 'Violation added successfully. Note: This violation results in termination/expulsion.'
+            : 'Violation added successfully.';
+        
+        return redirect()->route('educator.violation')
+            ->with('success', $message);
     }
 
     /**
@@ -213,58 +259,17 @@ class ViolationController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // Only validate and update the status field
         $validated = $request->validate([
-            'student_id' => 'required|exists:users,student_id',
-            'violation_type_id' => 'required|exists:violation_types,id',
-            'violation_date' => 'required|date',
-            'offense' => 'required|string',
-            'penalty' => 'required|string',
-            'consequence' => 'nullable|string',
-            'severity' => 'required|string',
             'status' => 'required|in:active,resolved',
         ]);
-        
-        // Get student sex for the record if it's changed
-        $student = User::where('student_id', $request->student_id)->first();
-        if ($student) {
-            $validated['sex'] = $student->sex;
-        } else {
-            // Default to a placeholder value if student not found
-            $validated['sex'] = 'unknown';
-            \Log::warning('Student not found when updating violation', ['student_id' => $request->student_id]);
-        }
-        
-        // Get severity from the violation type if it's not provided or has changed
-        if ($request->has('violation_type_id') && (!$request->has('severity') || $request->severity === '')) {
-            $violationType = ViolationType::find($request->violation_type_id);
-            
-            // Handle case where violation type might not have a valid severity
-            if ($violationType && $violationType->severity_id) {
-                $severity = Severity::find($violationType->severity_id);
-                
-                if ($severity) {
-                    $validated['severity'] = $severity->severity_name;
-                } else {
-                    // Default to a placeholder value if severity not found
-                    $validated['severity'] = 'Medium';
-                    \Log::warning('Severity not found when updating violation', [
-                        'violation_type_id' => $request->violation_type_id,
-                        'severity_id' => $violationType->severity_id
-                    ]);
-                }
-            } else {
-                // Default to a placeholder value if violation type or severity_id not found
-                $validated['severity'] = 'Medium';
-                \Log::warning('Violation type not found or missing severity_id when updating violation', [
-                    'violation_type_id' => $request->violation_type_id
-                ]);
-            }
-        }
-        
+
         $violation = Violation::findOrFail($id);
-        $violation->update($validated);
-        
-        return redirect()->route('educator.violation')->with('success', 'Violation updated successfully.');
+        $violation->status = $validated['status'];
+        $violation->save();
+
+        return redirect()->route('educator.violation')
+            ->with('success', 'Violation status updated successfully.');
     }
 
     /**
@@ -283,7 +288,7 @@ class ViolationController extends Controller
                     'offense_category_id' => $type->offense_category_id,
                     'default_penalty' => $type->default_penalty,
                     'severity_id' => $type->severity_id,
-                    'severity' => $type->severity ?? 'Medium'
+                    'severity' => $type->severityRelation->severity_name ?? 'Medium'
                 ];
             });
         
@@ -387,13 +392,46 @@ class ViolationController extends Controller
      */
     public function addViolatorSubmit(Request $request)
     {
+        // --- Backend Validation for Termination Policy ---
+
+        // 1. Check total existing infractions
+        $studentId = $request->input('student_id');
+        $infractionCount = Violation::where('student_id', $studentId)->count();
+
+        if ($infractionCount >= 4) {
+            return back()->withInput()->with('error', 'Action failed: This student has already reached the maximum of 4 infractions.');
+        }
+
+        // 2. Check if the new violation results in termination
+        $violationType = ViolationType::find($request->input('violation_type_id'));
+        if ($violationType) {
+            $severity = $violationType->severity; 
+            $nextInfractionNum = $infractionCount + 1;
+            
+            // Re-use the penalty matrix logic
+            $penaltyMatrix = [
+                'Low'       => ['V', 'W', 'P', 'T'],
+                'Medium'    => ['W', 'P', 'T', null],
+                'High'      => ['P', 'T', null, null],
+                'Very High' => ['T', null, null, null]
+            ];
+
+            $penalties = $penaltyMatrix[$severity] ?? [];
+            $newPenalty = $penalties[$nextInfractionNum - 1] ?? null;
+
+            if ($newPenalty === 'T') {
+                return back()->withInput()->with('error', 'Action failed: This violation results in a penalty of Termination/Expulsion.');
+            }
+        }
+
+        // --- End of Validation ---
+
         try {
-            // Validate the request data
             $validated = $request->validate([
                 'student_id' => 'required|exists:users,student_id',
                 'violation_type_id' => 'required|exists:violation_types,id',
                 'violation_date' => 'required|date',
-                'offense' => 'required|string',
+                'offense' => 'nullable|string',
                 'penalty' => 'required|string',
                 'consequence' => 'nullable|string',
                 'status' => 'required|in:active,resolved',
@@ -414,79 +452,8 @@ class ViolationController extends Controller
             $violationType = ViolationType::with('severityRelation')->findOrFail($request->violation_type_id);
             $validated['severity'] = $violationType->severityRelation->severity_name ?? $request->severity;
             
-            // Extract the offense count from the offense description
-            $offenseCount = '1st'; // Default to 1st offense
-            if (preg_match('/\b(1st|2nd|3rd|4th)\s+offense\b/i', $validated['offense'], $matches)) {
-                $offenseCount = strtolower($matches[1]);
-            }
-            
-            // Log the offense count for debugging
-            Log::info('Offense count from form', [
-                'offense_text' => $validated['offense'],
-                'extracted_offense_count' => $offenseCount
-            ]);
-            
-            // Check if the same student has an active violation with the same severity
-            // We only check severity, not violation type
-            $existingViolation = Violation::where('student_id', $validated['student_id'])
-                ->where('severity', $validated['severity'])
-                ->where('status', 'active')
-                ->orderBy('created_at', 'desc')
-                ->first();
-                
-            // Determine the appropriate offense count
-            if ($existingViolation) {
-                // Map offense strings to numeric values for incrementing
-                $offenseMap = [
-                    '1st' => 1,
-                    '2nd' => 2,
-                    '3rd' => 3,
-                    '4th' => 4
-                ];
-                
-                // Get current offense number
-                $currentOffense = '1st';
-                if (preg_match('/\b(1st|2nd|3rd|4th)\s+offense\b/i', $existingViolation->offense, $matches)) {
-                    $currentOffense = strtolower($matches[1]);
-                }
-                
-                // Get numeric value and increment
-                $offenseNum = $offenseMap[$currentOffense] ?? 1;
-                $offenseNum++;
-                
-                // Cap at 4th offense
-                $offenseNum = min($offenseNum, 4);
-                
-                // Map back to string representation
-                $offenseStrings = [
-                    1 => '1st',
-                    2 => '2nd',
-                    3 => '3rd',
-                    4 => '4th'
-                ];
-                
-                $newOffense = $offenseStrings[$offenseNum];
-                
-                // Set the new offense count for the new record
-                $validated['offense'] = $newOffense . ' offense';
-                
-                // Log the offense increment
-                Log::info('Incrementing offense count for new violation', [
-                    'student_id' => $validated['student_id'],
-                    'severity' => $validated['severity'],
-                    'previous_offense' => $currentOffense,
-                    'new_offense' => $newOffense
-                ]);
-            }
-            
             // Validate and enforce the penalty based on severity and offense count
-            $offenseCount = '1st'; // Default
-            if (preg_match('/\b(1st|2nd|3rd|4th)\s+offense\b/i', $validated['offense'], $matches)) {
-                $offenseCount = strtolower($matches[1]);
-            }
-            
-            // Calculate the penalty based on current severity and offense
-            $calculatedPenalty = $this->determinePenalty($validated['severity'], $offenseCount, $validated['penalty']);
+            $calculatedPenalty = $this->determinePenalty($validated['severity'], $validated['penalty']);
             
             // Check if the student has any existing violations with a higher penalty
             $highestExistingPenalty = $this->getHighestExistingPenalty($validated['student_id']);
@@ -506,30 +473,25 @@ class ViolationController extends Controller
             // Use the higher penalty (never downgrade)
             $validated['penalty'] = $existingRank > $calculatedRank ? $highestExistingPenalty : $calculatedPenalty;
             
-            // Log the penalty decision
-            Log::info('Penalty decision for new violation', [
-                'student_id' => $validated['student_id'],
-                'calculated_penalty' => $calculatedPenalty,
-                'highest_existing_penalty' => $highestExistingPenalty,
-                'final_penalty' => $validated['penalty'],
-                'calculated_rank' => $calculatedRank,
-                'existing_rank' => $existingRank
-            ]);
-            
             // Add recorded_by if authenticated
             if (Auth::check()) {
                 $validated['recorded_by'] = Auth::id();
             }
             
             // Create a new violation record (always create a new record)
-            $violation = Violation::create($validated);
+            $violation = new Violation($validated);
+            
+            // Manually set infraction_count and penalty based on our logic
+            $violation->infraction_count = $infractionCount + 1;
+            $violation->penalty = $newPenalty ?? $request->input('penalty'); // Fallback to form input if needed
+
+            $violation->save();
             
             // Log the creation
             Log::info('Created new violation record', [
                 'id' => $violation->id,
                 'student_id' => $validated['student_id'],
                 'severity' => $validated['severity'],
-                'offense' => $validated['offense'],
                 'penalty' => $validated['penalty']
             ]);
             
@@ -541,7 +503,6 @@ class ViolationController extends Controller
                 'id' => $violation->id, 
                 'student_id' => $student->student_id,
                 'severity' => $validated['severity'],
-                'offense_count' => $offenseCount,
                 'penalty' => $validated['penalty']
             ]);
             
@@ -586,11 +547,46 @@ class ViolationController extends Controller
      */
     public function updateViolation(Request $request, $id)
     {
+        // --- Backend Validation for Termination Policy ---
+
+        // 1. Check total existing infractions for the student, excluding the current one
+        $studentId = $request->input('student_id');
+        $infractionCount = Violation::where('student_id', $studentId)->where('id', '!=', $id)->count();
+
+        if ($infractionCount >= 4) {
+            return back()->withInput()->with('error', 'Update failed: This student has already reached the maximum of 4 infractions.');
+        }
+
+        // 2. Check if the edited violation results in termination
+        $violationType = ViolationType::find($request->input('violation_type_id'));
+        if ($violationType) {
+            $severity = $violationType->severity;
+            // The infraction number for this violation is the count of *other* violations plus one
+            $thisInfractionNum = $infractionCount + 1;
+
+            $penaltyMatrix = [
+                'Low'       => ['V', 'W', 'P', 'T'],
+                'Medium'    => ['W', 'P', 'T', null],
+                'High'      => ['P', 'T', null, null],
+                'Very High' => ['T', null, null, null]
+            ];
+
+            $penalties = $penaltyMatrix[$severity] ?? [];
+            $newPenalty = $penalties[$thisInfractionNum - 1] ?? null;
+
+            if ($newPenalty === 'T') {
+                return back()->withInput()->with('error', 'Update failed: This violation results in a penalty of Termination/Expulsion.');
+            }
+        } else {
+            $newPenalty = $request->input('penalty');
+        }
+
+        // --- End of Validation ---
+
         $validated = $request->validate([
             'student_id' => 'required|exists:users,student_id',
             'violation_type_id' => 'required|exists:violation_types,id',
             'violation_date' => 'required|date',
-            'offense' => 'required|string',
             'penalty' => 'required|string',
             'consequence' => 'nullable|string',
             'status' => 'required|in:active,resolved',
@@ -637,23 +633,16 @@ class ViolationController extends Controller
             ]);
         }
         
-        // Extract the offense count from the offense description
-        $offenseCount = '1st'; // Default to 1st offense
-        if (preg_match('/\b(1st|2nd|3rd|4th)\s+offense\b/i', $validated['offense'], $matches)) {
-            $offenseCount = strtolower($matches[1]);
-        }
-        
-        // Log the offense count for debugging
-        Log::info('Offense count from form', [
-            'offense_text' => $validated['offense'],
-            'extracted_offense_count' => $offenseCount
-        ]);
-        
-        // Validate and enforce the penalty based on severity and offense count
-        $validated['penalty'] = $this->determinePenalty($validated['severity'], $offenseCount, $validated['penalty']);
-        
         $violation = Violation::findOrFail($id);
-        $violation->update($validated);
+        
+        // Manually set infraction_count and penalty based on our logic
+        $violation->infraction_count = $thisInfractionNum ?? ($infractionCount + 1);
+        $violation->penalty = $newPenalty;
+        $violation->severity = $severity ?? $request->input('severity');
+
+        // Update the rest of the validated fields
+        $violation->fill($validated);
+        $violation->save();
         
         return redirect()->route('educator.violation')
             ->with('success', 'Violation updated successfully.');

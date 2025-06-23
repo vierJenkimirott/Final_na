@@ -134,6 +134,9 @@
                     <div class="title">{{ $violation->violation_name }}</div>
                     <div class="date">{{ \Carbon\Carbon::parse($violation->violation_date)->format('M d, Y') }}</div>
                     <span class="severity {{ strtolower($violation->severity) }}">{{ $violation->severity }}</span>
+                    <span class="badge {{ $violation->status === 'active' ? 'bg-success' : 'bg-secondary' }}" style="margin-left: 10px;">
+                        {{ ucfirst($violation->status) }}
+                    </span>
                     <div class="violation-details">
                         <p>Category: {{ $violation->category_name }}</p>
                         <p>Description: {{ $violation->offense }}</p>
@@ -152,7 +155,6 @@
                         <p class="text-muted"><small>Recorded: {{ $violation->created_at->format('M d, Y') }}</small></p>
                     </div>
                 </div>
-                <span class="status {{ strtolower($violation->status) }}">{{ ucfirst($violation->status) }}</span>
             </div>
             @endforeach
         @endif

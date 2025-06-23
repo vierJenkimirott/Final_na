@@ -1419,6 +1419,80 @@ class EducatorController extends Controller
             return response()->json(['success' => false, 'message' => 'Failed to delete category: ' . $e->getMessage()], 500);
         }
     }
+
+    /**
+     * Check the total number of infractions for a given student.
+     * This is used by the frontend to determine the infraction number.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkInfractionCount(Request $request)
+    {
+        $studentId = $request->query('student_id');
+        $excludeId = $request->query('exclude_id'); // For editing, to exclude the current violation
+
+        if (!$studentId) {
+            return response()->json(['count' => 0, 'hasTermination' => false]);
+        }
+
+        \Log::info('Checking termination for student', ['student_id' => $studentId, 'exclude_id' => $excludeId]);
+
+        // First check if student has any termination penalties (both 'T' and 'Exp')
+        $query = Violation::where('student_id', $studentId)
+            ->where('status', 'active')
+            ->where(function($q) {
+                $q->where('penalty', 'T')
+                  ->orWhere('penalty', 'Exp');
+            });
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        // Log the SQL query for debugging
+        \Log::info('Termination check query', [
+            'sql' => $query->toSql(), 
+            'bindings' => $query->getBindings(),
+            'violations' => $query->get()->toArray()
+        ]);
+
+        $hasTermination = $query->exists();
+        
+        \Log::info('Termination check result', [
+            'student_id' => $studentId,
+            'hasTermination' => $hasTermination
+        ]);
+
+        // If student has termination, return early with count 0 and termination flag
+        if ($hasTermination) {
+            return response()->json([
+                'count' => 0,
+                'hasTermination' => true,
+                'message' => 'Student has an existing termination penalty'
+            ]);
+        }
+
+        // If no termination, count total violations
+        $query = Violation::where('student_id', $studentId)
+            ->where('status', 'active');
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        $count = $query->count();
+
+        \Log::info('Violation count result', [
+            'student_id' => $studentId,
+            'count' => $count
+        ]);
+
+        return response()->json([
+            'count' => $count,
+            'hasTermination' => false
+        ]);
+    }
 }
 
 
