@@ -53,7 +53,7 @@ Route::prefix('educator')->middleware(['auth', \App\Http\Middleware\EducatorMidd
     Route::post('/add-violator', [ViolationController::class, 'addViolatorSubmit'])->name('educator.add-violator');
 
     // View students by penalty type
-    Route::get('/students-by-penalty/{penalty}', [EducatorController::class, 'studentsByPenalty'])->name('educator.students-by-penalty');
+    Route::get('/studentsByPenaltyy/{penalty}', [EducatorController::class, 'studentsByPenalty'])->name('educator.studentsByPenalty');
 
     // Students Page (All Students)
     Route::get('/students', [App\Http\Controllers\EducatorController::class, 'studentsPage'])->name('educator.students');

@@ -336,8 +336,8 @@
     <div class="col-md-6">
         <div class="card" style="height: 200px">
             <p class="title">Total Student Violations <img src="{{ asset('images/warning-removebg-preview.png') }}" alt="" class="icon"></p>
-            <h3 id="total-violations-count">{{ DB::table('violations')->where('status', 'active')->count() }}</h3>
-            <p class="text-muted small">Active violations in the system</p>
+            <h3 id="total-violations-count">{{ DB::table('violations')->count() }}</h3>
+            <p class="text-muted small">Total violations in the system</p>
         </div>
     </div>
     <div class="col-md-6">
@@ -369,7 +369,7 @@
                         $query->select(DB::raw(1))
                               ->from('violations')
                               ->whereRaw('violations.student_id = users.student_id')
-                              ->where('violations.status', 'active');
+                              ;
                     })
                     ->count();
                 
@@ -499,7 +499,7 @@
                                 ->join('violations', 'users.student_id', '=', 'violations.student_id')
                                 ->where('roles.name', 'student')
                                 ->where('users.student_id', 'like', '202501%')
-                                ->where('violations.status', 'active')
+                                
                                 ->select('users.name', 'users.student_id', DB::raw('count(violations.id) as violations_count'))
                                 ->groupBy('users.id', 'users.name', 'users.student_id')
                                 ->orderBy('violations_count', 'desc')
@@ -537,7 +537,7 @@
                                     $query->select(DB::raw(1))
                                           ->from('violations')
                                           ->whereRaw('violations.student_id = users.student_id')
-                                          ->where('violations.status', 'active');
+                                          ;
                                 })
                                 ->select('users.name', 'users.student_id')
                                 ->limit(10)
@@ -595,7 +595,7 @@
                                 ->join('violations', 'users.student_id', '=', 'violations.student_id')
                                 ->where('roles.name', 'student')
                                 ->where('users.student_id', 'like', '202601%')
-                                ->where('violations.status', 'active')
+                                
                                 ->select('users.name', 'users.student_id', DB::raw('count(violations.id) as violations_count'))
                                 ->groupBy('users.id', 'users.name', 'users.student_id')
                                 ->orderBy('violations_count', 'desc')
@@ -633,7 +633,7 @@
                                     $query->select(DB::raw(1))
                                           ->from('violations')
                                           ->whereRaw('violations.student_id = users.student_id')
-                                          ->where('violations.status', 'active');
+                                          ;
                                 })
                                 ->select('users.name', 'users.student_id')
                                 ->limit(10)
@@ -1147,7 +1147,7 @@
                             <div class="tooltip-header">${studentName}'s Violations</div>
                             <div style="text-align: center; padding: 20px; color: #666;">
                                 <i class="fas fa-info-circle"></i><br>
-                                No active violations found
+                                No violations found
                             </div>
                         `;
                     } else {

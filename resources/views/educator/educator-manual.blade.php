@@ -130,7 +130,7 @@
     </tr>
 </thead>
                     <tbody>
-                        @foreach($category->violationTypes as $typeIndex => $type)
+                        @foreach($category->violationTypes->unique('violation_name') as $typeIndex => $type)
                         <tr>
                             <td>{{ $index + 1 }}.{{ $typeIndex + 1 }}</td>
                             <td>{{ $type->violation_name }}</td>

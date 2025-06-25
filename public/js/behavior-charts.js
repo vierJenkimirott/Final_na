@@ -939,6 +939,21 @@ window.updateBatchFilterSelection = function(batch) {
 // Function to filter data by batch in the behavior monitoring page
 window.filterDataByBatch = function(batch) {
     console.log('Filtering behavior data by batch:', batch);
+    // --- Unified class (batch) filtering logic ---
+    window.currentBatchFilter = batch;
+    // Update dropdown/button active states
+    if (typeof window.updateBatchFilterSelection === 'function') {
+        window.updateBatchFilterSelection(batch);
+    }
+    const yearSelect = document.getElementById('yearSelect');
+    const monthSelect = document.getElementById('monthSelect');
+    if (yearSelect && monthSelect) {
+        window.updateChartByPeriod();
+    } else {
+        window.fetchBehaviorData(12, true, window.currentBatchFilter);
+    }
+    // Return early so legacy AJAX logic below is skipped
+    return;
     
     // Show loading indicator
     const chartLoading = document.getElementById('chartLoading');
@@ -1514,8 +1529,20 @@ window.fetchBehaviorData = function(months = 12, showLoading = true, batchFilter
             });
         }
         
-        // Process the data and update the chart
-        window.initBehaviorChart(data);
+        // If a single month was requested and the server did not return weekly view data, generate weekly breakdown on the client side.
+        if (months === 1 && (!data || !data.isWeeklyView)) {
+            try {
+                const monthIdx = parseInt(month, 10);
+                const fallbackWeekly = window.generateMonthData(monthIdx, year, batchFilter);
+                window.initBehaviorChart(fallbackWeekly);
+            } catch (e) {
+                console.warn('Fallback weekly generation failed, using server data as-is', e);
+                window.initBehaviorChart(data);
+            }
+        } else {
+            // Process the data and update the chart normally
+            window.initBehaviorChart(data);
+        }
     })
     .catch(error => {
         console.error('Error fetching behavior data:', error);
@@ -1668,6 +1695,23 @@ window.setupBehaviorChartEventListeners = function() {
     } else {
         console.log('No y-scale filter buttons found');
     }
+
+    // Add event listeners for year and month selectors to update chart when changed
+    const yearSelect = document.getElementById('yearSelect');
+    if (yearSelect && !yearSelect.hasAttribute('data-listener-added')) {
+        yearSelect.addEventListener('change', function() {
+            window.updateChartByPeriod();
+        });
+        yearSelect.setAttribute('data-listener-added', 'true');
+    }
+
+    const monthSelect = document.getElementById('monthSelect');
+    if (monthSelect && !monthSelect.hasAttribute('data-listener-added')) {
+        monthSelect.addEventListener('change', function() {
+            window.updateChartByPeriod();
+        });
+        monthSelect.setAttribute('data-listener-added', 'true');
+    }
 };
 
 // Function to update chart based on selected time period
@@ -1697,9 +1741,9 @@ window.updateChartByPeriod = function() {
         
         // If a specific month is selected, generate weekly data for that month
         if (selectedMonth !== 'all') {
-            const monthIndex = parseInt(selectedMonth);
-            const monthData = window.generateMonthData(monthIndex, selectedYear, window.currentBatchFilter);
-            window.updateChart(monthData);
+            // Fetch weekly data for selected month & year from server
+            window.fetchBehaviorData(1, true, window.currentBatchFilter, selectedYear, selectedMonth);
+            return;
         } else {
             // Otherwise, fetch data for the entire year
             window.fetchBehaviorData(12, true, window.currentBatchFilter, selectedYear);
@@ -1787,9 +1831,9 @@ window.updateChartByPeriod = function() {
         
         // If a specific month is selected, generate weekly data for that month
         if (selectedMonth !== 'all') {
-            const monthIndex = parseInt(selectedMonth);
-            const monthData = window.generateMonthData(monthIndex, selectedYear, window.currentBatchFilter);
-            window.updateChart(monthData);
+            // Fetch weekly data for selected month & year from server
+            window.fetchBehaviorData(1, true, window.currentBatchFilter, selectedYear, selectedMonth);
+            return;
         } else {
             // Otherwise, fetch data for the entire year
             window.fetchBehaviorData(12, true, window.currentBatchFilter, selectedYear);

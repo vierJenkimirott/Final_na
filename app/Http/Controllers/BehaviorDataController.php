@@ -45,8 +45,8 @@ class BehaviorDataController extends Controller
             $violatorCount = $violatorQuery->whereExists(function($query) {
                 $query->select(DB::raw(1))
                       ->from('violations')
-                      ->whereRaw('violations.student_id = users.student_id')
-                      ->where('violations.status', 'active');
+                      ->whereRaw('violations.student_id = users.student_id');
+                      
             })->count();
             
             // Calculate non-violators
@@ -121,7 +121,7 @@ class BehaviorDataController extends Controller
                     })
                     ->whereMonth('violation_date', $monthNum)
                     ->whereYear('violation_date', $currentYear)
-                    ->where('status', 'active');
+                    ;
 
                 // Apply batch filter if specified
                 if ($batchFilter !== 'all') {
@@ -137,7 +137,7 @@ class BehaviorDataController extends Controller
                     })
                     ->whereMonth('violation_date', $monthNum)
                     ->whereYear('violation_date', $currentYear)
-                    ->where('status', 'active');
+                    ;
 
                 // Apply batch filter if specified
                 if ($batchFilter !== 'all') {
@@ -221,7 +221,7 @@ class BehaviorDataController extends Controller
             })
             ->whereMonth('violation_date', $monthNum)
             ->whereYear('violation_date', $year)
-            ->where('status', 'active');
+            ;
 
         // Apply batch filter if specified
         if ($batchFilter !== 'all') {
