@@ -146,21 +146,21 @@
                         <label for="prepared_by">Prepared By</label>
                         <input type="text" name="prepared_by" id="prepared_by" class="form-control" value="{{ $violation->prepared_by ?: Auth::user()->name }}" readonly>
                     </div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Submit Buttons -->
-            <div class="form-actions">
-                <button type="button" class="cancel-btn">
-                    <i class="fas fa-times me-2"></i>Cancel
-                </button>
-                <button type="submit" class="submit-btn">
-                    <i class="fas fa-lock me-2"></i>Update Violation
-                </button>
+                <!-- Submit Buttons -->
+                <div class="form-actions">
+                    <button type="button" class="cancel-btn">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-lock me-2"></i>Update Violation
+                    </button>
             </div>
         </form>
-    </div>
 </div>
+    </div>
 @endsection
 
 @push('scripts')

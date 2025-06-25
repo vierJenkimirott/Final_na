@@ -147,9 +147,6 @@
         <div class="page-header">
             <h2>
                 @switch($penalty)
-                    @case('W')
-                        Warning Students
-                        @break
                     @case('VW')
                         Verbal Warning Students
                         @break
@@ -204,9 +201,7 @@
                             <td>
                                 <span class="penalty-badge penalty-{{ $violation->penalty }}">
                                     @switch($violation->penalty)
-                                        @case('W')
-                                            Warning
-                                            @break
+
                                         @case('VW')
                                             Verbal Warning
                                             @break

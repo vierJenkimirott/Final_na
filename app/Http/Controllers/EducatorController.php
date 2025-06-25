@@ -687,16 +687,25 @@ class EducatorController extends Controller
     {
         try {
             // Validate the penalty type
-            $validPenalties = ['W', 'VW', 'WW', 'Pro', 'Exp'];
+            $validPenalties = ['V', 'W', 'P', 'T'];
             if (!in_array($penalty, $validPenalties)) {
                 return redirect()->route('educator.violation')
                     ->with('error', 'Invalid penalty type specified.');
             }
 
             $batch = $request->query('batch', 'all');
+            // Handle equivalent penalty codes (P = Pro, T = Exp)
+            $penaltyValues = match($penalty) {
+                'Pro' => ['Pro', 'P'],
+                'P'   => ['Pro', 'P'],
+                'Exp' => ['Exp', 'T'],
+                'T'   => ['Exp', 'T'],
+                default => [$penalty],
+            };
+            
             $violationsQuery = Violation::with(['student', 'violationType'])
-                ->where('penalty', $penalty)
-                ->where('status', 'active');
+                ->whereIn('penalty', $penaltyValues)
+                ;
             if ($batch !== 'all') {
                 $violationsQuery->whereHas('student', function($query) use ($batch) {
                     $query->where('student_id', 'like', $batch . '%');
@@ -722,6 +731,7 @@ class EducatorController extends Controller
         $totalStudents = User::role('student')->count();
 
         // Get count of active violation cases
+        // Count all violations regardless of status (active, resolved, etc.)
         $activeViolationCases = \App\Models\Violation::where('status', 'active')->count();
         // $studentsWithMultipleViolations = User::role('student')
         //     ->select('users.id')
@@ -1103,7 +1113,7 @@ class EducatorController extends Controller
 
                 // Get all violations from the database
                 $allViolations = DB::table('violations')
-                    ->where('status', 'active')
+                    
                     ->get();
 
                 // Special handling for problematic months (February, April, June)
@@ -1112,7 +1122,7 @@ class EducatorController extends Controller
 
                     // FORCE detection of violations for these months by directly querying the database
                     $forcedViolations = DB::table('violations')
-                        ->where('status', 'active')
+                        
                         ->get();
 
                     // Log all violations for debugging
@@ -1434,7 +1444,7 @@ class EducatorController extends Controller
 
         // First check if student has any termination penalties (both 'T' and 'Exp')
         $query = Violation::where('student_id', $studentId)
-            ->where('status', 'active')
+            
             ->where(function($q) {
                 $q->where('penalty', 'T')
                   ->orWhere('penalty', 'Exp');
@@ -1469,7 +1479,7 @@ class EducatorController extends Controller
 
         // If no termination, count total violations
         $query = Violation::where('student_id', $studentId)
-            ->where('status', 'active');
+            ;
 
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);

@@ -69,20 +69,40 @@
         <span class="fw-bold" style="font-size: 1.5rem;">{{ auth()->user()->name }}</span>
         <span style="font-size: 1rem; opacity: 0.9;">ID: {{ auth()->user()->student_id ?? 'N/A' }}</span>
         @php
-            $penaltyPriority = ['Exp' => 4, 'Pro' => 3, 'WW' => 2, 'VW' => 1, 'W' => 0];
+            // Define penalty hierarchy (higher value = more severe)
+            $penaltyPriority = [
+                'Exp' => 5,    // Expulsion
+                'T'   => 4,    // Termination of Contract
+                'Pro' => 3,    // Probation (long code)
+                'P'   => 3,    // Probation (short code)
+                'WW'  => 2,    // Written Warning
+                'W'   => 1,    // Warning
+                'VW'  => 0,    // Verbal Warning (long)
+                'V'   => 0,    // Verbal Warning (short)
+            ];
+
+            // Human-readable labels for each penalty code
             $penaltyLabels = [
                 'Exp' => 'Expulsion',
+                'T'   => 'Termination of Contract',
                 'Pro' => 'Probation',
-                'WW' => 'Written Warning',
-                'VW' => 'Verbal Warning',
-                'W' => 'Warning',
+                'P'   => 'Probation',
+                'WW'  => 'Written Warning',
+                'W'   => 'Warning',
+                'VW'  => 'Verbal Warning',
+                'V'   => 'Verbal Warning',
             ];
+
+            // Color mapping for quick visual cues
             $penaltyColors = [
-                'Exp' => '#e74c3c',
-                'Pro' => '#e67e22',
-                'WW' => '#f1c40f',
-                'VW' => '#3498db',
-                'W' => '#2ecc71',
+                'Exp' => '#e74c3c',   // red
+                'T'   => '#c0392b',   // dark red
+                'Pro' => '#e67e22',   // orange
+                'P'   => '#e67e22',   // orange
+                'WW'  => '#f1c40f',   // yellow
+                'W'   => '#f1c40f',   // yellow
+                'VW'  => '#3498db',   // blue
+                'V'   => '#3498db',   // blue
             ];
             $maxPenalty = null;
             foreach ($violations as $violation) {
@@ -109,18 +129,11 @@
 <div class="container">
     <div class="page-content">
         <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2>My Violations</h2>
-            <button id="refreshBtn" class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
-                <i class="fas fa-sync-alt"></i> Refresh
-            </button>
-        </div>
+        <div class="mb-3">
+        <h2>My Violations</h2>
+    </div>
         
-        <!-- Last Updated Info -->
-        <div class="alert alert-info mb-3">
-            <small>Last updated: {{ now()->format('M d, Y h:i A') }}</small>
-            <p class="mb-0">Click on any violation to see more details.</p>
-        </div>
+
         
         <!-- Violations List -->
         @if($violations->isEmpty())
@@ -139,19 +152,27 @@
                     </span>
                     <div class="violation-details">
                         <p>Category: {{ $violation->category_name }}</p>
-                        <p>Description: {{ $violation->offense }}</p>
-                        <p>Consequence: {{ $violation->consequence }}</p>
+                                                <p>Consequence: {{ $violation->consequence }}</p>
                         @php
                             $penaltyText = match($violation->penalty) {
-                                'W' => 'Warning',
+                                'W' => 'Written Warning',
+                                'V' => 'Verbal Warning',
                                 'VW' => 'Verbal Warning',
                                 'WW' => 'Written Warning',
+                                'P' => 'Probation',
                                 'Pro' => 'Probation',
+                                'T' => 'Termination of Contract',
                                 'Exp' => 'Expulsion',
                                 default => $violation->penalty
                             };
                         @endphp
                         <p>Penalty: {{ $penaltyText }}</p>
+@php
+    $resolvedDate = $violation->resolved_date ?? ($violation->updated_at ?? null);
+@endphp
+@if($violation->status === 'resolved' && $resolvedDate)
+    <p>Resolved: {{ \Carbon\Carbon::parse($resolvedDate)->format('M d, Y') }}</p>
+@endif
                         <p class="text-muted"><small>Recorded: {{ $violation->created_at->format('M d, Y') }}</small></p>
                     </div>
                 </div>

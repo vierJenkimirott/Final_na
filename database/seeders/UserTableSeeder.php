@@ -34,9 +34,9 @@ class UserTableSeeder extends Seeder
         $educator1 = User::firstOrCreate(
             ['email' => 'educator1@example.com'],
             [
-                'name' => 'Charwel Giera',
+                'name' => 'Charwel Glera',
                 'fname' => 'Charwel',
-                'lname' => 'Giera',
+                'lname' => 'Glera',
                 'educator_id' => 'E2025001', // Add educator ID
                 'sex' => 'male',
                 'gender' => 'male',
@@ -50,8 +50,8 @@ class UserTableSeeder extends Seeder
         $educator2 = User::firstOrCreate(
             ['email' => 'educator2@example.com'],
             [
-                'name' => 'Jane Tumulak',
-                'fname' => 'Jane',
+                'name' => 'Jean Marie Tumulak',
+                'fname' => 'Jean Marie',
                 'lname' => 'Tumulak',
                 'educator_id' => 'E2025002', // Add educator ID
                 'sex' => 'female',

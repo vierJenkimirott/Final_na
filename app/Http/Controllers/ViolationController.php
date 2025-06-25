@@ -121,6 +121,14 @@ class ViolationController extends Controller
             return view('educator.violation', ['violations' => collect()])
                 ->with('error', 'Unable to load violations. Please try again later.');
         }
+
+        $violations = \App\Models\Violation::with(['violationType.offenseCategory', 'student'])
+        ->orderBy('violation_date', 'desc')
+        ->paginate(10);
+
+    // No need to calculate penalty counts here, as your Blade does it
+
+    return view('educator.violation', compact('violations'));
     }
 
     /**
@@ -145,7 +153,7 @@ class ViolationController extends Controller
         // 1. Check if student already has a termination penalty
         $studentId = $request->input('student_id');
         $hasTermination = Violation::where('student_id', $studentId)
-            ->where('status', 'active')
+            
             ->where(function($q) {
                 $q->where('penalty', 'T')
                   ->orWhere('penalty', 'Exp');
@@ -160,7 +168,7 @@ class ViolationController extends Controller
         $violationType = ViolationType::find($request->input('violation_type_id'));
         $severity = $violationType ? $violationType->severity : null;
         $infractionCount = Violation::where('student_id', $studentId)
-            ->where('status', 'active')
+            
             ->count();
         $nextInfractionNum = $infractionCount + 1;
 
@@ -281,6 +289,8 @@ class ViolationController extends Controller
             ->with('severityRelation')
             ->orderBy('violation_name')
             ->get()
+            ->unique('violation_name') // Only unique violation names
+            ->values() // Re-index the collection
             ->map(function ($type) {
                 return [
                     'id' => $type->id,
@@ -721,7 +731,7 @@ private function getHighestExistingPenalty($studentId)
     
     // Get all active violations for this student
     $violations = Violation::where('student_id', $studentId)
-        ->where('status', 'active')
+        
         ->get();
     
     if ($violations->isEmpty()) {
@@ -788,7 +798,7 @@ private function getHighestExistingPenalty($studentId)
                 ->join('violation_types', 'violations.violation_type_id', '=', 'violation_types.id')
                 ->join('users', 'violations.student_id', '=', 'users.student_id')
                 ->where('violation_types.violation_name', $violationName)
-                ->where('violations.status', 'active');
+                ;
 
             // Apply period filter
             switch ($period) {
@@ -869,7 +879,7 @@ private function getHighestExistingPenalty($studentId)
             // Get violations for the specific student with related data
             $violations = Violation::with(['violationType', 'violationType.offenseCategory'])
                 ->where('student_id', $studentId)
-                ->where('status', 'active')
+                
                 ->orderBy('violation_date', 'desc')
                 ->get()
                 ->map(function($violation) {
@@ -934,7 +944,7 @@ private function getHighestExistingPenalty($studentId)
         
         try {
             // Base query for active violations
-            $query = Violation::where('status', 'active');
+            $query = Violation::query();
             
             // Filter by batch if not 'all'
             if ($batch !== 'all') {
@@ -1029,7 +1039,7 @@ private function getHighestExistingPenalty($studentId)
                     'violation_types.violation_name',
                     DB::raw('COUNT(violations.id) as count')
                 )
-                ->where('violations.status', 'active')
+                
                 ->whereBetween('violations.violation_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
                 
             // Apply batch filter if specified
@@ -1313,7 +1323,7 @@ private function getHighestExistingPenalty($studentId)
             // We don't check for the same violation type, only the severity matters
             $existingViolations = Violation::where('student_id', $studentId)
                 ->where('severity', $severity)
-                ->where('status', 'active')
+                
                 ->count();
             
             // Determine the next offense count (1-based)

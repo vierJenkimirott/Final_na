@@ -92,11 +92,12 @@ h2 {
     flex-direction: column;
     align-items: center;
     border-bottom: 4px solid #4299e1;
+    min-height: 200px;
 }
   
 .warning-box:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     border: 1px solid #4299e1;
     border-bottom: 4px solid #4299e1;
 }
@@ -158,14 +159,21 @@ h2 {
 }
 
 .student-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 0.85rem;
-    margin-top: 5px;
-    width: 100%;
-    overflow: hidden;
-    max-height: 80px;
+    text-align: left;
+    padding: 5px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+    width: 90%;
+    margin: 10px auto;
+}
+
+.student-list div {
+    padding: 2px 5px;
+    border-bottom: 1px solid #eee;
+}
+
+.student-list div:last-child {
+    border-bottom: none;
 }
 
 .student-item {
@@ -298,9 +306,6 @@ td {
     transition: background 0.2s;
 }
 
-tr {
-    
-}
 
 /* --- Row Hover --- */
 tr:hover td {

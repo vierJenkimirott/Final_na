@@ -68,8 +68,8 @@
     $verbalWarningStudents = DB::table('violations')
         ->join('users', 'violations.student_id', '=', 'users.student_id')
         ->select('users.fname', 'users.lname', 'users.student_id')
-        ->where('violations.penalty', 'VW')
-        ->where('violations.status', 'active')
+        ->where('violations.penalty', 'V')
+        
         ->when($batch !== 'all', function($query) use ($batch) {
             $query->where('users.student_id', 'like', $batch . '%');
         })
@@ -80,8 +80,8 @@
     $writtenWarningStudents = DB::table('violations')
         ->join('users', 'violations.student_id', '=', 'users.student_id')
         ->select('users.fname', 'users.lname', 'users.student_id')
-        ->where('violations.penalty', 'WW')
-        ->where('violations.status', 'active')
+        ->where('violations.penalty', 'W')
+        
         ->when($batch !== 'all', function($query) use ($batch) {
             $query->where('users.student_id', 'like', $batch . '%');
         })
@@ -92,8 +92,8 @@
     $probationStudents = DB::table('violations')
         ->join('users', 'violations.student_id', '=', 'users.student_id')
         ->select('users.fname', 'users.lname', 'users.student_id')
-        ->where('violations.penalty', 'Pro')
-        ->where('violations.status', 'active')
+        ->whereIn('violations.penalty', ['Pro', 'P'])
+        
         ->when($batch !== 'all', function($query) use ($batch) {
             $query->where('users.student_id', 'like', $batch . '%');
         })
@@ -104,8 +104,8 @@
     $expulsionStudents = DB::table('violations')
         ->join('users', 'violations.student_id', '=', 'users.student_id')
         ->select('users.fname', 'users.lname', 'users.student_id')
-        ->where('violations.penalty', 'Exp')
-        ->where('violations.status', 'active')
+        ->whereIn('violations.penalty', ['Exp', 'T'])
+        
         ->when($batch !== 'all', function($query) use ($batch) {
             $query->where('users.student_id', 'like', $batch . '%');
         })
@@ -115,28 +115,28 @@
 @endphp
             <section class="warning-section" style="padding: 20px; display: flex; justify-content: space-between; flex-wrap: nowrap;">
                 <!-- Penalty Statistics Boxes -->
-                <a href="{{ route('educator.students-by-penalty', ['penalty' => 'VW']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
+                <a href="{{ route('educator.studentsByPenalty', ['penalty' => 'V']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
                     <div class="penalty-header" style="display: flex; flex-direction: column; align-items: center;">
                         <span>Verbal Warning<br>Student</span>
                         <span class="count-badge" style="background: none; width: auto; height: auto; margin-top: 10px; font-size: 36px; color: #333;">{{ $verbalWarningCount }}</span>
                     </div>
                 </a>
                 
-                <a href="{{ route('educator.students-by-penalty', ['penalty' => 'WW']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
+                <a href="{{ route('educator.studentsByPenalty', ['penalty' => 'W']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
                     <div class="penalty-header" style="display: flex; flex-direction: column; align-items: center;">
                         <span>Written Warning<br>Student</span>
                         <span class="count-badge" style="background: none; width: auto; height: auto; margin-top: 10px; font-size: 36px; color: #333;">{{ $writtenWarningCount }}</span>
                     </div>
                 </a>
                 
-                <a href="{{ route('educator.students-by-penalty', ['penalty' => 'Pro']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
+                <a href="{{ route('educator.studentsByPenalty', ['penalty' => 'P']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
                     <div class="penalty-header" style="display: flex; flex-direction: column; align-items: center;">
                         <span>Probation Student</span>
                         <span class="count-badge" style="background: none; width: auto; height: auto; margin-top: 10px; font-size: 36px; color: #333;">{{ $probationCount }}</span>
                     </div>
                 </a>
                 
-                <a href="{{ route('educator.students-by-penalty', ['penalty' => 'Exp']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
+                <a href="{{ route('educator.studentsByPenalty', ['penalty' => 'T']) }}" class="warning-box tall" style="flex: 1; margin: 0 8px; text-align: center;">
                     <div class="penalty-header" style="display: flex; flex-direction: column; align-items: center;">
                         <span>Expulsion Student</span>
                         <span class="count-badge" style="background: none; width: auto; height: auto; margin-top: 10px; font-size: 36px; color: #333;">{{ $expulsionCount }}</span>
